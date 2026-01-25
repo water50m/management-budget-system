@@ -4,9 +4,10 @@ $host = "localhost";
 $user = "root";       // ปกติ XAMPP ใช้ root
 $pass = "";           // ปกติ XAMPP ไม่ใส่รหัส
 $dbname = "rms_db"; // ชื่อฐานข้อมูลของคุณ
+$port = 3306;
 
 // สร้างการเชื่อมต่อ
-$conn = mysqli_connect($host, $user, $pass, $dbname);
+$conn = mysqli_connect($host, $user, $pass, $dbname, $port);
 
 // ตรวจสอบการเชื่อมต่อ
 if (!$conn) {
