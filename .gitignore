@@ -1,0 +1,38 @@
+# --- OS Files (ไฟล์ขยะของระบบปฏิบัติการ) ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Editor / IDE (ไฟล์ตั้งค่าของโปรแกรมเขียนโค้ด) ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# --- PHP & Dependencies ---
+/vendor/
+composer.lock
+error_log
+php_error.log
+
+# --- Security (ความปลอดภัย - สำคัญมาก) ---
+.env
+# ถ้าในอนาคตคุณเอาขึ้น Server จริง ควรซ่อนไฟล์เชื่อมต่อฐานข้อมูลที่มีรหัสผ่าน
+# includes/db.php 
+
+# --- Uploads (ไฟล์ที่ User อัปโหลด ไม่ควรเอาขึ้น Git) ---
+# แต่เราจะเก็บโฟลเดอร์เปล่าๆ ไว้ โดยใช้ .gitkeep
+/uploads/*
+!/uploads/.gitkeep
+
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+
+/public/images/uploads/*
+!/public/images/uploads/.gitkeep
+
+# --- Build / Dist (ถ้ามีการใช้ node_modules) ---
+node_modules/
+/dist/
