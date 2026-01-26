@@ -36,3 +36,8 @@ php_error.log
 # --- Build / Dist (ถ้ามีการใช้ node_modules) ---
 node_modules/
 /dist/
+
+
+# db.php 
+# git update-index --assume-unchanged <path to ชื่อไฟล์>
+# git update-index --no-assume-unchanged <path to ชื่อไฟล์>

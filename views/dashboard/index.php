@@ -43,13 +43,13 @@
                    class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'approval' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
                    ✅ ยอดที่อนุมัติ (Approved)
                 </a>
-                <a href="index.php?page=dashboard&tab=request" 
-                   class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'request' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
+                <a href="index.php?page=dashboard&tab=expense" 
+                   class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'expense' ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
                    📝 ยอดที่ขอ (Request)
                 </a>
 
                 <a href="index.php?page=dashboard&tab=users" 
-                   class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'users' ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
+                   class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'users' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
                    👥 ผู้ใช้งาน (Users)
                 </a>
                 <?php if ($_SESSION['role'] == 'high-admin'): ?>
@@ -115,7 +115,7 @@
                             <th class="px-6 py-4 font-bold text-center w-16">#</th>
                             <th class="px-6 py-4 font-bold">ภาควิชา</th>
                             <th class="px-6 py-4 font-bold">ชื่อ - นามสกุล</th>
-                            <th class="px-6 py-4 font-bold text-right">จำนวนเงิน</th>
+                            <th class="px-6 py-4 font-bold text-right">จำนวนเงิน (บาท)</th>
                             <th class="px-6 py-4 font-bold text-center">วันที่อนุมัติ</th>
                             <th class="px-6 py-4 font-bold">หมายเหตุ</th>
                             <th class="px-6 py-4 font-bold text-center w-24">จัดการ</th>
@@ -149,7 +149,7 @@
 
                                 <?php if ($used > 0): ?>
                                     <div class="inline-block"
-                                        onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วนถูกใช้ไปแล้ว')"
+                                        onmouseenter="showGlobalAlert('⚠️ ไม่สามารถทำรายการได้: งบประมาณบางส่วนถูกใช้ไปแล้ว')"
                                         onmouseleave="hideGlobalAlert()">
                                         
                                         <button type="button" class="text-gray-300 cursor-not-allowed">
@@ -175,10 +175,176 @@
                 </table>
             </div>
 
-        <?php elseif ($data['view_mode'] == 'admin_request_table'): ?>
-            <div class="bg-white rounded-xl shadow-lg p-8 text-center text-gray-400 border">
-                 (ตาราง Request แสดงตรงนี้เหมือนเดิม)
-             </div>
+        <?php elseif ($data['view_mode'] == 'admin_expense_table'): ?>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-100 mb-6">
+                <form method="GET" action="index.php">
+                    <input type="hidden" name="page" value="dashboard">
+                    <input type="hidden" name="tab" value="expense">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                        
+                        <div class="md:col-span-3 flex flex-col justify-end">
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <label class="block text-xs font-bold text-gray-700">คำค้นหา</label>
+                            </div>
+
+                            <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500">
+                                <div class="pl-3 pr-2 text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                
+                                <input type="text" name="search" value="<?php echo htmlspecialchars($data['filters']['search']); ?>" 
+                                    class="w-full border-none text-xs text-gray-700 py-2 focus:ring-0 bg-transparent placeholder-gray-400 leading-tight" 
+                                    placeholder="ระบุชื่อ / รายละเอียด...">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-3 flex flex-col justify-end">
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <label class="block text-xs font-bold text-gray-700">ช่วงวันที่</label>
+                                
+                                <div class="relative">
+                                    <select name="date_type" class="appearance-none bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-[11px] font-bold rounded px-2 py-0.5 pr-6 cursor-pointer focus:outline-none focus:ring-1 focus:ring-purple-500 transition">
+                                        <option value="approved" <?php echo ($data['filters']['date_type'] == 'approved') ? 'selected' : ''; ?>>
+                                            ตามเอกสาร
+                                        </option>
+                                        <option value="created" <?php echo ($data['filters']['date_type'] == 'created') ? 'selected' : ''; ?>>
+                                            วันที่คีย์
+                                        </option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-purple-600">
+                                        <svg class="h-3 w-3 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500">
+                                <input type="date" name="start_date" value="<?php echo $data['filters']['start_date']; ?>" 
+                                    class="w-1/2 border-none text-xs text-gray-600 py-2 px-2 text-center focus:ring-0 bg-transparent"
+                                    placeholder="เริ่มต้น">
+                                
+                                <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-xs text-gray-500 font-medium">
+                                    ถึง
+                                </div>
+                                
+                                <input type="date" name="end_date" value="<?php echo $data['filters']['end_date']; ?>" 
+                                    class="w-1/2 border-none text-xs text-gray-600 py-2 px-2 text-center focus:ring-0 bg-transparent"
+                                    placeholder="สิ้นสุด">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2 flex flex-col justify-end">
+                            <div class="flex items-center mb-1.5 h-[21px]">
+                                <label class="block text-xs font-bold text-gray-700">หมวดหมู่</label>
+                            </div>
+                            
+                            <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500">
+                                <div class="pl-2 text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                    </svg>
+                                </div>
+                                <select name="cat_id" class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-8 focus:ring-0 bg-transparent cursor-pointer">
+                                    <option value="0">--ทุกหมวด--</option>
+                                    <?php foreach ($data['categories_list'] as $cat): ?>
+                                        <option value="<?php echo $cat['id']; ?>" <?php echo ($data['filters']['cat_id'] == $cat['id']) ? 'selected' : ''; ?>>
+                                            <?php echo $cat['name_th']; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-3 flex flex-col justify-end">
+                            <div class="flex items-center mb-1.5 h-[21px]">
+                                <label class="block text-xs font-bold text-gray-700">จำนวนเงิน (บาท)</label>
+                            </div>
+
+                            <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500">
+                                <input type="number" name="min_amount" placeholder="Min" value="<?php echo $data['filters']['min_amount']; ?>" 
+                                    class="w-1/2 border-none text-xs text-gray-600 py-2 px-2 text-center focus:ring-0 bg-transparent" step="0.01">
+                                
+                                <div class="bg-gray-100 border-l border-r border-gray-200 px-3 py-2 text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </div>
+                                
+                                <input type="number" name="max_amount" placeholder="Max" value="<?php echo $data['filters']['max_amount']; ?>" 
+                                    class="w-1/2 border-none text-xs text-gray-600 py-2 px-2 text-center focus:ring-0 bg-transparent" step="0.01">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-1 flex flex-col justify-end">
+                            <div class="h-[21px] mb-1.5"></div>
+                            
+                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                ค้นหา
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-purple-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-purple-50 text-purple-900 border-b border-purple-100">
+                            <tr>
+                                <th class="px-6 py-4 font-bold text-center w-16">#</th>
+                                <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่รายการ</th>
+                                <th class="px-6 py-4 font-bold">ผู้เบิกจ่าย</th>
+                                <th class="px-6 py-4 font-bold whitespace-nowrap">หมวดหมู่</th> <th class="px-6 py-4 font-bold">รายละเอียด</th> <th class="px-6 py-4 font-bold text-right">จำนวนเงิน (บาท)</th>
+                                </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <?php if (empty($data['expenses'])): ?>
+                                <tr>
+                                    <td colspan="6" class="p-12 text-center text-gray-400">
+                                        <div class="flex flex-col items-center">
+                                            <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                            ไม่พบรายการที่ค้นหา
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($data['expenses'] as $index => $row): ?>
+                                    <tr class="hover:bg-purple-50/30 transition group">
+                                        <td class="px-6 py-4 text-center text-gray-400"><?php echo $index + 1; ?></td>
+                                        <td class="px-6 py-4 text-gray-600 whitespace-nowrap">
+                                            <?php echo $row['thai_date']; ?>
+                                            <div class="text-[10px] text-gray-400">เวลา: <?php echo date('H:i', strtotime($row['created_at'])); ?> น.</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="font-bold text-gray-800"><?php echo $row['prefix'].$row['first_name'].' '.$row['last_name']; ?></div>
+                                            <div class="text-xs text-gray-500"><?php echo $row['department']; ?></div>
+                                        </td>
+                                        
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-block px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 text-purple-700">
+                                                <?php echo $row['category_name'] ? $row['category_name'] : '-'; ?>
+                                            </span>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-gray-600">
+                                            <?php echo $row['description']; ?>
+                                        </td>
+
+                                        <td class="px-6 py-4 text-right font-mono font-bold text-red-600 text-lg whitespace-nowrap">
+                                            - <?php echo number_format($row['amount'], 2); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
         <?php elseif ($data['view_mode'] == 'admin_user_list'): ?>
             
@@ -441,27 +607,11 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">รายละเอียด</label>
-                    <input type="text" name="description" placeholder="เช่น ค่าลงทะเบียนงานประชุมวิชาการ..." required 
+                    <input type="text" name="description" placeholder="เช่น ค่าลงทะเบียนงานประชุมวิชาการ..." 
                            class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
                 </div>
 
-
                 
-                
-
-                <div class="flex items-start gap-3 bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-2">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" id="usePrevBudget" name="use_prev_budget" value="1" 
-                               class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                    </div>
-                    <label for="usePrevBudget" class="text-sm text-gray-800 font-medium cursor-pointer select-none">
-                        ใช้งบประมาณปีก่อนหน้า (Carry Over)
-                        <p class="text-xs text-gray-500 mt-1">
-                            ระบบจะบันทึกเป็น "งบ_(ปีก่อน)_ใช้_(ปีปัจจุบัน)"<br>
-                            <span class="text-red-500">* เช่น วันที่ 2569 ติ๊กช่องนี้ -> งบ_68_ใช้_69</span>
-                        </p>
-                    </label>
-                </div>
             </div>
 
             <div class="mt-6 flex justify-end gap-3 pt-4 border-t">

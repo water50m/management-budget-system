@@ -145,22 +145,23 @@ class DashboardController {
             if (isset($_POST['action']) && $_POST['action'] == 'add_expense') {
                 $page = 'users';
                 $user_id = mysqli_real_escape_string($conn, $_POST['target_user_id']);
-                $amount_needed = floatval($_POST['amount']); // ยอดที่ต้องการจ่าย
+                $amount_needed = floatval($_POST['amount']); 
                 $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
-                $category_id = intval($_POST['category_id']); // ใช้ ID ตามที่เราแก้แล้ว
+                $category_id = intval($_POST['category_id']); 
                 $description = mysqli_real_escape_string($conn, $_POST['description']);
-                $use_prev_budget = isset($_POST['use_prev_budget']) ? 1 : 0; // 1=ใช้งบปีก่อน, 0=งบปีนี้
-
-                // เริ่ม Transaction (สำคัญมาก! เพื่อความปลอดภัยของข้อมูล)
+                                
                 mysqli_begin_transaction($conn);
 
                 try {
                     // ---------------------------------------------------------
-                    // A. บันทึกรายจ่ายลงตารางหลักก่อน (budget_expenses)
+                    // A. บันทึกรายจ่ายลงตารางหลัก (budget_expenses)
                     // ---------------------------------------------------------
                     $approved_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
-                    $budget_source = $use_prev_budget ? 'carry_over' : 'current_year';
                     
+                    // กำหนด Type เป็น 'FIFO' หรือ 'System' เพื่อให้รู้ว่าระบบตัดเอง
+                    // (ถ้า Database คุณบังคับ ENUM 'current_year','carry_over' อาจต้องไปแก้ DB หรือใส่ค่าใดค่าหนึ่งไปก่อน)
+                    $budget_source = 'FIFO'; 
+
                     $sql_ins = "INSERT INTO budget_expenses 
                                 (user_id, category_id, description, amount, approved_date, budget_source_type) 
                                 VALUES 
@@ -170,56 +171,41 @@ class DashboardController {
                         throw new Exception("Error Inserting Expense: " . mysqli_error($conn));
                     }
                     
-                    $new_expense_id = mysqli_insert_id($conn); // ได้ ID ของบิลรายจ่ายมาแล้ว
+                    $new_expense_id = mysqli_insert_id($conn); 
 
                     // ---------------------------------------------------------
-                    // B. ค้นหาใบอนุมัติที่มีเงินเหลือ (FIFO Logic)
+                    // B. ค้นหาใบอนุมัติ (FIFO Logic แบบรวมถุง)
                     // ---------------------------------------------------------
                     
-                    // กำหนดเงื่อนไขปีงบประมาณ (แยกกระเป๋าตาม Checkbox)
-                    $fiscal_condition = "";
-                    $current_year = (date('m') >= 10) ? date('Y') + 1 : date('Y'); // ปีงบปัจจุบัน
-                    
-                    if ($use_prev_budget) {
-                        // ถ้าติ๊กใช้งบเก่า: หาใบที่อนุมัติก่อนปีงบปัจจุบัน
-                        $fiscal_condition = "AND (YEAR(approved_date) + (IF(MONTH(approved_date)>=10,1,0))) < $current_year";
-                    } else {
-                        // ถ้าไม่ติ๊ก (ใช้งบปีนี้): หาใบที่เป็นปีงบปัจจุบัน
-                        $fiscal_condition = "AND (YEAR(approved_date) + (IF(MONTH(approved_date)>=10,1,0))) = $current_year";
-                    }
-
-                    // Query ดึงใบอนุมัติ + คำนวณยอดที่ใช้ไปแล้ว (Used)
-                    // เรียงตาม approved_date ASC (เก่าสุดขึ้นก่อน -> FIFO)
-                    $sql_app = "SELECT a.id, a.approved_amount, a.approved_date,
+                    // ✅ Query เดียว ดึงหมดทุกใบที่มีเงินเหลือ เรียงตามวันที่อนุมัติ (เก่าสุดขึ้นก่อน)
+                    // ตัดเงื่อนไข Fiscal Year ออก เพื่อให้มันมองเห็นงบทุกก้อน
+                    $sql_app = "SELECT a.id, a.approved_amount, a.approved_date, a.fiscal_year,
                                 COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as used_so_far
                                 FROM budget_approvals a
                                 WHERE a.user_id = '$user_id'
-                                AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) -- ต้องยังไม่หมดอายุ
-                                $fiscal_condition
+                                AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) -- (Optional) กรองใบที่เก่าเกิน 2 ปีทิ้ง ถ้าไม่ใช้ก็ลบบรรทัดนี้ได้
                                 HAVING (a.approved_amount - used_so_far) > 0
-                                ORDER BY a.approved_date ASC";
+                                ORDER BY a.approved_date ASC"; // หัวใจสำคัญของ FIFO คือตรงนี้ (เก่าไปใหม่)
 
                     $res_app = mysqli_query($conn, $sql_app);
-                    $money_to_cut = $amount_needed; // ตัวแปรช่วยนับยอดคงเหลือที่ต้องตัด
+                    $money_to_cut = $amount_needed;
 
                     // ---------------------------------------------------------
                     // C. วนลูปตัดเงินทีละใบ
                     // ---------------------------------------------------------
                     while ($row = mysqli_fetch_assoc($res_app)) {
-                        if ($money_to_cut <= 0) break; // ถ้าตัดครบแล้ว หยุดลูปทันที
+                        if ($money_to_cut <= 0) break;
 
                         $available_on_this_slip = $row['approved_amount'] - $row['used_so_far'];
                         $cut_amount = 0;
 
                         if ($money_to_cut >= $available_on_this_slip) {
-                            // กรณี 1: เงินใบนี้ "ไม่พอ" หรือ "พอดี" -> ตัดเกลี้ยงใบ
-                            $cut_amount = $available_on_this_slip;
+                            $cut_amount = $available_on_this_slip; // ตัดหมดใบนี้
                         } else {
-                            // กรณี 2: เงินใบนี้ "เหลือเยอะกว่า" -> ตัดเท่าที่ต้องใช้
-                            $cut_amount = $money_to_cut;
+                            $cut_amount = $money_to_cut; // ตัดบางส่วน
                         }
 
-                        // บันทึกลงตาราง Log (หัวใจสำคัญ!)
+                        // บันทึก Log การใช้เงิน
                         $sql_log = "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used)
                                     VALUES ('$new_expense_id', '{$row['id']}', '$cut_amount')";
                         
@@ -227,43 +213,30 @@ class DashboardController {
                             throw new Exception("Error Logging Usage: " . mysqli_error($conn));
                         }
 
-                        $money_to_cut -= $cut_amount; // ลดยอดที่ต้องการจ่ายลง
+                        $money_to_cut -= $cut_amount;
                     }
 
                     // ---------------------------------------------------------
                     // D. เช็คความถูกต้องสุดท้าย
                     // ---------------------------------------------------------
-                    if ($money_to_cut > 0) {
-                        // ถ้าวนลูปจนหมดทุกใบแล้ว เงินยังไม่พอจ่าย (แสดงว่ายอดเงินคงเหลือหน้าเว็บอาจไม่อัปเดต)
-                        // คุณเลือกได้ว่าจะ Rollback (ห้ามบันทึก) หรือจะยอมให้บันทึกแบบติดลบ
-                        // ในที่นี้ผมแนะนำให้ยอมบันทึกไปก่อน (แต่มันจะไม่มี Log จับคู่ในส่วนที่เกิน) 
-                        // หรือจะ throw Exception เพื่อห้ามบันทึกก็ได้ครับ
-                    }
-
                     $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0; 
-                    $budget_text = $use_prev_budget ? "งบปีก่อนหน้า" : "งบปีปัจจุบัน";
-                    $log_desc = "บันทึกรายจ่าย ($budget_text): $description จำนวน " . number_format($amount_needed, 2) . " บาท";
                     
-                    // เรียกใช้ฟังก์ชันที่มีอยู่แล้วใน Class
+                    // เปลี่ยนคำอธิบาย Log นิดหน่อยให้เข้าใจง่าย
+                    $log_desc = "บันทึกรายจ่าย (FIFO): $description จำนวน " . number_format($amount_needed, 2) . " บาท";
+                    
                     $this->logActivity($conn, $actor_id, $user_id, 'add_expense', $log_desc);
 
-                    // ยืนยันข้อมูลทั้งหมด (Save)
                     mysqli_commit($conn);
                     
-                    // Redirect กลับไป
+                    // Redirect
                     if ($page == '') {
-                        // ถ้าไม่มีการระบุหน้า ให้กลับไปที่ Dashboard ปกติ
                         header("Location: index.php?page=dashboard&status=success");
                     } else {
-                        // ถ้ามีระบุหน้า (เช่น กลับไปหน้า profile) ให้ส่งค่า tab หรือ page กลับไปด้วย
-                        // แก้ไข: ใช้ . เชื่อมสตริง และแก้ succes เป็น success
                         header("Location: index.php?page=dashboard&status=success&tab=" . $page);
                     }
                     exit;
-                    
 
                 } catch (Exception $e) {
-                    // ถ้ามี Error แม้แต่นิดเดียว -> ยกเลิกทั้งหมด (ข้อมูลไม่พัง)
                     mysqli_rollback($conn);
                     echo "เกิดข้อผิดพลาด: " . $e->getMessage();
                     exit;
@@ -361,6 +334,109 @@ class DashboardController {
                     while ($row = mysqli_fetch_assoc($result)) {
                         $row['thai_date'] = $this->dateToThai($row['approved_date']);
                         $data['approvals'][] = $row;
+                    }
+
+                } elseif ($tab == 'expense') {
+                    $data['title'] = "ประวัติการเบิกจ่ายงบประมาณ";
+                    $data['view_mode'] = 'admin_expense_table';
+
+                    // 1. ดึงข้อมูลหมวดหมู่มาทำ Dropdown ตัวกรอง
+                    $cat_sql = "SELECT * FROM expense_categories ORDER BY name_th ASC";
+                    $cat_res = mysqli_query($conn, $cat_sql);
+                    $data['categories_list'] = [];
+                    while ($c = mysqli_fetch_assoc($cat_res)) {
+                        $data['categories_list'][] = $c;
+                    }
+
+                    // 2. รับค่าจากตัวกรอง (Filter Inputs)
+                    $search_text = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+                    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
+                    $end_date   = isset($_GET['end_date']) ? $_GET['end_date'] : '';
+                    $cat_filter = isset($_GET['cat_id']) ? intval($_GET['cat_id']) : 0;
+                    $min_amt    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
+                    $max_amt    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
+                    $search_text = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+    
+                    // ✅ 1. เพิ่มตัวแปรรับประเภทวันที่ (ค่าเริ่มต้นคือ 'approved' หรือวันที่เอกสาร)
+                    $date_type  = isset($_GET['date_type']) ? $_GET['date_type'] : 'approved'; 
+                    
+
+                    // เก็บค่าไว้แสดงกลับใน Form (Sticky Form)
+                    $data['filters'] = [
+                        'search' => $search_text,
+                        'date_type' => $date_type, // ✅ ส่งกลับไป
+                        'start_date' => $start_date,
+                        'end_date' => $end_date,
+                        'cat_id' => $cat_filter,
+                        'min_amount' => $min_amt,
+                        'max_amount' => $max_amt
+                    ];
+
+                    // 3. เริ่มเขียน Query หลัก
+                    $sql = "SELECT e.*, 
+                                p.prefix, p.first_name, p.last_name, 
+                                c.name_th as category_name,
+                                d.thai_name as department
+                            FROM budget_expenses e
+                            JOIN users u ON e.user_id = u.id
+                            JOIN user_profiles p ON u.id = p.user_id
+                            LEFT JOIN expense_categories c ON e.category_id = c.id
+                            LEFT JOIN departments d ON p.department_id = d.id
+                            WHERE 1=1 ";
+
+                    // --- ใส่เงื่อนไขการกรอง ---
+                    
+                    // กรองชื่อ / นามสกุล / รายละเอียด
+                    if (!empty($search_text)) {
+                        $sql .= " AND (p.first_name LIKE '%$search_text%' OR p.last_name LIKE '%$search_text%' OR e.description LIKE '%$search_text%') ";
+                    }
+
+                    // กรองช่วงวันที่ (Start - End)
+                    if (!empty($start_date) && !empty($end_date)) {
+                        if ($date_type == 'created') {
+                            // ถ้าเลือก "วันที่คีย์ข้อมูล" ให้เทียบกับ created_at (เอาเฉพาะวันที่ ไม่เอาเวลา)
+                            $sql .= " AND DATE(e.created_at) BETWEEN '$start_date' AND '$end_date' ";
+                        } else {
+                            // ค่าปกติ: เทียบกับ approved_date (วันที่เอกสาร)
+                            $sql .= " AND e.approved_date BETWEEN '$start_date' AND '$end_date' ";
+                        }
+                    } 
+                    // (เพิ่ม Logic แบบเดียวกันสำหรับกรณีมีแค่ Start หรือ End อย่างเดียวได้ตามต้องการ)
+                    elseif (!empty($start_date)) {
+                        $col = ($date_type == 'created') ? "DATE(e.created_at)" : "e.approved_date";
+                        $sql .= " AND $col >= '$start_date' ";
+                    }
+                    elseif (!empty($end_date)) {
+                        $col = ($date_type == 'created') ? "DATE(e.created_at)" : "e.approved_date";
+                        $sql .= " AND $col <= '$end_date' ";
+                    }
+
+                    // กรองหมวดหมู่
+                    if ($cat_filter > 0) {
+                        $sql .= " AND e.category_id = $cat_filter ";
+                    }
+
+                    // กรองช่วงจำนวนเงิน (Min - Max)
+                    if ($min_amt !== '') {
+                        $sql .= " AND e.amount >= $min_amt ";
+                    }
+                    if ($max_amt !== '') {
+                        $sql .= " AND e.amount <= $max_amt ";
+                    }
+
+                    $sql .= " ORDER BY e.approved_date DESC, e.created_at DESC";
+
+                    // 4. รัน Query และเก็บผลลัพธ์
+                    $data['expenses'] = [];
+                    $result = mysqli_query($conn, $sql);
+                    
+                    if (!$result) {
+                        die("SQL Error: " . mysqli_error($conn));
+                    }
+
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        $row['thai_date'] = $this->dateToThai($row['approved_date']);
+                        $data['expenses'][] = $row;
                     }
 
                 } elseif ($tab == 'users') { 
