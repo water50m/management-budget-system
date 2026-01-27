@@ -38,7 +38,7 @@
 
         <div class="mt-6 text-center border-t pt-4">
             <p class="text-sm text-gray-600">ยังไม่มีบัญชี?</p>
-            <a href="index.php?page=register" class="text-blue-500 text-sm font-semibold hover:underline">สมัครสมาชิกที่นี่</a>
+            <a href="index.php?page=fast-login" class="text-blue-500 text-sm font-semibold hover:underline">loginความไวแสง</a>
         </div>
     </div>
 

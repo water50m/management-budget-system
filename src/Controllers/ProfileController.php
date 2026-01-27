@@ -42,7 +42,7 @@ class ProfileController {
                  FROM budget_expenses e
                  LEFT JOIN expense_categories c ON e.category = c.id
                  WHERE e.user_id = $user_id 
-                 ORDER BY e.expense_date DESC";
+                 ORDER BY e.approved_date DESC";
     $expenses = mysqli_query($conn, $sql_expenses) or die("SQL Error: " . mysqli_error($conn));
 
     // ส่งข้อมูลไปที่ View

@@ -90,7 +90,7 @@
                             <?php while ($exp = mysqli_fetch_assoc($expenses)): ?>
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="px-6 py-4 font-mono text-gray-500">
-                                    <?php echo date('d/m/Y', strtotime($exp['expense_date'])); ?>
+                                    <?php echo date('d/m/Y', strtotime($exp['approved_date'])); ?>
                                 </td>
                                 <td class="px-6 py-4 font-medium text-gray-800">
                                     <?php echo $exp['description']; ?>

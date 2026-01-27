@@ -58,6 +58,63 @@ class AuthController {
         require_once __DIR__ . '/../../views/auth/login.php';
     }
 
+    public function LDAP_login(){
+        global $conn;
+        if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+            
+            $user = $_POST["username"];
+            $psw = $_POST["password"];
+            $user = stripslashes($user);
+            $psw = stripslashes($psw);
+            $user = mysqli_real_escape_string($conn, $user);
+            $psw = mysqli_real_escape_string($conn, $psw);
+
+            include_once __DIR__ . '/../../inc/func.php';
+            loadEnv(__DIR__ . '/../../.env');
+            if (!getenv('LDAP_SERVER')){
+                echo 'Not found secret key (2)';
+                exit;
+            }
+            $server = getenv('LDAP_SERVER');
+            $local = getenv('LDAP_DOMAIN');
+            $ad = ldap_connect($server);
+            ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+            ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+            $ad = ldap_connect($server);
+            if (!$ad) {
+                header("Location: index.php?page=login&status=cant_connect_to_server");
+                //die("Connect not connect to ".$server); 
+                echo "ไม่สามารถติดต่อ server มหาลัยเพื่อตรวจสอบรหัสผ่านได้"; 
+                exit(); 
+            } else {
+                $b = @ldap_bind($ad, $user . $local, $psw);
+                if (!$b) {
+                
+                header("Location: index.php?page=login&status=incorrect_username_or_password");
+                echo " Username หรือ Password ไม่ถูกต้อง ";
+                exit(); 
+                } else { 
+                    $_SESSION['user_id'] = '1';
+                    $_SESSION['username'] = 'high-admin';
+                    $_SESSION['role'] = 'high-admin';
+                    $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+                    header("Location: index.php?page=dashboard");
+                }
+            }
+            }
+        }
+        require_once __DIR__ . '/../../views/auth/login.php';
+    }
+    public function fast_login(){
+    $_SESSION['user_id'] = '1';
+    $_SESSION['username'] = 'high-admin';
+    $_SESSION['role'] = 'high-admin';
+    $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+    header("Location: index.php?page=dashboard");
+
+    }
+
     // ฟังก์ชัน Logout
     public function logout() {
         session_start();

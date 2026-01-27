@@ -105,8 +105,8 @@ function handleAmountInput(input) {
 
 
 // ฟังก์ชันคำนวณสด (Real-time)
-function calculateRealtimeBalance() {
-    const inputVal = document.getElementById('inputAmountReal').value;
+function calculateRealtimeBalance(realValue) {
+    const inputVal = realValue;
     const amountToCut = parseFloat(inputVal) || 0;
     
         

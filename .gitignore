@@ -41,3 +41,4 @@ node_modules/
 # db.php 
 # git update-index --assume-unchanged <path to ชื่อไฟล์>
 # git update-index --no-assume-unchanged <path to ชื่อไฟล์>
+login_chk.php
