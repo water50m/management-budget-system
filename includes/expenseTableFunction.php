@@ -130,7 +130,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <input type="text" inputmode="decimal" placeholder="Min"
                             value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
                             class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="AppHelper.formatCurrency(this, 'min_amount_hidden')">
+                            oninput="formatCurrency(this, 'min_amount_hidden')">
 
                         <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,7 +143,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <input type="text" inputmode="decimal" placeholder="Max"
                             value="<?php echo ($filters['max_amount'] !== '') ? number_format((float)$filters['max_amount']) : ''; ?>"
                             class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="AppHelper.formatCurrency(this, 'max_amount_hidden')">
+                            oninput="formatCurrency(this, 'max_amount_hidden')">
                     </div>
                 </div>
 
@@ -239,4 +239,35 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
     </div>
 <?php
 }
+// การนำไปใช้
+// renderExpenseTableComponent(
+//                 $data['expenses'],          // ข้อมูลรายการ
+//                 $data['filters'],           // ข้อมูลการกรอง
+//                 $data['departments_list'],  // ข้อมูล dropdown แผนก
+//                 $data['categories_list'],    // ข้อมูล dropdown หมวดหมู่
+//                 $year = $data['years_list'],
+//                 $color = 'purple'
+//             ); 
+// ?>
+
+<?php 
+function submitDeleteExpense($conn){
+    $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
+
+    if ($expense_id > 0) {
+        $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
+        if (mysqli_query($conn, $sql)) {
+            // ✅ ลบเสร็จ Redirect กลับมาหน้าเดิม (Refresh)
+            header("Location: index.php?page=dashboard&tab=expense&status=deleted");
+            exit();
+        } else {
+            echo "Error: " . mysqli_error($conn);
+            exit();
+        }
+    }
+}
+// การนำไปใช้
+// if (isset($_POST['action']) && $_POST['action'] == 'delete_expense'){
+//     submitDeleteExpense($conn);
+// }
 ?>

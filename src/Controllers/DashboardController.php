@@ -1,16 +1,13 @@
 <?php
 // src/Controllers/DashboardController.php
 require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
+require_once __DIR__ . '/../../includes/expenseTableFunction.php';
+require_once __DIR__ . '/../../includes/approveTableFunction.php';
+require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 class DashboardController {
     
-    // ฟังก์ชันสำหรับบันทึก Log การกระทำต่างๆ
-    private function logActivity($conn, $actor_id, $target_id, $action, $desc) {
-        $desc = mysqli_real_escape_string($conn, $desc);
-        $sql = "INSERT INTO activity_logs (actor_id, target_id, action_type, description) 
-                VALUES ($actor_id, $target_id, '$action', '$desc')";
-        mysqli_query($conn, $sql);
-    }
 
     private function getRemainingBalance($conn, $user_id) {
         $today = date('Y-m-d');
@@ -58,19 +55,7 @@ class DashboardController {
             $page = '';
             // 1.1 Action: แก้ไข Role (เฉพาะ High-Admin)
             if (isset($_POST['action']) && $_POST['action'] == 'update_role' && $role == 'high-admin') {
-                $target_uid = intval($_POST['target_user_id']);
-                $new_role = mysqli_real_escape_string($conn, $_POST['new_role']);
-                
-                // อัปเดต Role ลง DB
-                $sql_update = "UPDATE users SET role = '$new_role' WHERE id = $target_uid";
-                if (mysqli_query($conn, $sql_update)) {
-                    // บันทึก Log
-                    $this->logActivity($conn, $user_id, $target_uid, 'update_role', "เปลี่ยนสิทธิ์เป็น $new_role");
-                    
-                    // Redirect กลับมาหน้าเดิม (tab users) เพื่อไม่ให้ Form ค้าง
-                    header("Location: index.php?page=dashboard&tab=users&success=role_updated");
-                    exit();
-                }
+                submitUpdateRole($conn);
             }
             if (isset($_POST['action']) && $_POST['action'] == 'add_budget') {
                 $page = 'users';
@@ -105,7 +90,7 @@ class DashboardController {
                     $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท (หมายเหตุ: $remark)";
                     
                     // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
-                    $this->logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc);
+                    logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc);
 
                     // ยืนยันข้อมูลทั้งหมด (Commit)
                     mysqli_commit($conn);
@@ -123,36 +108,7 @@ class DashboardController {
             }
 
             if (isset($_POST['action']) && $_POST['action'] == 'delete_budget'){
-
-                // 2. รับค่า ID และแปลงเป็นตัวเลขจำนวนเต็มทันที (เพื่อป้องกัน SQL Injection)
-                $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
-
-                // 3. ตรวจสอบว่า ID ถูกต้องหรือไม่
-                if ($id > 0) {
-                    
-                    // --- (Option A: ลบจริง Hard Delete) ---
-                    // $sql = "DELETE FROM budget_years WHERE id = $id"; // เปลี่ยน budget_years เป็นชื่อตารางงบประมาณของคุณ
-                    
-                    // --- (Option B: ลบแบบซ่อน Soft Delete - แนะนำวิธีนี้) ---
-                    // วิธีนี้ข้อมูลไม่หายจริง แค่เปลี่ยนสถานะเป็น 'deleted' หรือ 'inactive'
-                    // ช่วยกู้คืนได้ถ้า User เผลอลบผิด
-                    $sql = "UPDATE budget_years SET status = 'deleted' WHERE id = $id"; 
-
-                    // 4. สั่งรันคำสั่ง SQL
-                    if (mysqli_query($conn, $sql)) {
-                        // ✅ ลบสำเร็จ: Redirect กลับไปหน้าเดิม พร้อมแนบสถานะ success
-                        header("Location: index.php?page=dashboard&status=success&msg=deleted");
-                        exit();
-                    } else {
-                        // ❌ ลบไม่สำเร็จ: แสดง Error (สำหรับการ Debug)
-                        echo "Error deleting record: " . mysqli_error($conn);
-                        exit();
-                    }
-                } else {
-                    // กรณี ID ไม่ถูกต้อง
-                    echo "Invalid ID.";
-                    exit();
-                }
+                submitDeleteAprove($conn);
             }
 
             // 1.2 Action: เพิ่มรายการใช้จ่าย (Add Expense)
@@ -238,7 +194,7 @@ class DashboardController {
                     // เปลี่ยนคำอธิบาย Log นิดหน่อยให้เข้าใจง่าย
                     $log_desc = "บันทึกรายจ่าย (FIFO): $description จำนวน " . number_format($amount_needed, 2) . " บาท";
                     
-                    $this->logActivity($conn, $actor_id, $user_id, 'add_expense', $log_desc);
+                    logActivity($conn, $actor_id, $user_id, 'add_expense', $log_desc);
 
                     mysqli_commit($conn);
                     
@@ -257,19 +213,7 @@ class DashboardController {
                 }
             }
             if (isset($_POST['action']) && $_POST['action'] == 'delete_expense'){
-                $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
-
-                if ($expense_id > 0) {
-                    $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
-                    if (mysqli_query($conn, $sql)) {
-                        // ✅ ลบเสร็จ Redirect กลับมาหน้าเดิม (Refresh)
-                        header("Location: index.php?page=dashboard&tab=expense&status=deleted");
-                        exit();
-                    } else {
-                        echo "Error: " . mysqli_error($conn);
-                        exit();
-                    }
-                }
+                submitDeleteExpense($conn);
             }
         }
 
@@ -616,41 +560,74 @@ class DashboardController {
 
                 } elseif ($tab == 'users') { 
                     $data['title'] = "รายชื่อผู้ใช้งานทั้งหมด";
-                    $data['view_mode'] = 'admin_user_list';
+                    $data['view_mode'] = 'admin_user_table'; // แก้ให้ตรงกับฝั่ง View
 
-                    $search_user = isset($_GET['search_user']) ? mysqli_real_escape_string($conn, $_GET['search_user']) : '';
-                    $dept_user   = isset($_GET['dept_user']) ? intval($_GET['dept_user']) : 0;
+                    // ---------------------------------------------------------
+                    // 2. รับค่าจากตัวกรอง (Filter Inputs)
+                    // ---------------------------------------------------------
+                    // รับค่า search_text (รวมชื่อและ username)
+                    $search_text = isset($_GET['search_text']) ? mysqli_real_escape_string($conn, $_GET['search_text']) : '';
                     
-                    $data['filter_user_name'] = $search_user;
-                    $data['filter_user_dept'] = $dept_user;
+                    // รับค่า ภาควิชา
+                    $dept_user = isset($_GET['dept_user']) ? intval($_GET['dept_user']) : 0;
+                    
+                    // ✅ รับค่า Role (เพิ่มใหม่)
+                    $role_user = isset($_GET['role_user']) ? mysqli_real_escape_string($conn, $_GET['role_user']) : '';
 
-                    // ปรับ SQL ให้แสดงทุกคน (รวม Admin) เพื่อให้ High-Admin เห็นและแก้ได้
-                    $sql = "SELECT u.*, p.*, d.thai_name AS department, b.remaining_balance 
+                    // ---------------------------------------------------------
+                    // 3. สร้าง SQL
+                    // ---------------------------------------------------------
+                    $sql = "SELECT u.*, p.*, d.thai_name AS department 
                             FROM users u
                             LEFT JOIN user_profiles p ON u.id = p.user_id
                             LEFT JOIN departments d ON p.department_id = d.id
-                            LEFT JOIN v_user_budget_summary b ON u.id = b.user_id 
                             WHERE 1=1 ";
 
-                    if (!empty($search_user)) {
-                        $sql .= " AND (p.first_name LIKE '%$search_user%' OR p.last_name LIKE '%$search_user%') ";
+                    // ---------------------------------------------------------
+                    // 4. ใส่ Logic Filter
+                    // ---------------------------------------------------------
+                    
+                    // ✅ 4.1 ค้นหาแบบรวม (Omni-search): ชื่อ OR นามสกุล OR Username
+                    if (!empty($search_text)) {
+                        $sql .= " AND (
+                            p.first_name LIKE '%$search_text%' OR 
+                            p.last_name LIKE '%$search_text%' OR 
+                            u.username LIKE '%$search_text%'
+                        ) ";
                     }
+
+                    // 4.2 กรองภาควิชา
                     if ($dept_user > 0) {
                         $sql .= " AND d.id = $dept_user ";
                     }
 
-                    $sql .= " ORDER BY d.id, p.first_name ASC";
+                    // ✅ 4.3 กรอง Role
+                    if (!empty($role_user)) {
+                        $sql .= " AND u.role = '$role_user' ";
+                    }
+
+                    // ---------------------------------------------------------
+                    // 5. ประมวลผลข้อมูล
+                    // ---------------------------------------------------------
+                    $sql .= " ORDER BY d.id ASC, p.first_name ASC"; // เรียงตามภาควิชา -> ชื่อ
                     
                     $data['user_list'] = [];
                     $result = mysqli_query($conn, $sql);
 
                     while ($row = mysqli_fetch_assoc($result)) {
+                        // ดึงยอดเงินคงเหลือ (ใช้ Function เดิมของคุณ)
                         $row['remaining_balance'] = $this->getRemainingBalance($conn, $row['id']);  
                         $data['user_list'][] = $row;
                     }
-                    
 
-                
+                    // ---------------------------------------------------------
+                    // 6. ส่งค่าตัวกรองกลับไปที่ View (เพื่อให้ Component แสดงค่าเดิม)
+                    // ---------------------------------------------------------
+                    $data['filters'] = [
+                        'search_text' => $search_text,
+                        'dept_user'   => $dept_user,
+                        'role_user'   => $role_user
+                    ];
 
                 } elseif ($tab == 'logs' && $role == 'high-admin') {
                     // === [ใหม่] แท็บที่ 4: ประวัติการใช้งาน (System Logs) ===

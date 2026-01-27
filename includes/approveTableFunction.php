@@ -1,5 +1,5 @@
 <?php
-
+include_once __DIR__ . '/text_box_alert.php';
 /**
  * Component แสดงตารางอนุมัติงบ (Approval)
  * - เหมือน Expense Table ทุกอย่าง
@@ -103,7 +103,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                         <input type="text" inputmode="decimal" placeholder="Min"
                             value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
                             class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="AppHelper.formatCurrency(this, 'min_amount_hidden')"></input>
+                            oninput="formatCurrency(this, 'min_amount_hidden')"></input>
 
                         <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,7 +117,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                         <input type="text" inputmode="decimal" placeholder="Max"
                             value="<?php echo ($filters['max_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
                             class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="AppHelper.formatCurrency(this, 'max_amount_hidden')"></input>
+                            oninput="formatCurrency(this, 'max_amount_hidden')"></input>
                     </div>
                 </div>
 
@@ -185,6 +185,8 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
 
                                     <?php if ($isUsed): ?>
                                         <button type="button" disabled
+                                            onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วนถูกใช้ไปแล้ว')"
+                                            onmouseleave="hideGlobalAlert()"
                                             class="text-gray-300 cursor-not-allowed p-2 rounded-full"
                                             title="ไม่สามารถลบได้เนื่องจากมีการเบิกจ่ายไปแล้ว">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -193,6 +195,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                                         </button>
                                     <?php else: ?>
                                         <button type="button"
+                                            
                                             onclick="openDeleteModal(<?php echo $row['id']; ?>)"
                                             class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition duration-150"
                                             title="ลบรายการนี้">
@@ -221,4 +224,41 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     </div>
 <?php
 }
+?>
+<?php
+function submitDeleteAprove($conn){
+
+    // 2. รับค่า ID และแปลงเป็นตัวเลขจำนวนเต็มทันที (เพื่อป้องกัน SQL Injection)
+    $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
+
+    // 3. ตรวจสอบว่า ID ถูกต้องหรือไม่
+    if ($id > 0) {
+        
+        // --- (Option A: ลบจริง Hard Delete) ---
+        // $sql = "DELETE FROM budget_years WHERE id = $id"; // เปลี่ยน budget_years เป็นชื่อตารางงบประมาณของคุณ
+        
+        // --- (Option B: ลบแบบซ่อน Soft Delete - แนะนำวิธีนี้) ---
+        // วิธีนี้ข้อมูลไม่หายจริง แค่เปลี่ยนสถานะเป็น 'deleted' หรือ 'inactive'
+        // ช่วยกู้คืนได้ถ้า User เผลอลบผิด
+        $sql = "UPDATE budget_years SET status = 'deleted' WHERE id = $id"; 
+
+        // 4. สั่งรันคำสั่ง SQL
+        if (mysqli_query($conn, $sql)) {
+            // ✅ ลบสำเร็จ: Redirect กลับไปหน้าเดิม พร้อมแนบสถานะ success
+            header("Location: index.php?page=dashboard&status=success&msg=deleted");
+            exit();
+        } else {
+            // ❌ ลบไม่สำเร็จ: แสดง Error (สำหรับการ Debug)
+            echo "Error deleting record: " . mysqli_error($conn);
+            exit();
+        }
+    } else {
+        // กรณี ID ไม่ถูกต้อง
+        echo "Invalid ID.";
+        exit();
+    }
+}
+// if (isset($_POST['action']) && $_POST['action'] == 'delete_budget'){
+//     submitDeleteAproval($conn);
+// }
 ?>

@@ -9,13 +9,6 @@ class AuthController {
     // ฟังก์ชันจัดการ Login
     public function login() {
         global $conn; // เรียกตัวแปร $conn จาก db.php มาใช้
-        
-        // 1. ถ้าล็อกอินอยู่แล้ว ให้เด้งไป Dashboard เลย
-        // if (isset($_SESSION['user_id'])) {
-        //     header("Location: index.php?page=dashboard");
-        //     exit();
-        // }
-
         $error = null;
 
         // 2. ถ้ามีการกด Submit (POST)
@@ -60,6 +53,7 @@ class AuthController {
 
     public function LDAP_login(){
         global $conn;
+
         if ($_SERVER['REQUEST_METHOD'] == 'POST'){
             if (!empty($_POST['username']) && !empty($_POST['password'])) {
             
@@ -98,7 +92,7 @@ class AuthController {
                     $_SESSION['user_id'] = '1';
                     $_SESSION['username'] = 'high-admin';
                     $_SESSION['role'] = 'high-admin';
-                    $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+                    $_SESSION['fullname'] = 'login' . ' ' . 'success';
                     header("Location: index.php?page=dashboard");
                 }
             }

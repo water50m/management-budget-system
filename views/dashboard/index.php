@@ -1,9 +1,9 @@
 <?php 
 include_once "modal_add_budget.php";
-include_once  __DIR__ . "/../../includes/renderExpenseTableComponent.php";
-include_once  __DIR__ . "/../../includes/renderApproveTableComponent.php";
-
-
+include_once  __DIR__ . "/../../includes/expenseTableFunction.php";
+include_once  __DIR__ . "/../../includes/approveTableFunction.php";
+include_once  __DIR__ . "/../../includes/renderUserTableComponent.php";
+include_once  __DIR__ . "/../../includes/userRoleManageFunction.php";
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -78,145 +78,27 @@ include_once  __DIR__ . "/../../includes/renderApproveTableComponent.php";
         
 
         <?php elseif ($data['view_mode'] == 'admin_expense_table'): ?>
-    
-        <?php 
-        renderExpenseTableComponent(
-            $data['expenses'],          // ข้อมูลรายการ
-            $data['filters'],           // ข้อมูลการกรอง
-            $data['departments_list'],  // ข้อมูล dropdown แผนก
-            $data['categories_list'],    // ข้อมูล dropdown หมวดหมู่
-            $year = $data['years_list'],
-            $color = 'purple'
-        ); 
-        ?>
+            <?php 
+            renderExpenseTableComponent(
+                $data['expenses'],          // ข้อมูลรายการ
+                $data['filters'],           // ข้อมูลการกรอง
+                $data['departments_list'],  // ข้อมูล dropdown แผนก
+                $data['categories_list'],    // ข้อมูล dropdown หมวดหมู่
+                $year = $data['years_list'],
+                $color = 'purple'
+            ); 
+            ?>
 
-        <?php elseif ($data['view_mode'] == 'admin_user_list'): ?>
+        <?php elseif ($data['view_mode'] == 'admin_user_table' && $_SESSION['role'] == 'high-admin'): ?>
+            <?php 
+            renderUserTableComponent(
+                $data['user_list'], 
+                $data['filters'],      // อย่าลืม update controller ให้รับ search_username, role_user ด้วย
+                $data['departments_list'],
+                $_SESSION['role']      // ส่ง Role ของคนที่ Login เข้าไปเพื่อเช็คสิทธิ์แก้ไข
+            ); 
+            ?>
             
-            <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
-                <form method="GET" action="index.php" class="flex flex-wrap gap-4 items-end">
-                    <input type="hidden" name="page" value="dashboard">
-                    <input type="hidden" name="tab" value="users">
-
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหาชื่อ - นามสกุล</label>
-                        <input type="text" name="search_user" value="<?php echo htmlspecialchars($data['filter_user_name'] ?? ''); ?>" 
-                               class="w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 px-3 py-2 border" 
-                               placeholder="พิมพ์ชื่ออาจารย์...">
-                    </div>
-
-                    <div class="w-full md:w-64">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">ภาควิชา</label>
-                        <select name="dept_user" class="w-full border-gray-300 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 px-3 py-2 border">
-                            <option value="0">-- ทุกภาควิชา --</option>
-                            <?php foreach ($data['departments_list'] as $dept): ?>
-                                <option value="<?php echo $dept['id']; ?>" <?php echo (($data['filter_user_dept'] ?? 0) == $dept['id']) ? 'selected' : ''; ?>>
-                                    <?php echo $dept['thai_name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 shadow-sm transition h-[42px]">
-                        🔍 ค้นหา
-                    </button>
-
-                    <?php if(!empty($data['filter_user_name']) || ($data['filter_user_dept'] ?? 0) > 0): ?>
-                        <a href="index.php?page=dashboard&tab=users" class="text-gray-500 text-sm hover:underline ml-2">ล้างค่า</a>
-                    <?php endif; ?>
-                </form>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-purple-200">
-                <table class="w-full text-sm text-left">
-                    
-                    <thead class="bg-purple-50 text-purple-900 border-b border-purple-200">
-                        <tr>
-                            <th class="px-6 py-4 font-bold text-center w-16">#</th>
-                            <th class="px-6 py-4 font-bold">ชื่อ - นามสกุล</th>
-                            <th class="px-6 py-4 font-bold">ภาควิชา</th>
-                            <th class="px-6 py-4 font-bold">Username</th>
-                            
-                            <?php if ($_SESSION['role'] == 'high-admin'): ?>
-                                <th class="px-6 py-4 font-bold text-center">สิทธิ์ (Role)</th>
-                            <?php endif; ?>
-
-                            <th class="px-6 py-4 font-bold text-center">จัดการ</th>
-                        </tr>
-                    </thead>
-
-                    <tbody class="divide-y divide-gray-100">
-                        <?php foreach ($data['user_list'] as $index => $u): ?>
-                        <tr class="hover:bg-purple-50/30 transition">
-                            <td class="px-6 py-4 text-center text-gray-400"><?php echo $index + 1; ?></td>
-                            
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800"><?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?></div>
-                                <div class="text-xs text-gray-400"><?php echo $u['position']; ?></div>
-                            </td>
-                            <td class="px-6 py-4"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs"><?php echo $u['department'] ?? '-'; ?></span></td>
-                            <td class="px-6 py-4 font-mono text-gray-600"><?php echo $u['username']; ?></td>
-
-                            <?php if ($_SESSION['role'] == 'high-admin'): ?>
-                                <td class="px-6 py-4 text-center min-w-[180px]">
-                                    
-                                    <?php if ($u['role'] != 'high-admin'): ?> 
-                                        <form method="POST" action="index.php?page=dashboard" class="flex items-center justify-center gap-2">
-                                            <input type="hidden" name="action" value="update_role">
-                                            <input type="hidden" name="target_user_id" value="<?php echo $u['id']; ?>">
-                                            
-                                            <select name="new_role" 
-                                                    data-original="<?php echo $u['role']; ?>"
-                                                    onchange="checkRoleChange(this)"
-                                                    class="border border-gray-300 rounded text-sm px-2 py-1 bg-white focus:ring-2 focus:ring-purple-500 cursor-pointer shadow-sm">
-                                                <option value="user" <?php echo $u['role']=='user'?'selected':''; ?>>User</option>
-                                                <option value="admin" <?php echo $u['role']=='admin'?'selected':''; ?>>Admin</option>
-                                            </select>
-
-                                            <div class="role-actions hidden flex items-center gap-1">
-                                                <button type="submit" class="text-green-600 hover:bg-green-100 p-1 rounded" title="บันทึก">💾</button>
-                                                <button type="button" onclick="cancelRoleEdit(this)" class="text-red-500 hover:bg-red-100 p-1 rounded" title="ยกเลิก">❌</button>
-                                            </div>
-                                        </form>
-                                    
-                                    <?php else: ?>
-                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">High Admin</span>
-                                    <?php endif; ?>
-
-                                </td>
-                            <?php endif; ?>
-
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <a href="index.php?page=profile&id=<?php echo $u['id']; ?>" 
-                                        class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-xs font-bold transition whitespace-nowrap flex items-center gap-1">
-                                            👤 ดูโปรไฟล์
-                                    </a>
-                                    <button type="button" 
-                                            onclick="openExpenseModal(
-                                                '<?php echo $u['id']; ?>', 
-                                                '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>', 
-                                                <?php echo floatval($u['remaining_balance'] ); ?> 
-                                            )"
-                                            class="bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200 text-xs font-bold transition flex items-center gap-1 whitespace-nowrap">
-                                        ➕ เพิ่มรายการ
-                                    </button>
-                                    
-                                    <button type="button" 
-                                            onclick="openAddBudgetModal(
-                                                '<?php echo $u['id']; ?>', 
-                                                '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>'
-                                            )"
-                                            class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-xs font-bold transition flex items-center gap-1 whitespace-nowrap">
-                                        💰 เพิ่มเงิน
-                                    </button>
-
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
 
         <?php elseif ($data['view_mode'] == 'admin_activity_logs'): ?>
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-orange-200">
