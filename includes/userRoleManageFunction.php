@@ -1,4 +1,5 @@
 <?php
+
 include_once __DIR__ . "/saveLogFunction.php";
 if (isset($_POST['action']) && $_POST['action'] == 'update_role' && $role == 'high-admin') {
     submitUpdateRole($conn, $redirect_url);
@@ -49,9 +50,11 @@ function renderUserRoleManageComponent($u, $currentUserRole) {
     <?php
 }
 
-// renderUserRoleManageComponent($u, $currentUserRole);
-?>
 
+?>
+<!-- how to use -->
+<!-- <input type="hidden" name="current_page" value="<?php //echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>"> -->
+<!-- renderUserRoleManageComponent($u, $currentUserRole); -->
 <?php 
 function submitUpdateRole($conn, $redirect_url = null){
     
@@ -115,7 +118,6 @@ function submitUpdateRole($conn, $redirect_url = null){
 }
 ?>
 
-<input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
 
 
 <script>

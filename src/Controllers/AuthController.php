@@ -70,12 +70,11 @@ class AuthController {
                     echo 'Not found secret key (2)';
                     exit;
                 }
-                $server = "ldaps://ldap.nu.local:636";
-                $local = "@nu.local";
+                $server = getenv('LDAP_SERVER');
+                $local = getenv('LDAP_DOMAIN');
                 $ad = ldap_connect($server);
                 ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
                 ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
-                $ad = ldap_connect($server);
                 if (!$ad) {
                     header("Location: index.php?page=login&status=error&msg=cant_server");
                     exit(); 
