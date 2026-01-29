@@ -57,45 +57,69 @@ class AuthController {
         if ($_SERVER['REQUEST_METHOD'] == 'POST'){
             if (!empty($_POST['username']) && !empty($_POST['password'])) {
             
-            $user = $_POST["username"];
-            $psw = $_POST["password"];
-            $user = stripslashes($user);
-            $psw = stripslashes($psw);
-            $user = mysqli_real_escape_string($conn, $user);
-            $psw = mysqli_real_escape_string($conn, $psw);
+                $user = $_POST["username"];
+                $psw = $_POST["password"];
+                $user = stripslashes($user);
+                $psw = stripslashes($psw);
+                $user = mysqli_real_escape_string($conn, $user);
+                $psw = mysqli_real_escape_string($conn, $psw);
 
-            include_once __DIR__ . '/../../inc/func.php';
-            loadEnv(__DIR__ . '/../../.env');
-            if (!getenv('LDAP_SERVER')){
-                echo 'Not found secret key (2)';
-                exit;
-            }
-            $server = getenv('LDAP_SERVER');
-            $local = getenv('LDAP_DOMAIN');
-            $ad = ldap_connect($server);
-            ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
-            ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
-            $ad = ldap_connect($server);
-            if (!$ad) {
-                header("Location: index.php?page=login&status=cant_connect_to_server");
-                //die("Connect not connect to ".$server); 
-                echo "ไม่สามารถติดต่อ server มหาลัยเพื่อตรวจสอบรหัสผ่านได้"; 
-                exit(); 
-            } else {
-                $b = @ldap_bind($ad, $user . $local, $psw);
-                if (!$b) {
-                
-                header("Location: index.php?page=login&status=incorrect_username_or_password");
-                echo " Username หรือ Password ไม่ถูกต้อง ";
-                exit(); 
-                } else { 
-                    $_SESSION['user_id'] = '1';
-                    $_SESSION['username'] = 'high-admin';
-                    $_SESSION['role'] = 'high-admin';
-                    $_SESSION['fullname'] = 'login' . ' ' . 'success';
-                    header("Location: index.php?page=dashboard");
+                include_once __DIR__ . '/../../inc/func.php';
+                loadEnv(__DIR__ . '/../../.env');
+                if (!getenv('LDAP_SERVER')){
+                    echo 'Not found secret key (2)';
+                    exit;
                 }
-            }
+                $server = "ldaps://ldap.nu.local:636";
+                $local = "@nu.local";
+                $ad = ldap_connect($server);
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                $ad = ldap_connect($server);
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit(); 
+                } else {
+                    $b = @ldap_bind($ad, $user . $local, $psw);
+                    echo "<pre style='background:#f4f4f4; padding:20px; border:1px solid #ccc;'>";
+
+                    echo "<h3>1. ค่าของ \$ad (Connection Object):</h3>";
+                    var_dump($ad); 
+                    // ถ้าสำเร็จควรเป็น object(LDAP\Connection) หรือ resource
+                    // ถ้าไม่สำเร็จจะเป็น bool(false)
+
+                    echo "<hr>";
+
+                    echo "<h3>2. ค่าของ \$b (Bind Result):</h3>";
+                    var_dump($b); 
+                    // ถ้าสำเร็จจะเป็น bool(true)
+                    // ถ้าไม่สำเร็จจะเป็น bool(false)
+
+                    echo "<hr>";
+
+                    echo "<h3>3. ข้อความ Error จาก LDAP (สำคัญมาก!):</h3>";
+                    echo "Error No: " . ldap_errno($ad) . "<br>";
+                    echo "Error Msg: " . ldap_error($ad); 
+                    // ตรงนี้จะบอกสาเหตุจริงๆ เช่น "Invalid credentials" หรือ "Can't contact LDAP server"
+
+                    echo "</pre>";
+
+                    die();
+                    if (!$b) {
+                    header("Location: index.php?page=login&status=error&msg=invalid_credentials");
+                    exit(); 
+                    } else { 
+                        $_SESSION['user_id'] = '1';
+                        $_SESSION['username'] = 'high-admin';
+                        $_SESSION['role'] = 'high-admin';
+                        $_SESSION['fullname'] = 'login' . ' ' . 'success';
+                        header("Location: index.php?page=dashboard");
+                    }
+                }
+            
+            } else if (empty($_POST['username']) || empty($_POST['password'])){
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
             }
         }
         require_once __DIR__ . '/../../views/auth/login.php';

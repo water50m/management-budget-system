@@ -1,171 +1,299 @@
+<?php require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
+$role = $_SESSION['role'];
+
+?>
+
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
-    <title>ข้อมูลส่วนตัว - ระบบบริหารงานวิจัย</title>
+    <title>ข้อมูลส่วนตัว</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
-        body { font-family: 'Sarabun', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
 
-    <nav class="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div class="font-bold text-xl text-blue-800">Mali Project</div>
+<body class="bg-gray-100 min-h-screen pb-10 text-gray-800">
+
+    <nav class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="font-bold text-xl text-blue-800 flex items-center gap-2"><i class="fas fa-seedling"></i> Mali Project</div>
         <div class="flex items-center gap-4">
-            <a href="index.php?page=dashboard" class="text-gray-600 hover:text-blue-600">🏠 กลับหน้าหลัก</a>
-            <a href="index.php?page=logout" class="text-red-500 hover:text-red-700 text-sm font-semibold">ออกจากระบบ</a>
+            <a href="index.php?page=dashboard" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-home"></i> กลับหน้าหลัก</a>
+            <a href="index.php?page=logout" class="text-red-500 hover:text-red-700 border border-red-200 px-4 rounded-full text-sm py-1 font-semibold transition hover:bg-red-50">ออกจากระบบ</a>
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-    
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 flex flex-col items-center text-center">
-                <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-4xl mb-4">
-                    👤
-                </div>
-                <h2 class="text-xl font-bold text-gray-800">
-                    <?php echo $user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>
-                </h2>
-                <p class="text-gray-500 font-medium"><?php echo $user_info['position']; ?></p>
-                <span class="mt-2 px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                    ภาควิชา: <?php echo $user_info['department_name']; ?>
-                </span>
-            </div>
+    <div class="container mx-auto px-4 py-6 max-w-[1600px]">
 
-            <div class="bg-white rounded-xl shadow-lg p-6 col-span-2 flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-10">
-                    <i class="fas fa-wallet text-9xl text-green-500"></i>
-                </div>
-                
-                <div class="mb-4">
-                    <p class="text-sm text-gray-500 uppercase font-bold">ยอดเงินคงเหลือสุทธิ (Net Balance)</p>
-                    <h1 class="text-4xl font-bold text-green-600 mt-1">
-                        <?php echo number_format($user_info['remaining_balance'], 2); ?> <span class="text-lg text-gray-400 font-normal">บาท</span>
-                    </h1>
-                </div>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
-                <div class="grid grid-cols-2 gap-4 mt-4 border-t pt-4">
-                    <div>
-                        <p class="text-xs text-gray-500">💰 งบจากปีก่อนหน้า (Carry Over)</p>
-                        <p class="text-lg font-bold text-blue-600">
-                            <?php echo number_format($user_info['previous_year_budget'], 2); ?>
-                        </p>
-                        <p class="text-[10px] text-gray-400">* ต้องใช้ก่อนหมดอายุ</p>
+            <div class="lg:col-span-1 flex flex-col gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
+                    <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-3xl text-blue-600 border-2 border-blue-100 mx-auto mb-3">
+                        <i class="fas fa-user"></i>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-500">🆕 งบปีปัจจุบัน (Current Year)</p>
-                        <p class="text-lg font-bold text-indigo-600">
-                            <?php echo number_format($user_info['current_year_budget'], 2); ?>
-                        </p>
+                    <h2 class="font-bold text-lg text-gray-800 leading-tight">
+                        <?php echo $user_info['prefix'] . $user_info['first_name']; ?><br><?php echo $user_info['last_name']; ?>
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1"><?php echo $user_info['position']; ?></p>
+                    <div class="mt-2 inline-block bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold text-gray-600">
+                        <?php echo $user_info['department_name']; ?>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <label class="text-xs text-gray-400 font-bold uppercase block mb-1">ระดับสิทธิ์</label>
+                        <div class="flex items-center gap-1 justify-center">
+                            <?php renderUserRoleManageComponent($user_info, $role)?>
+        
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="border-b bg-gray-50 px-6 py-3 flex gap-6">
-                <h3 class="font-bold text-gray-700 flex items-center gap-2">
-                    📉 ประวัติการใช้จ่าย
-                    <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full"><?php echo mysqli_num_rows($expenses); ?></span>
-                </h3>
+                <div class="bg-gradient-to-b from-blue-600 to-indigo-700 rounded-xl shadow-lg p-5 text-white relative overflow-hidden">
+                    <div class="absolute right-[-10px] top-[-10px] opacity-20"><i class="fas fa-wallet text-8xl"></i></div>
+                    <p class="text-blue-100 text-xs font-medium uppercase tracking-wider mb-1">ยอดคงเหลือสุทธิ</p>
+                    <h3 class="text-3xl font-bold"><?php echo number_format($user_info['remaining_balance'], 2); ?></h3>
+                    <span class="text-xs font-light opacity-80">THB</span>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs"><i class="fas fa-arrow-down"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-400 uppercase font-bold">รับทั้งหมด</p>
+                                <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_received_all'], 2); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-100"></div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs"><i class="fas fa-fire"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-400 uppercase font-bold">ใช้ไปปีนี้</p>
+                                <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_spent_this_year'], 2); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-100"></div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs"><i class="fas fa-history"></i></div>
+                            <div>
+                                <p class="text-xs text-gray-400 uppercase font-bold">ยกยอดมา</p>
+                                <p class="font-bold text-gray-800"><?php echo number_format($user_info['previous_year_budget'], 2); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
-                        <tr>
-                            <th class="px-6 py-3">วันที่ใช้</th>
-                            <th class="px-6 py-3">รายการ</th>
-                            <th class="px-6 py-3">หมวดหมู่</th>
-                            <th class="px-6 py-3 text-right">จำนวนเงิน</th>
-                            <th class="px-6 py-3 text-center">แหล่งเงิน</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <?php if (mysqli_num_rows($expenses) > 0): ?>
-                            <?php while ($exp = mysqli_fetch_assoc($expenses)): ?>
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 font-mono text-gray-500">
-                                    <?php echo date('d/m/Y', strtotime($exp['approved_date'])); ?>
-                                </td>
-                                <td class="px-6 py-4 font-medium text-gray-800">
-                                    <?php echo $exp['description']; ?>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-xs">
-                                        <?php echo $exp['category_name']; ?>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right font-bold text-red-500">
-                                    -<?php echo number_format($exp['amount'], 2); ?>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <?php if (($exp['budget_source_type'] ?? '') == 'carry_over'): ?>
-                                        <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded border border-yellow-200">
-                                            งบปีก่อน
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded border border-green-200">
-                                            งบปีนี้
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
+
+            <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-fit">
+
+                <form method="GET" action="index.php" class="flex flex-wrap items-end gap-2 w-full text-sm px-4 mt-5">
+                    <input type="hidden" name="page" value="profile">
+                    <input type="hidden" name="id" value="<?php echo $_GET['id'] ?? ''; ?>">
+
+                    <div class="w-full md:w-[20%]">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ค้นหา / รายละเอียด</label>
+                        <div class="relative w-full">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                            <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" placeholder="รายละเอียด / รายการ"
+                                class="pl-8 pr-3 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:border-blue-500 shadow-sm transition">
+                        </div>
+                    </div>
+
+                    <div class="w-[48%] md:w-[12%]">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ปีงบประมาณ</label>
+                        <select name="year" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+                            <option value="0" <?php echo ($filters['year'] == 0) ? 'selected' : ''; ?>>ทุกปีงบฯ</option>
+                            <?php foreach ($years_list as $y): ?>
+                                <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
+                                    งบปี <?php echo $y; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="w-[48%] md:w-[15%]">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">หมวดหมู่</label>
+                        <select name="cat" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+                            <option value="0">ทุกหมวดหมู่</option>
+                            <?php foreach ($cats_list as $c): ?>
+                                <option value="<?php echo $c['id']; ?>" <?php echo ($filters['cat'] == $c['id']) ? 'selected' : ''; ?>>
+                                    <?php echo $c['name_th']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="w-[48%] md:w-[15%]">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ประเภท</label>
+                        <select name="type" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+                            <option value="all" <?php echo ($filters['type'] == 'all') ? 'selected' : ''; ?>>ทุกประเภท</option>
+                            <option value="income" <?php echo ($filters['type'] == 'income') ? 'selected' : ''; ?>>รายรับ (Income)</option>
+                            <option value="expense" <?php echo ($filters['type'] == 'expense') ? 'selected' : ''; ?>>รายจ่าย (Expense)</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-[20%]">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ช่วงเงิน (Min - Max)</label>
+                        <div class="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm w-full">
+                            <input type="number" name="min_amount" value="<?php echo $filters['min']; ?>" placeholder="Min" class="w-1/2 py-2 px-2 outline-none border-r text-center text-xs">
+                            <input type="number" name="max_amount" value="<?php echo $filters['max']; ?>" placeholder="Max" class="w-1/2 py-2 px-2 outline-none text-center text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0 pb-[1px]"> <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold shadow transition whitespace-nowrap flex-1 md:flex-none justify-center h-[38px] flex items-center">
+                            กรองข้อมูล
+                        </button>
+                        <a href="index.php?page=profile&id=<?php echo $_GET['id'] ?? ''; ?>" class="text-gray-500 hover:text-red-500 px-3 py-2 border border-transparent hover:bg-gray-100 rounded-lg transition h-[38px] flex items-center" title="ล้างค่า">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-white border-b border-gray-200 text-gray-500 font-semibold text-sm sticky top-0 shadow-sm z-10">
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-400">ยังไม่มีประวัติการใช้จ่าย</td>
+                                <th class="px-6 py-4 w-20 text-center">ลำดับ</th>
+                                <th class="px-6 py-4 w-32">วันที่</th>
+                                <th class="px-6 py-4">รายละเอียด / รายการ</th>
+                                <th class="px-6 py-4 w-48 text-center">หมวดหมู่</th>
+                                <th class="px-6 py-4 w-40 text-right">จำนวนเงิน</th>
+                                <th class="px-6 py-4 w-28 text-center">ประเภท</th>
                             </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-base">
+                            <?php if (count($transactions) > 0): ?>
+                                <?php $index = 0;?>
+                                <?php foreach ($transactions as $txn): ?>
+                                    <?php
+                                    $row_bg = "bg-white";
+                                    $fy_badge_color = "bg-gray-100 text-gray-500";
+                                    if ($txn['type'] == 'expense') {
+                                        $row_bg = "bg-red-50 hover:bg-red-100";
+                                    } else {
+                                        if ($txn['fiscal_year_num'] == $current_fiscal_year) {
+                                            $row_bg = "bg-green-50 hover:bg-green-100";
+                                            $fy_badge_color = "bg-green-100 text-green-700";
+                                        } elseif ($txn['fiscal_year_num'] == ($current_fiscal_year - 1)) {
+                                            $row_bg = "bg-yellow-50 hover:bg-yellow-100";
+                                            $fy_badge_color = "bg-yellow-100 text-yellow-700";
+                                        } else {
+                                            $row_bg = "bg-gray-50/40 hover:bg-gray-100";
+                                        }
+                                    }
+                                    ?>
+                                    <tr class="<?php echo $row_bg; ?> transition group">
+                                        <td class="px-6 py-4 text-center text-gray-400 font-mono text-sm">
+                                            <?php $index += 1;?>
+                                            <?php echo $index; ?>
+                                        </td>
+                                        <td class="px-6 py-4 text-gray-500 font-mono text-sm"><?php echo date('d/m/Y', strtotime($txn['txn_date'])); ?></td>
+                                        <td class="px-6 py-4">
+                                            <div class="font-medium text-gray-800"><?php echo $txn['description']; ?></div>
 
-        <div class="mt-8 bg-white rounded-xl shadow-lg overflow-hidden border border-green-100">
-            <div class="border-b bg-green-50 px-6 py-3">
-                <h3 class="font-bold text-green-800">📥 ประวัติการได้รับอนุมัติงบ</h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-white border-b text-gray-500">
-                        <tr>
-                            <th class="px-6 py-3 text-left">วันที่อนุมัติ</th>
-                            <th class="px-6 py-3 text-left">รายละเอียด</th>
-                            <th class="px-6 py-3 text-left">ปีงบประมาณ</th>
-                            <th class="px-6 py-3 text-right">ยอดอนุมัติ</th>
-                            <th class="px-6 py-3 text-center">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y">
-                        <?php while ($app = mysqli_fetch_assoc($approvals)): ?>
-                        <tr class="<?php echo ($app['status'] == 'expire') ? 'bg-gray-50 opacity-60' : ''; ?>">
-                            <td class="px-6 py-3 font-mono"><?php echo date('d/m/Y', strtotime($app['approved_date'])); ?></td>
-                            <td class="px-6 py-3"><?php echo $app['remark']; ?></td>
-                            <td class="px-6 py-3">
-                                <span class="font-bold text-gray-600">ปี <?php echo $app['fiscal_year_th']; ?></span>
-                            </td>
-                            <td class="px-6 py-3 text-right font-bold text-green-600">
-                                +<?php echo number_format($app['approved_amount'], 2); ?>
-                            </td>
-                            <td class="px-6 py-3 text-center">
-                                <?php if ($app['status'] == 'active'): ?>
-                                    <span class="text-xs text-green-600 font-bold">✅ ใช้งานได้</span>
-                                <?php else: ?>
-                                    <span class="text-xs text-red-500 font-bold">❌ หมดอายุ (เกิน 2 ปี)</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <?php if (!empty($txn['category_name'])): ?>
+                                                <span class="inline-block bg-white border border-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs shadow-sm"><?php echo $txn['category_name']; ?></span>
+                                            <?php else: ?>
+                                                <span class="text-gray-300 text-sm">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-6 py-4 text-right font-mono font-medium">
+                                            <?php if ($txn['type'] == 'income'): ?>
+                                                <span class="text-green-600 text-lg">+<?php echo number_format($txn['amount'], 2); ?></span>
+                                            <?php else: ?>
+                                                <span class="text-red-500 text-lg"><?php echo number_format($txn['amount'], 2); ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <?php if ($txn['type'] == 'income'): ?>
+                                                <div class="w-8 h-8 mx-auto rounded-full bg-green-100 text-green-600 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-down"></i></div>
+                                            <?php else: ?>
+                                                <div class="w-8 h-8 mx-auto rounded-full bg-red-100 text-red-500 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-up"></i></div>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-400">ไม่พบรายการเคลื่อนไหว</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
 
+                        <tfoot class="bg-gray-50 border-t border-gray-200">
+                            <tr>
+                                <td colspan="10" class="p-0">
+                                    <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-8">
+                                        <div class="flex items-center justify-center gap-4 flex-1 w-full sm:w-auto">
+                                        </div>
+                                        <div class="text-sm font-bold text-gray-600 whitespace-nowrap">
+                                            สรุปยอดรวม (เฉพาะรายการที่แสดง):
+                                        </div>
+
+
+                                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-gray-200 shadow-sm">
+                                            <span class="text-base  uppercase text-green-600">ยอดรับ</span>
+                                            <span class=" text-base text-green-700">+<?php echo number_format($sum_income, 2); ?></span>
+                                        </div>
+
+                                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-gray-200 shadow-sm">
+                                            <span class="text-base  uppercase text-red-500">ยอดตัด</span>
+                                            <span class=" text-base text-red-600">-<?php echo number_format($sum_expense, 2); ?></span>
+
+
+                                        </div>
+
+                                        <?php $net_total = $sum_income - $sum_expense; ?>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-base text-gray-400  uppercase tracking-wider">ยอดรวม</span>
+                                            <span class="text-base   <?php echo ($net_total >= 0) ? 'text-blue-700' : 'text-red-600'; ?>">
+                                                <?php echo number_format($net_total, 2); ?>
+                                            </span>
+                                            <span class="text-base text-gray-400">บาท</span>
+                                        </div>
+                                        <div class="flex items-center justify-center gap-4 flex-1 w-full sm:w-auto">
+                                        </div>
+
+                                    </div>
+
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
+
 </body>
+
 </html>

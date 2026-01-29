@@ -1,39 +1,6 @@
 
 
-    // ==========================================
-    // 1. จัดการ Dropdown เปลี่ยน Role (High-Admin)
-    // ==========================================
 
-    function checkRoleChange(selectElement) {
-        // หาค่าเดิมที่เก็บไว้
-        const originalValue = selectElement.getAttribute('data-original');
-        // หา div ที่เก็บปุ่ม Save/Cancel (อยู่ถัดไปจาก select)
-        const actionsDiv = selectElement.nextElementSibling;
-
-        if (selectElement.value !== originalValue) {
-            // ถ้าค่าเปลี่ยน -> เอา class 'hidden' ออก (โชว์ปุ่ม)
-            actionsDiv.classList.remove('hidden');
-            selectElement.classList.add('border-purple-500', 'bg-purple-50');
-        } else {
-            // ถ้าค่าเหมือนเดิม -> ซ่อนปุ่ม
-            actionsDiv.classList.add('hidden');
-            selectElement.classList.remove('border-purple-500', 'bg-purple-50');
-        }
-    }
-
-    function cancelRoleEdit(btnElement) {
-        // หา div พ่อ (role-actions)
-        const actionsDiv = btnElement.parentElement;
-        // หา select ที่เป็นพี่น้อง (อยู่ก่อนหน้า)
-        const selectElement = actionsDiv.previousElementSibling;
-        
-        // คืนค่าเดิม
-        selectElement.value = selectElement.getAttribute('data-original');
-        
-        // ซ่อนปุ่ม และคืนสีปกติ
-        actionsDiv.classList.add('hidden');
-        selectElement.classList.remove('border-purple-500', 'bg-purple-50');
-    }
 
 
     // 1. ฟังก์ชันจัดฟอร์แมตเงิน

@@ -1,6 +1,3 @@
-
-
-
 <div id="global_alert_box" 
      class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-out opacity-0 translate-y-full pointer-events-none">
     <div class="bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-gray-700">

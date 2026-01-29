@@ -1,6 +1,8 @@
 <?php
 include_once __DIR__ . "/saveLogFunction.php";
-
+if (isset($_POST['action']) && $_POST['action'] == 'update_role' && $role == 'high-admin') {
+    submitUpdateRole($conn, $redirect_url);
+}
 /**
  * Component ย่อย: สำหรับแสดงผลและจัดการ Role ในตาราง
  * แยกออกมาเพื่อให้โค้ดหลักอ่านง่ายขึ้น
@@ -51,29 +53,44 @@ function renderUserRoleManageComponent($u, $currentUserRole) {
 ?>
 
 <?php 
-function submitUpdateRole($conn){
+function submitUpdateRole($conn, $redirect_url = null){
+    
+    // กำหนด Default URL (ค่าเดิมที่ใช้อยู่)
+    // ถ้า $redirect_url เป็นค่าว่าง หรือ null ให้ใช้ค่า default นี้แทน
+    $default_url = "index.php?page=dashboard&tab=users";
+    
+    // ตัวแปรสำหรับเก็บ URL ที่จะใช้จริง (ยังไม่รวม params status/msg)
+    if (!empty($redirect_url)) {
+        $final_redirect = $redirect_url;
+    } else {
+        $final_redirect = $default_url;
+    }
+
     // 1. เช็คสิทธิ์: ต้องเป็น High Admin เท่านั้น
-    // (ใช้ $_SESSION โดยตรงเพื่อความชัวร์)
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'high-admin') {
-        header("Location: index.php?page=dashboard&tab=users&status=error&msg=access_denied");
+        // ต่อ String เพื่อส่งค่า status
+        // ใช้ strpos เช็คว่าใน URL มีเครื่องหมาย ? หรือยัง เพื่อเชื่อมด้วย & หรือ ? ให้ถูกต้อง
+        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
+        header("Location: " . $final_redirect . $separator . "status=error&msg=access_denied");
         exit();
     }
 
     $target_uid = intval($_POST['target_user_id']);
     $new_role   = mysqli_real_escape_string($conn, $_POST['new_role']);
-    $actor_id   = $_SESSION['user_id']; // คนที่กดแก้ไข
+    $actor_id   = $_SESSION['user_id']; 
 
-    // 2. ป้องกันการเปลี่ยนสิทธิ์ตัวเอง (Self-Demotion Prevention)
+    // 2. ป้องกันการเปลี่ยนสิทธิ์ตัวเอง
     if ($target_uid == $actor_id) {
-        header("Location: index.php?page=dashboard&tab=users&status=error&msg=cannot_change_own_role");
+        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
+        header("Location: " . $final_redirect . $separator . "status=error&msg=cannot_change_own_role");
         exit();
     }
 
-    // 3. ตรวจสอบค่า Role ที่ส่งมา (Whitelist)
-    // อนุญาตให้ตั้งได้แค่ 'user' หรือ 'admin' เท่านั้น (ป้องกันการ Hack ส่งค่าอื่นมา)
+    // 3. ตรวจสอบค่า Role (Whitelist)
     $allowed_roles = ['user', 'admin']; 
     if (!in_array($new_role, $allowed_roles)) {
-        header("Location: index.php?page=dashboard&tab=users&status=error&msg=invalid_role_value");
+        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
+        header("Location: " . $final_redirect . $separator . "status=error&msg=invalid_role_value");
         exit();
     }
 
@@ -82,16 +99,58 @@ function submitUpdateRole($conn){
     
     if (mysqli_query($conn, $sql_update)) {
         // 5. บันทึก Log
-        // (เรียกใช้ logActivity ตามโค้ดเดิมของคุณ)
-        logActivity($conn, $actor_id, $target_uid, 'update_role', "เปลี่ยนสิทธิ์เป็น $new_role");
+        // (ต้องแน่ใจว่าฟังก์ชัน logActivity ถูก include เข้ามาแล้ว)
+        if (function_exists('logActivity')) {
+            logActivity($conn, $actor_id, $target_uid, 'update_role', "เปลี่ยนสิทธิ์เป็น $new_role");
+        }
         
-        // 6. Redirect กลับ
-        header("Location: index.php?page=dashboard&tab=users&status=success&msg=role_updated");
+        // 6. Redirect กลับตามที่กำหนด
+        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
+        header("Location: " . $final_redirect . $separator . "status=success&msg=role_updated");
         exit();
     } else {
         echo "Error: " . mysqli_error($conn);
         exit();
     }
 }
-
 ?>
+
+<input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
+
+
+<script>
+        // ==========================================
+    // 1. จัดการ Dropdown เปลี่ยน Role (High-Admin)
+    // ==========================================
+
+    function checkRoleChange(selectElement) {
+        // หาค่าเดิมที่เก็บไว้
+        const originalValue = selectElement.getAttribute('data-original');
+        // หา div ที่เก็บปุ่ม Save/Cancel (อยู่ถัดไปจาก select)
+        const actionsDiv = selectElement.nextElementSibling;
+
+        if (selectElement.value !== originalValue) {
+            // ถ้าค่าเปลี่ยน -> เอา class 'hidden' ออก (โชว์ปุ่ม)
+            actionsDiv.classList.remove('hidden');
+            selectElement.classList.add('border-purple-500', 'bg-purple-50');
+        } else {
+            // ถ้าค่าเหมือนเดิม -> ซ่อนปุ่ม
+            actionsDiv.classList.add('hidden');
+            selectElement.classList.remove('border-purple-500', 'bg-purple-50');
+        }
+    }
+
+    function cancelRoleEdit(btnElement) {
+        // หา div พ่อ (role-actions)
+        const actionsDiv = btnElement.parentElement;
+        // หา select ที่เป็นพี่น้อง (อยู่ก่อนหน้า)
+        const selectElement = actionsDiv.previousElementSibling;
+        
+        // คืนค่าเดิม
+        selectElement.value = selectElement.getAttribute('data-original');
+        
+        // ซ่อนปุ่ม และคืนสีปกติ
+        actionsDiv.classList.add('hidden');
+        selectElement.classList.remove('border-purple-500', 'bg-purple-50');
+    }
+</script>

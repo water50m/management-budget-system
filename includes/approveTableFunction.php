@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/text_box_alert.php';
+
 /**
  * Component แสดงตารางอนุมัติงบ (Approval)
  * - เหมือน Expense Table ทุกอย่าง
@@ -28,9 +28,9 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     $btnBg = "bg-{$theme}-600";
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
-
+    include_once __DIR__ . '/text_box_alert.php';
 ?>
-
+    
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
         <form method="GET" action="index.php">
             <input type="hidden" name="page" value="dashboard">
