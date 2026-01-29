@@ -128,4 +128,3 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
     </div>
     <?php
 }
-?>

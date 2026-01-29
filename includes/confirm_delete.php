@@ -101,21 +101,17 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId) {
     </script>
 HTML;
 }
-?>
 
 
-<!-- การใช้งาน -->
- <!-- <button onclick="openDeleteModal(<?php //echo $row['id']; ?>)" 
-        class="text-red-500 hover:text-red-700">
-    ลบ
-</button> -->
-
-
-<?php 
-    // เรียกฟังก์ชัน พร้อมส่งค่าตามที่คุณต้องการ
-    // renderDeleteModal(
-    //     "index.php?page=dashboard",  // action
-    //     "delete_budget",             // value (action name)
-    //     "delete_target_id"           // id ของ hidden input
-    // ); 
-?>
+// <การใช้งาน
+//   <button onclick="openDeleteModal(<?php //echo $row['id']; ?_)" 
+//         class="text-red-500 hover:text-red-700">
+//     ลบ
+// </button> 
+// ----------------------------------------------------------------------
+// เรียกฟังก์ชัน พร้อมส่งค่าตามที่คุณต้องการ
+// renderDeleteModal(
+//     "index.php?page=dashboard",  // action
+//     "delete_budget",             // value (action name)
+//     "delete_target_id"           // id ของ hidden input
+// ); 

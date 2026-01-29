@@ -5,4 +5,3 @@ function logActivity($conn, $actor_id, $target_id, $action, $desc) {
             VALUES ($actor_id, $target_id, '$action', '$desc')";
     mysqli_query($conn, $sql);
 }
-?>

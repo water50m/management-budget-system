@@ -743,4 +743,3 @@ class DashboardController {
         return $budget;
     }
 }
-?>

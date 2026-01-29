@@ -224,8 +224,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     </div>
 <?php
 }
-?>
-<?php
+
 function submitDeleteAprove($conn){
 
     // 2. รับค่า ID และแปลงเป็นตัวเลขจำนวนเต็มทันที (เพื่อป้องกัน SQL Injection)
@@ -261,4 +260,3 @@ function submitDeleteAprove($conn){
 // if (isset($_POST['action']) && $_POST['action'] == 'delete_budget'){
 //     submitDeleteAproval($conn);
 // }
-?>

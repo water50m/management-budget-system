@@ -140,4 +140,3 @@ class AuthController {
         exit();
     }
 }
-?>

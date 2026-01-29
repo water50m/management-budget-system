@@ -239,18 +239,9 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
     </div>
 <?php
 }
-// การนำไปใช้
-// renderExpenseTableComponent(
-//                 $data['expenses'],          // ข้อมูลรายการ
-//                 $data['filters'],           // ข้อมูลการกรอง
-//                 $data['departments_list'],  // ข้อมูล dropdown แผนก
-//                 $data['categories_list'],    // ข้อมูล dropdown หมวดหมู่
-//                 $year = $data['years_list'],
-//                 $color = 'purple'
-//             ); 
-// ?>
 
-<?php 
+
+
 function submitDeleteExpense($conn){
     $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
 
@@ -270,4 +261,3 @@ function submitDeleteExpense($conn){
 // if (isset($_POST['action']) && $_POST['action'] == 'delete_expense'){
 //     submitDeleteExpense($conn);
 // }
-?>

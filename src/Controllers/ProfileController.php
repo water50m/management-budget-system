@@ -131,4 +131,3 @@ class ProfileController {
         require_once __DIR__ .'/../../views/profile/index.php'; 
     }
 }
-?>
