@@ -8,7 +8,7 @@ require_once __DIR__ . '/../src/Controllers/DashboardController.php';
 require_once __DIR__ . '/../src/Controllers/ProfileController.php';
 // ... require controller อื่นๆ ...
 
-$page = $_GET['page'] ?? 'login'; // ถ้าไม่ระบุหน้า ให้ไปหน้า login ก่อนเลย
+$page = $_GET['page'] ?? 'dashboard'; // ถ้าไม่ระบุหน้า ให้ไปหน้า login ก่อนเลย
 
 switch ($page) {
     // --- ส่วนจัดการ Login/Logout ---

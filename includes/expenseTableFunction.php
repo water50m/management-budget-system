@@ -31,7 +31,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
     $filters = array_merge($defaultFilters, $filters);
 
 ?>
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-100 mb-6">
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-100 mb-6 ">
         <form method="GET" action="index.php">
             <input type="hidden" name="page" value="dashboard">
             <input type="hidden" name="tab" value="expense">
@@ -160,10 +160,10 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-<?= $color ?>-200">
-        <div class="overflow-x-auto">
+    <div class="bg-white rounded-xl shadow-lg border border-<?= $color ?>-200 flex flex-col min-h-0 overflow-hidden">
+        <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
             <table class="w-full text-sm text-left">
-                <thead class="bg-<?= $color ?>-50 text-<?= $color ?>-900 border-b border-<?= $color ?>-100">
+                <thead class="sticky top-0 z-10 bg-<?= $color ?>-50 text-<?= $color ?>-900 border-b border-<?= $color ?>-100 shadow-sm">
                     <tr>
                         <th class="px-6 py-4 font-bold text-center w-16">#</th>
                         <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่รายการ</th>
@@ -174,7 +174,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <th class="px-6 py-4 font-bold text-center w-20">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100 ">
                     <?php if (empty($expenses)): ?>
                         <tr>
                             <td colspan="7" class="p-12 text-center text-gray-400">

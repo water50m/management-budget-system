@@ -156,5 +156,5 @@ function submitUpdateRole($conn, $redirect_url = null)
 }
 
 // how to use
-// <input type="hidden" name="current_page" value="<?php //echo htmlspecialchars($_SERVER['REQUEST_URI']); 
+// <input type="hidden" name="current_page" value="<?php //echo htmlspecialchars($_SERVER['REQUEST_URI']); ?_"> 
 //  renderUserRoleManageComponent($u, $currentUserRole); 

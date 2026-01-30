@@ -50,7 +50,8 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                         <?php endforeach; ?>
                     </select>
                 </div>
-
+                 
+                <?php if ($_SESSION['role'] == 'high-admin'):  ?>
                 <div class="md:col-span-3">
                     <label class="block text-xs font-bold text-gray-700 mb-1">สิทธิ์ (Role)</label>
                     <select name="role_user" class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm">
@@ -60,7 +61,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                         <option value="high-admin" <?php echo ($filters['role_user'] == 'high-admin') ? 'selected' : ''; ?>>High Admin</option>
                     </select>
                 </div>
-
+                <?php endif;?>
                 <div class="md:col-span-2 flex items-center gap-2">
                     <button type="submit" class="w-full <?php echo $btnPrimary; ?> text-white px-4 py-2 rounded-md shadow-sm transition h-[38px] flex items-center justify-center text-sm font-medium">
                         ค้นหา
@@ -75,10 +76,10 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?>">
-        <div class="overflow-x-auto">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?> flex flex-col min-h-0 overflow-hidden">
+        <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
             <table class="w-full text-sm text-left">
-                <thead class="<?php echo $bgHeader; ?> <?php echo $textHeader; ?> border-b <?php echo $borderBase; ?>">
+                <thead class="sticky top-0 z-10 <?php echo $bgHeader; ?> <?php echo $textHeader; ?> border-b <?php echo $borderBase; ?>">
                     <tr>
                         <th class="px-6 py-4 font-bold text-center w-16">#</th>
                         <th class="px-6 py-4 font-bold">ชื่อ - นามสกุล</th>
@@ -89,7 +90,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                         <th class="px-6 py-4 font-bold text-center">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100 text-base">
                     <?php if (empty($users)): ?>
                         <tr><td colspan="7" class="p-10 text-center text-gray-400">ไม่พบข้อมูลผู้ใช้งาน</td></tr>
                     <?php else: ?>
@@ -104,7 +105,10 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                 <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200"><?php echo $u['department'] ?? '-'; ?></span>
                             </td>
                             <td class="px-6 py-4 font-mono text-gray-600 text-xs"><?php echo $u['username']; ?></td>
-                            <td class="px-6 py-4"><?php renderUserRoleManageComponent($u, $currentUserRole); ?></td>
+                            <td class="px-6 py-4">
+                                <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
+                                <?php renderUserRoleManageComponent($u, $currentUserRole); ?>
+                            </td>
                             <td class="px-6 py-4 text-right">
                                 <?php 
                                     $balance = floatval($u['remaining_balance'] ?? 0);

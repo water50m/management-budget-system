@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ - ระบบบริหารงานวิจัย</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+<?php include_once __DIR__ . '/../../includes/header.php';?>
 <body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen flex items-center justify-center">
 
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
@@ -65,6 +58,4 @@
             <a href="index.php?page=fast-login" class="text-blue-500 text-sm font-semibold hover:underline">loginความไวแสง</a>
         </div>
     </div>
-
-</body>
-</html>
+<?php include_once __DIR__ . '/../../includes/footer.php';?>

@@ -133,10 +133,10 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?>">
-        <div class="overflow-x-auto">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?> flex flex-col min-h-0 overflow-hidden">
+        <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
             <table class="w-full text-sm text-left">
-                <thead class="<?php echo $bgLight; ?> <?php echo $textDark; ?> border-b <?php echo $borderBase; ?>">
+                <thead class="sticky top-0 z-10 <?php echo $bgLight; ?> <?php echo $textDark; ?> border-b <?php echo $borderBase; ?>">
                     <tr>
                         <th class="px-6 py-4 font-bold text-center w-16">#</th>
                         <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่อนุมัติ</th>
@@ -185,10 +185,10 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
 
                                     <?php if ($isUsed): ?>
                                         <button type="button" disabled
-                                            onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วนถูกใช้ไปแล้ว')"
+                                            onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วน หรือทั้งหมดถูกใช้ไปแล้ว')"
                                             onmouseleave="hideGlobalAlert()"
                                             class="text-gray-300 cursor-not-allowed p-2 rounded-full"
-                                            title="ไม่สามารถลบได้เนื่องจากมีการเบิกจ่ายไปแล้ว">
+                                        >
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
