@@ -35,7 +35,7 @@ include_once __DIR__ . '/../../includes/header.php';
                         <label class="text-xs text-gray-400 font-bold uppercase block mb-1">ระดับสิทธิ์</label>
                         <div class="flex items-center gap-1 justify-center">
                             <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
-                            <?php renderUserRoleManageComponent($user_info, $role) ?>
+                            <?php renderUserRoleManageComponent($user_info, $role, $conn) ?>
 
                         </div>
                     </div>

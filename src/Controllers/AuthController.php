@@ -19,6 +19,7 @@ class AuthController
             $_SESSION['username'] = 'high-admin';
             $_SESSION['role'] = 'high-admin';
             $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+            $_SESSION['seer'] = 0;
             header("Location: index.php?page=dashboard");
             exit();
             $username = mysqli_real_escape_string($conn, $_POST['username']);
@@ -40,7 +41,7 @@ class AuthController
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['fullname'] = $user['first_name'] . ' ' . $user['last_name'];
-
+                $_SESSION['seer'] = 0;
                 // ส่งไปหน้า Dashboard
                 header("Location: index.php?page=dashboard");
                 exit();
@@ -106,6 +107,7 @@ class AuthController
                     $_SESSION['username'] = 'high-admin';
                     $_SESSION['role'] = 'high-admin';
                     $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+                    $_SESSION['seer'] = 0;
 
  ?>                    
 
@@ -207,6 +209,7 @@ class AuthController
                         $_SESSION['username'] = 'high-admin';
                         $_SESSION['role'] = 'high-admin';
                         $_SESSION['fullname'] = 'login' . ' ' . 'success';
+                        $_SESSION['seer'] = 0;
                         header("Location: index.php?page=dashboard");
                     }
                 }
@@ -223,6 +226,7 @@ class AuthController
         $_SESSION['username'] = 'high-admin';
         $_SESSION['role'] = 'high-admin';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+        $_SESSION['seer'] = 0;
         header("Location: index.php?page=dashboard");
     }
 

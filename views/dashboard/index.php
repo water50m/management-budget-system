@@ -5,6 +5,7 @@ include_once  __DIR__ . "/../../includes/expenseTableFunction.php";
 include_once  __DIR__ . "/../../includes/approveTableFunction.php";
 include_once  __DIR__ . "/../../includes/userTableFunction.php";
 include_once  __DIR__ . "/../../includes/userRoleManageFunction.php";
+include_once __DIR__ . "/..//../includes/db.php";
 ?>
 <body class="bg-gray-100 h-screen overflow-hidden flex flex-col">
 
@@ -62,6 +63,7 @@ include_once  __DIR__ . "/../../includes/userRoleManageFunction.php";
                     $data['approvals'],
                     $data['filters'],
                     $data['departments_list'],
+                    $year = $data['years_list'],
                     $color = 'emerald'
                 );
                 ?>
@@ -85,7 +87,8 @@ include_once  __DIR__ . "/../../includes/userRoleManageFunction.php";
                     $data['user_list'],
                     $data['filters'],      // อย่าลืม update controller ให้รับ search_username, role_user ด้วย
                     $data['departments_list'],
-                    $_SESSION['role']      // ส่ง Role ของคนที่ Login เข้าไปเพื่อเช็คสิทธิ์แก้ไข
+                    $_SESSION['role'] ,     // ส่ง Role ของคนที่ Login เข้าไปเพื่อเช็คสิทธิ์แก้ไข
+                    $conn
                 );
                 ?>
 

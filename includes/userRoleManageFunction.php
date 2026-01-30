@@ -1,30 +1,59 @@
 <?php
-
 include_once __DIR__ . "/saveLogFunction.php";
-if (isset($_POST['action']) && $_POST['action'] == 'update_role' && $role == 'high-admin') {
+
+
+// ดักจับการ Submit (ถ้ามีการส่ง form มา)
+if (isset($_POST['action']) && $_POST['action'] == 'update_role') {
     submitUpdateRole($conn, $redirect_url);
 }
+
 /**
  * Component ย่อย: สำหรับแสดงผลและจัดการ Role ในตาราง
- * แยกออกมาเพื่อให้โค้ดหลักอ่านง่ายขึ้น
+ * * @param array $u ข้อมูล User แถวนั้นๆ (ต้องมี u.id และ u.role_id หรือ u.role_name)
+ * @param string $currentUserRole Role ของคนที่ Login อยู่ (เช่น 'high-admin')
+ * @param object $conn Database Connection (ต้องส่งมาเพื่อ Query Role List)
  */
-function renderUserRoleManageComponent($u, $currentUserRole)
+function renderUserRoleManageComponent($u, $currentUserRole, $conn)
 {
 
+    // 1. ดึงรายการ Role ทั้งหมดจาก DB เพื่อมาทำ Dropdown
+    // เรียงตาม ID หรือตามความเหมาะสม
+    $role_query = "SELECT id,role_name, description FROM roles ORDER BY id ASC";
+    $role_result = mysqli_query($conn, $role_query);
+    
+    $roles_list = [];
+    while ($row = mysqli_fetch_assoc($role_result)) {
+        $roles_list[] = $row;
+    }
 ?>
     <div class="flex items-center justify-center">
-        <?php if ($currentUserRole == 'high-admin'): ?>
-            <?php if ($u['role'] != 'high-admin'): ?>
+        <?php 
+        // 2. เช็คสิทธิ์: คนใช้งานต้องเป็น 'high-admin' เท่านั้น ถึงจะแก้ได้
+        if ($currentUserRole == 'high-admin'): 
+        ?>
+            
+            <?php 
+            // 3. ป้องกันไม่ให้แก้ Role ของคนที่เป็น high-admin ด้วยกัน (เดี๋ยวไม่มีใครคุมระบบ)
+            // หรือถ้าอยากให้แก้ได้ ก็เอาเงื่อนไขนี้ออก
+            if ($u['role_id'] != '1'): 
+            ?>
                 <form method="POST" action="index.php?page=dashboard" class="flex items-center gap-2">
                     <input type="hidden" name="action" value="update_role">
                     <input type="hidden" name="target_user_id" value="<?php echo $u['id']; ?>">
+                    <input type="hidden" name="redirect_url" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
 
                     <select name="new_role"
-                        data-original="<?php echo $u['role']; ?>"
+                        data-original="<?php echo $u['role_id']; ?>"
                         onchange="checkRoleChange(this)"
-                        class="border border-blue-300 rounded text-xs px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm text-gray-700">
-                        <option value="user" <?php echo $u['role'] == 'user' ? 'selected' : ''; ?>>User</option>
-                        <option value="admin" <?php echo $u['role'] == 'admin' ? 'selected' : ''; ?>>Admin</option>
+                        class="border border-blue-300 rounded text-xs px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm text-gray-700 min-w-[120px]">
+                        
+                        <?php foreach ($roles_list as $role): ?>
+                            <option value="<?php echo $role['id']; ?>" 
+                                <?php echo ($u['role_id'] == $role['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($role['description']); ?>
+                            </option>
+                        <?php endforeach; ?>
+
                     </select>
 
                     <div class="role-actions hidden flex items-center gap-1">
@@ -40,50 +69,58 @@ function renderUserRoleManageComponent($u, $currentUserRole)
                         </button>
                     </div>
                 </form>
+
             <?php else: ?>
                 <span class="bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                    High Admin
+                    <?php 
+                        // หา description ของ high-admin มาโชว์ (ถ้าหาไม่เจอโชว์ชื่อ role)
+                        $key = array_search('high-admin', array_column($roles_list, 'role_name'));
+                        echo ($key !== false) ? $roles_list[$key]['description'] : 'True Admin';
+                    ?>
                 </span>
             <?php endif; ?>
+
         <?php else: ?>
-            <span class="px-2 py-1 rounded text-xs font-medium border
-                <?php echo ($u['role'] == 'admin') ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200'; ?>">
-                <?php echo ucfirst($u['role']); ?>
+            <?php 
+                // Map ชื่อ Role เป็น Description เพื่อแสดงผล
+                $key = array_search($u['role_id'], array_column($roles_list, 'role_name'));
+                $display_role = ($key !== false) ? $roles_list[$key]['description'] : ucfirst($u['role_id']);
+                
+                // สี Badge ตาม Role (ตัวอย่าง)
+                if ($u['role_id'] == 1) {
+                    // High Admin: สีแดง
+                    $badge_class = 'bg-red-50 text-red-700 border-red-200';
+                } elseif ($u['role_id'] >= 2 && $u['role_id'] <= 6) {
+                    // Admin ภาควิชาต่างๆ (ID 2-6): สีส้ม
+                    $badge_class = 'bg-orange-50 text-orange-700 border-orange-200';
+                } else {
+                    // User (ID 7) หรืออื่นๆ: สีเทา
+                    $badge_class = 'bg-gray-50 text-gray-600 border-gray-200';
+                }
+            ?>
+            <span class="px-2 py-1 rounded text-xs font-medium border <?php echo $badge_class; ?>">
+                <?php echo $display_role; ?>
             </span>
         <?php endif; ?>
     </div>
+    
     <script>
-        // ==========================================
-        // 1. จัดการ Dropdown เปลี่ยน Role (High-Admin)
-        // ==========================================
-
         function checkRoleChange(selectElement) {
-            // หาค่าเดิมที่เก็บไว้
             const originalValue = selectElement.getAttribute('data-original');
-            // หา div ที่เก็บปุ่ม Save/Cancel (อยู่ถัดไปจาก select)
             const actionsDiv = selectElement.nextElementSibling;
-
+            // ... (Logic เดิม) ...
             if (selectElement.value !== originalValue) {
-                // ถ้าค่าเปลี่ยน -> เอา class 'hidden' ออก (โชว์ปุ่ม)
                 actionsDiv.classList.remove('hidden');
                 selectElement.classList.add('border-purple-500', 'bg-purple-50');
             } else {
-                // ถ้าค่าเหมือนเดิม -> ซ่อนปุ่ม
                 actionsDiv.classList.add('hidden');
                 selectElement.classList.remove('border-purple-500', 'bg-purple-50');
             }
         }
-
         function cancelRoleEdit(btnElement) {
-            // หา div พ่อ (role-actions)
             const actionsDiv = btnElement.parentElement;
-            // หา select ที่เป็นพี่น้อง (อยู่ก่อนหน้า)
             const selectElement = actionsDiv.previousElementSibling;
-
-            // คืนค่าเดิม
             selectElement.value = selectElement.getAttribute('data-original');
-
-            // ซ่อนปุ่ม และคืนสีปกติ
             actionsDiv.classList.add('hidden');
             selectElement.classList.remove('border-purple-500', 'bg-purple-50');
         }
@@ -91,70 +128,53 @@ function renderUserRoleManageComponent($u, $currentUserRole)
 <?php
 }
 
-
-
+/**
+ * ฟังก์ชันบันทึกการแก้ไข Role
+ */
 function submitUpdateRole($conn, $redirect_url = null)
 {
-
-    // กำหนด Default URL (ค่าเดิมที่ใช้อยู่)
-    // ถ้า $redirect_url เป็นค่าว่าง หรือ null ให้ใช้ค่า default นี้แทน
+    // ... (ส่วนตั้งค่า URL และ Helper เหมือนเดิม) ...
     $default_url = "index.php?page=dashboard&tab=users";
+    $final_redirect = !empty($redirect_url) ? $redirect_url : $default_url;
+    $sep = (strpos($final_redirect, '?') !== false) ? '&' : '?';
 
-    // ตัวแปรสำหรับเก็บ URL ที่จะใช้จริง (ยังไม่รวม params status/msg)
-    if (!empty($redirect_url)) {
-        $final_redirect = $redirect_url;
-    } else {
-        $final_redirect = $default_url;
-    }
-
-    // 1. เช็คสิทธิ์: ต้องเป็น High Admin เท่านั้น
+    // 1. เช็คสิทธิ์ (เหมือนเดิม)
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'high-admin') {
-        // ต่อ String เพื่อส่งค่า status
-        // ใช้ strpos เช็คว่าใน URL มีเครื่องหมาย ? หรือยัง เพื่อเชื่อมด้วย & หรือ ? ให้ถูกต้อง
-        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
-        header("Location: " . $final_redirect . $separator . "status=error&msg=access_denied");
+        header("Location: " . $final_redirect . $sep . "status=error&msg=access_denied");
         exit();
     }
 
-    $target_uid = intval($_POST['target_user_id']);
-    $new_role   = mysqli_real_escape_string($conn, $_POST['new_role']);
-    $actor_id   = $_SESSION['user_id'];
+    $target_upid = mysqli_real_escape_string($conn, $_POST['target_user_id']); // รับ upid
+    $new_role_id = intval($_POST['new_role_id']); // ✅ รับเป็น ID (ตัวเลข) มาเลย
+    $actor_id    = $_SESSION['user_id'];
 
-    // 2. ป้องกันการเปลี่ยนสิทธิ์ตัวเอง
-    if ($target_uid == $actor_id) {
-        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
-        header("Location: " . $final_redirect . $separator . "status=error&msg=cannot_change_own_role");
+    // 1. ตรวจสอบว่า Role ID ที่ส่งมา มีอยู่จริงไหม (กันคนมั่วตัวเลข)
+    $check_role_sql = "SELECT description FROM roles WHERE id = $new_role_id";
+    $result_role = mysqli_query($conn, $check_role_sql);
+
+    if (mysqli_num_rows($result_role) == 0) {
+        header("Location: ... msg=invalid_role_id");
         exit();
     }
+    
+    // ดึงชื่อมาเก็บ Log เฉยๆ
+    $role_row = mysqli_fetch_assoc($result_role);
+    $role_desc = $role_row['description'];
 
-    // 3. ตรวจสอบค่า Role (Whitelist)
-    $allowed_roles = ['user', 'admin'];
-    if (!in_array($new_role, $allowed_roles)) {
-        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
-        header("Location: " . $final_redirect . $separator . "status=error&msg=invalid_role_value");
-        exit();
-    }
-
-    // 4. อัปเดตลง DB
-    $sql_update = "UPDATE users SET role = '$new_role' WHERE id = $target_uid";
+    // 2. อัปเดตลงตาราง users ได้เลย! (ไม่ต้องค้นหาแล้ว)
+    // ใช้คอลัมน์ role_id (หรือชื่อคอลัมน์ที่คุณตั้งไว้เก็บ id)
+    $sql_update = "UPDATE users SET role_id = $new_role_id WHERE upid = '$target_upid'";
 
     if (mysqli_query($conn, $sql_update)) {
-        // 5. บันทึก Log
-        // (ต้องแน่ใจว่าฟังก์ชัน logActivity ถูก include เข้ามาแล้ว)
-        if (function_exists('logActivity')) {
-            logActivity($conn, $actor_id, $target_uid, 'update_role', "เปลี่ยนสิทธิ์เป็น $new_role");
-        }
-
-        // 6. Redirect กลับตามที่กำหนด
-        $separator = (strpos($final_redirect, '?') !== false) ? '&' : '?';
-        header("Location: " . $final_redirect . $separator . "status=success&msg=role_updated");
+        // Log
+        logActivity($conn, $actor_id, $target_upid, 'update_role', "เปลี่ยนสิทธิ์เป็น $role_desc (ID: $new_role_id)");
+        
+        header("Location: ... msg=role_updated");
         exit();
+    
     } else {
         echo "Error: " . mysqli_error($conn);
         exit();
     }
 }
-
-// how to use
-// <input type="hidden" name="current_page" value="<?php //echo htmlspecialchars($_SERVER['REQUEST_URI']); ?_"> 
-//  renderUserRoleManageComponent($u, $currentUserRole); 
+?>

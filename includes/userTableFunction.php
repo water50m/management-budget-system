@@ -1,6 +1,6 @@
 <?php
 
-function renderUserTableComponent($users, $filters, $departments, $currentUserRole) {
+function renderUserTableComponent($users, $filters, $departments, $currentUserRole, $conn) {
     // 1. รวม search_user กับ search_username เป็นตัวเดียวกัน (ใช้ key 'search_text')
     $filters = array_merge([
         'search_text' => '', // ✅ เปลี่ยนชื่อตัวแปรให้สื่อความหมายรวม
@@ -107,7 +107,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                             <td class="px-6 py-4 font-mono text-gray-600 text-xs"><?php echo $u['username']; ?></td>
                             <td class="px-6 py-4">
                                 <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
-                                <?php renderUserRoleManageComponent($u, $currentUserRole); ?>
+                                <?php renderUserRoleManageComponent($u, $currentUserRole, $conn); ?>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <?php 
