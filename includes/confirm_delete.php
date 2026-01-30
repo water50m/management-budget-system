@@ -1,13 +1,13 @@
 <?php
 
-function renderDeleteModal($actionUrl, $actionValue, $targetInputId) {
+function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id) {
     // ป้องกัน XSS เบื้องต้น
     $actionUrl = htmlspecialchars($actionUrl);
     $actionValue = htmlspecialchars($actionValue);
     $targetInputId = htmlspecialchars($targetInputId);
     
 
-    echo <<<HTML
+    ?>
     <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-2xl rounded-xl bg-white transform transition-all scale-100">
             <div class="mt-3 text-center">
@@ -19,10 +19,10 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId) {
                 
                 <h3 class="text-lg leading-6 font-bold text-red-600">ยืนยันการลบข้อมูล?</h3>
                 
-                <form id="deleteForm" action="{$actionUrl}" method="POST" class="mt-4 px-4">
-                    <input type="hidden" name="action" value="{$actionValue}">
+                <form id="deleteForm" action="<?=  $actionUrl; ?>" method="POST" class="mt-4 px-4">
+                    <input type="hidden" name="action" value="<?= $actionValue; ?>">
                     
-                    <input type="hidden" name="id" id="{$targetInputId}">
+                    <input type="hidden" name="<?= $targetInputId; ?>" id="<?= $targetInputId; ?>" value=<?= $id; ?>>
                     
                     <p class="text-sm text-gray-500 mb-2">
                         เพื่อยืนยัน กรุณาพิมพ์คำว่า <br>
@@ -86,20 +86,22 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId) {
         // ฟังก์ชันเปิด Modal (เรียกจากปุ่มถังขยะข้างนอก)
         // param id: ID ของข้อมูลที่จะลบ (database ID)
         // param targetInputId: ID ของ input hidden ที่จะรับค่า (ส่งมาจาก PHP)
-        function openDeleteModal(id) {
+        function openDeleteModal(id,inputId) {
+        
             // ใส่ ID ลงใน Hidden Input ตามชื่อ ID ที่เราตั้งไว้ใน PHP
-            document.getElementById('{$targetInputId}').value = id;
+            document.getElementById(inputId).value = id;
             
             // เปิด Modal
             document.getElementById('deleteModal').classList.remove('hidden');
-            
+
             // Focus ช่องพิมพ์ทันที เพื่อความสะดวก
             setTimeout(() => {
                 document.getElementById('confirm_text_input').focus();
             }, 100);
         }
+        window.openDeleteModal = openDeleteModal;
     </script>
-HTML;
+<?php
 }
 
 

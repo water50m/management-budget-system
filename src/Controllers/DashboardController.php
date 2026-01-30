@@ -2,8 +2,8 @@
 // src/Controllers/DashboardController.php
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
-require_once __DIR__ . '/../../includes/expenseTableFunction.php';
-require_once __DIR__ . '/../../includes/approveTableFunction.php';
+require_once __DIR__ . '/../../views/dashboard/expenseTableFunction.php';
+require_once __DIR__ . '/../../views/dashboard/approveTableFunction.php';
 require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 class DashboardController
@@ -16,9 +16,11 @@ class DashboardController
 
         // 1. หา "เงินเข้า"
         $sql_income = "SELECT COALESCE(SUM(approved_amount), 0) as total_approved 
-                    FROM budget_approvals 
+                    FROM budget_received 
                     WHERE user_id = $user_id 
-                    AND approved_date >= DATE_SUB('$today', INTERVAL 2 YEAR)";
+                    AND approved_date >= DATE_SUB('$today', INTERVAL 2 YEAR)
+                    AND deleted_at IS NULL
+                    ";
 
         $res_in = mysqli_query($conn, $sql_income);
         $row_in = mysqli_fetch_assoc($res_in);
@@ -27,7 +29,8 @@ class DashboardController
         // 2. หา "เงินออก"
         $sql_expense = "SELECT COALESCE(SUM(amount), 0) as total_spent 
                         FROM budget_expenses 
-                        WHERE user_id = $user_id";
+                        WHERE user_id = $user_id
+                        AND deleted_at IS NULL";
 
         $res_ex = mysqli_query($conn, $sql_expense);
         $row_ex = mysqli_fetch_assoc($res_ex);
@@ -47,8 +50,7 @@ class DashboardController
 
             // เริ่มต้นด้วย WHERE 1=1 เพื่อให้ง่ายต่อการต่อ String (AND ...)
             // และเป็นการเริ่ม Block WHERE ของ Query นี้
-            $sql .= " WHERE 1=1 ";
-
+            
             if ($seer == 0) {
                 // ✅ กรณี 0 (High Admin): เห็นทั้งหมด
                 // ไม่ต้องเติม AND อะไร ปล่อยผ่านเลย
@@ -107,10 +109,11 @@ class DashboardController
 
                 try {
                     // A. บันทึกข้อมูลงบประมาณ
-                    $sql_budget = "INSERT INTO budget_approvals 
+                    $sql_budget = "INSERT INTO budget_received 
                                 (user_id, approved_amount, approved_date, remark) 
                                 VALUES 
-                                ('$user_id', '$amount', '$approved_date', '$remark')";
+                                ('$user_id', '$amount', '$approved_date', '$remark')
+                                ";
 
                     if (!mysqli_query($conn, $sql_budget)) {
                         throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
@@ -182,9 +185,10 @@ class DashboardController
                     // ตัดเงื่อนไข Fiscal Year ออก เพื่อให้มันมองเห็นงบทุกก้อน
                     $sql_app = "SELECT a.id, a.approved_amount, a.approved_date, 
                                 COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as used_so_far
-                                FROM budget_approvals a
+                                FROM budget_received a
                                 WHERE a.user_id = '$user_id'
                                 AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) -- (Optional) กรองใบที่เก่าเกิน 2 ปีทิ้ง ถ้าไม่ใช้ก็ลบบรรทัดนี้ได้
+                                AND deleted_at IS NULL
                                 HAVING (a.approved_amount - used_so_far) > 0
                                 ORDER BY a.approved_date ASC"; // หัวใจสำคัญของ FIFO คือตรงนี้ (เก่าไปใหม่)
 
@@ -284,7 +288,8 @@ class DashboardController
         $data['year_list'] = [];
         // ใช้ Logic ดึงปีงบประมาณจากวันที่ (Fiscal Year Logic)
         $sql_year_list = "SELECT DISTINCT (YEAR(approved_date) + IF(MONTH(approved_date) >= 10, 1, 0)) + 543 as fiscal_year_th
-                          FROM budget_approvals 
+                          FROM budget_received
+                          WHERE deleted_at IS NULL 
                           ORDER BY fiscal_year_th DESC";
         $res_year = mysqli_query($conn, $sql_year_list);
         while ($row = mysqli_fetch_assoc($res_year)) {
@@ -325,7 +330,7 @@ class DashboardController
                     // 2. สร้างรายการ "ปีงบประมาณ" (Dynamic Year List)
                     // ---------------------------------------------------------
                     // ดึงวันที่ต่ำสุดและสูงสุดจากระบบ
-                    $sql_years = "SELECT MIN(approved_date) as min_date, MAX(approved_date) as max_date FROM budget_approvals";
+                    $sql_years = "SELECT MIN(approved_date) as min_date, MAX(approved_date) as max_date FROM budget_received WHERE deleted_at IS NULL ";
                     $res_years = mysqli_query($conn, $sql_years);
                     $row_years = mysqli_fetch_assoc($res_years);
 
@@ -369,15 +374,20 @@ class DashboardController
                                 -- ✅ เพิ่มบรรทัดนี้กลับเข้ามาครับ เพื่อเช็คยอดใช้
                                 COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as total_used
 
-                            FROM budget_approvals a
+                            FROM budget_received a
                             JOIN users u ON a.user_id = u.id 
                             JOIN user_profiles p ON u.id = p.user_id 
                             LEFT JOIN departments d ON p.department_id = d.id 
+                            WHERE 1=1
                             ";
 
                     // ---------------------------------------------------------
                     // 4. ใส่ Logic Filter
                     // ---------------------------------------------------------
+                
+                    // filter deleted data
+                    $sql.="AND a.deleted_at IS NULL AND p.deleted_at IS NULL";
+                    // filter data for admin
                     $sql = $this->applyPermissionFilter($sql);
 
                     if (!empty($search)) {
@@ -469,7 +479,7 @@ class DashboardController
                     // สร้างรายการ "ปีงบประมาณ" (Dynamic Year List)
                     // ---------------------------------------------------------
                     // ดึงวันที่ต่ำสุดและสูงสุดจากระบบ
-                    $sql_years = "SELECT MIN(approved_date) as min_date, MAX(approved_date) as max_date FROM budget_expenses";
+                    $sql_years = "SELECT MIN(approved_date) as min_date, MAX(approved_date) as max_date FROM budget_expenses WHERE deleted_at IS NULL";
                     $res_years = mysqli_query($conn, $sql_years);
                     $row_years = mysqli_fetch_assoc($res_years);
 
@@ -523,9 +533,12 @@ class DashboardController
                             JOIN user_profiles p ON u.id = p.user_id
                             LEFT JOIN expense_categories c ON e.category_id = c.id
                             LEFT JOIN departments d ON p.department_id = d.id
+                            WHERE 1=1
                             ";
 
                     // --- ใส่เงื่อนไขการกรอง ---
+                    $sql .= "AND e.deleted_at IS NULL AND p.deleted_at IS NULL";
+                    //filter for some admin
                     $sql = $this->applyPermissionFilter($sql);
 
                     if ($year_filter > 0) {
@@ -612,11 +625,15 @@ class DashboardController
                             FROM users u
                             LEFT JOIN user_profiles p ON u.id = p.user_id
                             LEFT JOIN departments d ON p.department_id = d.id
+                            WHERE 1=1 
                             ";
 
                     // ---------------------------------------------------------
                     // 4. ใส่ Logic Filter
                     // ---------------------------------------------------------
+                    // filter deleted data
+                    $sql .= "AND p.deleted_at IS NULL";
+                    // filter for some admin
                     $sql = $this->applyPermissionFilter($sql);
 
                     // ✅ 4.1 ค้นหาแบบรวม (Omni-search): ชื่อ OR นามสกุล OR Username
@@ -737,7 +754,7 @@ class DashboardController
         $data['view_mode'] = 'user_detail';
         $data['is_admin_viewing'] = $is_admin_viewing;
 
-        $sql_name = "SELECT p.prefix, p.first_name, p.last_name, d.thai_name AS department FROM user_profiles p LEFT JOIN departments d ON p.department_id = d.id WHERE p.user_id = $view_id";
+        $sql_name = "SELECT p.prefix, p.first_name, p.last_name, d.thai_name AS department FROM user_profiles p LEFT JOIN departments d ON p.department_id = d.id WHERE p.user_id = $view_id AND p.deleted_at IS NULL";
         $res_name = mysqli_query($conn, $sql_name);
         $data['profile'] = mysqli_num_rows($res_name) > 0 ? mysqli_fetch_assoc($res_name) : ['prefix' => '', 'first_name' => 'Unknown', 'department' => '-'];
         $data['budget'] = $this->calculateBudget($conn, $view_id);
@@ -756,16 +773,10 @@ class DashboardController
     // ฟังก์ชันคำนวณงบ (ใช้ตารางใหม่ budget_expenses ที่มี source_type แล้ว)
     private function calculateBudget($conn, $uid)
     {
-        $budget = ['total_income' => 0, 'travel' => 0, 'book' => 0, 'computer' => 0, 'medical' => 0, 'total_expense' => 0];
-
-        // 1. รายรับ (Incomes)
-        $res_in = mysqli_query($conn, "SELECT * FROM budget_incomes WHERE user_id = $uid");
-        while ($r = mysqli_fetch_assoc($res_in)) {
-            $budget['total_income'] += $r['amount'];
-        }
+        $budget = ['travel' => 0, 'book' => 0, 'computer' => 0, 'medical' => 0, 'total_expense' => 0];
 
         // 2. รายจ่าย (Expenses) - ปรับให้รองรับ category เป็นภาษาอังกฤษ
-        $res_ex = mysqli_query($conn, "SELECT * FROM budget_expenses WHERE user_id = $uid");
+        $res_ex = mysqli_query($conn, "SELECT * FROM budget_expenses WHERE user_id = $uid AND deleted_at IS NULL");
         while ($r = mysqli_fetch_assoc($res_ex)) {
             if (isset($budget[$r['category']])) {
                 $budget[$r['category']] += $r['amount'];

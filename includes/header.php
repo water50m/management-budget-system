@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/../includes/confirm_delete.php';
+include_once __DIR__ . '/confirm_delete.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -18,7 +18,7 @@ include_once __DIR__ . '/../includes/confirm_delete.php';
 ?>
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบริหารงานวิจัย (Neon Admin)</title>
+    <!-- <title>ระบบบริหารงานวิจัย (Neon Admin)</title> -->
 
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

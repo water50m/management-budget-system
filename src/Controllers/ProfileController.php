@@ -20,7 +20,7 @@ class ProfileController {
         if (!$user_info) { header("Location: index.php?page=dashboard"); exit; }
 
         // 2. คำนวณยอดรวมต่างๆ (เหมือนเดิม)
-        $sql_total_rec = "SELECT SUM(approved_amount) as total FROM budget_approvals WHERE user_id = $user_id";
+        $sql_total_rec = "SELECT SUM(approved_amount) as total FROM budget_received WHERE user_id = $user_id AND deleted_at IS NULL";
         $user_info['total_received_all'] = mysqli_fetch_assoc(mysqli_query($conn, $sql_total_rec))['total'] ?? 0;
 
         $cur_month = date('n'); $cur_year_ad = date('Y');
@@ -31,12 +31,12 @@ class ProfileController {
             $start_fiscal = ($cur_year_ad - 1) . '-10-01'; $end_fiscal = $cur_year_ad . '-09-30';
             $current_fiscal_year = $cur_year_ad + 543;
         }
-        $sql_spent_year = "SELECT SUM(amount) as total FROM budget_expenses WHERE user_id = $user_id AND approved_date BETWEEN '$start_fiscal' AND '$end_fiscal'";
+        $sql_spent_year = "SELECT SUM(amount) as total FROM budget_expenses WHERE user_id = $user_id AND approved_date BETWEEN '$start_fiscal' AND '$end_fiscal' AND deleted_at IS NULL";
         $user_info['total_spent_this_year'] = mysqli_fetch_assoc(mysqli_query($conn, $sql_spent_year))['total'] ?? 0;
 
         // 3. เตรียมตัวแปร Filter
         $years_list = [];
-        $res_y = mysqli_query($conn, "SELECT DISTINCT IF(MONTH(approved_date)>=10, YEAR(approved_date)+1, YEAR(approved_date))+543 as fy FROM budget_approvals WHERE user_id = $user_id ORDER BY fy DESC");
+        $res_y = mysqli_query($conn, "SELECT DISTINCT IF(MONTH(approved_date)>=10, YEAR(approved_date)+1, YEAR(approved_date))+543 as fy FROM budget_received WHERE user_id = $user_id AND deleted_at IS NULL ORDER BY fy DESC");
         while($y = mysqli_fetch_assoc($res_y)) { $years_list[] = $y['fy']; }
         
         $cats_list = [];
@@ -54,8 +54,8 @@ class ProfileController {
         $f_type   = isset($_GET['type']) ? $_GET['type'] : 'all'; // all, income, expense
 
         // 4. สร้าง SQL
-        $where_inc = " WHERE user_id = $user_id ";
-        $where_exp = " WHERE e.user_id = $user_id ";
+        $where_inc = " WHERE user_id = $user_id AND deleted_at IS NULL";
+        $where_exp = " WHERE e.user_id = $user_id AND e.deleted_at IS NULL";
 
         // Apply Filters
         if(!empty($f_search)){
@@ -89,7 +89,7 @@ class ProfileController {
                                 id, approved_date as txn_date, remark as description, approved_amount as amount,
                                 'income' as type, NULL as category_name,
                                 IF(MONTH(approved_date) >= 10, YEAR(approved_date) + 1, YEAR(approved_date)) + 543 as fiscal_year_num
-                             FROM budget_approvals $where_inc)";
+                             FROM budget_received $where_inc)";
         }
 
         // ส่วนรายจ่าย (Expense)

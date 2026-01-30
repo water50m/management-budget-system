@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
 $role = $_SESSION['role'];
-$title = $user_info['prefix'] . $user_info['first_name'];
+$title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 include_once __DIR__ . '/../../includes/header.php';
 ?>
 

@@ -1,11 +1,12 @@
 <?php
 include_once __DIR__ . '/../../includes/header.php';
-include_once "modal_add_budget.php";
-include_once  __DIR__ . "/../../includes/expenseTableFunction.php";
-include_once  __DIR__ . "/../../includes/approveTableFunction.php";
-include_once  __DIR__ . "/../../includes/userTableFunction.php";
-include_once  __DIR__ . "/../../includes/userRoleManageFunction.php";
-include_once __DIR__ . "/..//../includes/db.php";
+include_once __DIR__ . "/modal_add_budget.php";
+include_once __DIR__ . "/expenseTableFunction.php";
+include_once __DIR__ . "/approveTableFunction.php";
+include_once __DIR__ . "/userTableFunction.php";
+include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
+include_once __DIR__ . "/../../includes/saveLogFunction.php";
+
 ?>
 <body class="bg-gray-100 h-screen overflow-hidden flex flex-col">
 

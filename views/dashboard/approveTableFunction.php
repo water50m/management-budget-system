@@ -28,7 +28,6 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     $btnBg = "bg-{$theme}-600";
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
-    include_once __DIR__ . '/text_box_alert.php';
 ?>
     
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
@@ -196,7 +195,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                                     <?php else: ?>
                                         <button type="button"
                                             
-                                            onclick="openDeleteModal(<?php echo $row['id']; ?>)"
+                                            onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_approval_id')"
                                             class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition duration-150"
                                             title="ลบรายการนี้">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -213,7 +212,8 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                             renderDeleteModal(
                                 "index.php?page=dashboard",
                                 "delete_budget",
-                                "delete_approval_id"
+                                "delete_approval_id",
+                                $row['id']
                             );
                         }
                         ?>
@@ -227,32 +227,56 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
 
 function submitDeleteAprove($conn){
 
-    // 2. รับค่า ID และแปลงเป็นตัวเลขจำนวนเต็มทันที (เพื่อป้องกัน SQL Injection)
+    // 1. รับค่า ID และแปลงเป็นตัวเลข
     $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
+    
+    // ดึง ID คนทำรายการจาก Session
+    $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
 
-    // 3. ตรวจสอบว่า ID ถูกต้องหรือไม่
+    // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
     if ($id > 0) {
         
-        // --- (Option A: ลบจริง Hard Delete) ---
-        // $sql = "DELETE FROM budget_years WHERE id = $id"; // เปลี่ยน budget_years เป็นชื่อตารางงบประมาณของคุณ
-        
-        // --- (Option B: ลบแบบซ่อน Soft Delete - แนะนำวิธีนี้) ---
-        // วิธีนี้ข้อมูลไม่หายจริง แค่เปลี่ยนสถานะเป็น 'deleted' หรือ 'inactive'
-        // ช่วยกู้คืนได้ถ้า User เผลอลบผิด
-        $sql = "UPDATE budget_years SET status = 'deleted' WHERE id = $id"; 
+        // ---------------------------------------------------------
+        // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
+        // ---------------------------------------------------------
+        // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_approvals หรือ budget_years)*
+        $sql_check = "SELECT * FROM budget_approvals WHERE id = $id"; 
+        $res_check = mysqli_query($conn, $sql_check);
+        $old_data = mysqli_fetch_assoc($res_check);
 
-        // 4. สั่งรันคำสั่ง SQL
+        // สร้างข้อความ Log
+        $log_desc = "ลบการอนุมัติงบ ID: $id"; // ค่า Default
+        if ($old_data) {
+            // ตัวอย่าง: "ลบการอนุมัติงบ 50,000 บาท ของโครงการ ABC"
+            // ปรับชื่อ field ตามตารางจริง (เช่น approved_amount, remark, description)
+            $amount_show = isset($old_data['approved_amount']) ? number_format($old_data['approved_amount']) : '-';
+            $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท";
+        }
+
+        // ---------------------------------------------------------
+        // ✅ Step 2: สั่งลบแบบ Soft Delete (ใช้ deleted_at)
+        // ---------------------------------------------------------
+        // แนะนำให้ใช้ deleted_at = NOW() เพื่อให้ตรงกับ View ที่เราเขียนไปก่อนหน้านี้
+        $sql = "UPDATE budget_approvals SET deleted_at = NOW() WHERE id = $id"; 
+
+        // 3. สั่งรันคำสั่ง SQL
         if (mysqli_query($conn, $sql)) {
-            // ✅ ลบสำเร็จ: Redirect กลับไปหน้าเดิม พร้อมแนบสถานะ success
-            header("Location: index.php?page=dashboard&status=success&msg=deleted");
+            
+            // ---------------------------------------------------------
+            // ✅ Step 3: บันทึก Log เมื่อลบสำเร็จ
+            // ---------------------------------------------------------
+            // logActivity($conn, $actor_id, $target_id, $action, $desc)
+            logActivity($conn, $actor_id, $id, 'delete_approval', $log_desc);
+
+            // 4. Redirect กลับ
+            header("Location: index.php?page=dashboard&tab=income&status=success&msg=deleted");
             exit();
+
         } else {
-            // ❌ ลบไม่สำเร็จ: แสดง Error (สำหรับการ Debug)
             echo "Error deleting record: " . mysqli_error($conn);
             exit();
         }
     } else {
-        // กรณี ID ไม่ถูกต้อง
         echo "Invalid ID.";
         exit();
     }
