@@ -1,4 +1,43 @@
-<?php include_once __DIR__ . '/../../includes/header.php';?>
+<?php ?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        ระบบจัดการงบประมาณ
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <title>ระบบบริหารงานวิจัย (Neon Admin)</title> -->
+
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    screens: {
+                        'fit': '1467px',
+                    },
+                    fontFamily: {
+                        sarabun: ['Sarabun', 'sans-serif'],
+                    },
+                    colors: {
+                        neon: {
+                            pink: '#ec4899',
+                            cyan: '#22d3ee',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        
+    </style>
+</head>
 <body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen flex items-center justify-center">
 
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
@@ -58,4 +97,5 @@
             <a href="index.php?page=fast-login" class="text-blue-500 text-sm font-semibold hover:underline">loginความไวแสง</a>
         </div>
     </div>
-<?php include_once __DIR__ . '/../../includes/footer.php';?>
+</body>
+</html>

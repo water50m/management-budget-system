@@ -29,7 +29,8 @@ class AuthController
             $sql = "SELECT u.id, u.username, u.password, u.role, p.first_name, p.last_name 
                     FROM users u 
                     LEFT JOIN user_profiles p ON u.id = p.user_id 
-                    WHERE u.username = '$username'";
+                    WHERE u.username = '$username'
+                    AND p.deleted_at IS NULL";
 
             $result = mysqli_query($conn, $sql);
             $user = mysqli_fetch_assoc($result);

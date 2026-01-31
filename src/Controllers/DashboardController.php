@@ -1,10 +1,6 @@
 <?php
 // src/Controllers/DashboardController.php
 require_once __DIR__ . '/../../includes/db.php';
-require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
-require_once __DIR__ . '/../../views/dashboard/expenseTableFunction.php';
-require_once __DIR__ . '/../../views/dashboard/approveTableFunction.php';
-require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 class DashboardController
 {
@@ -728,6 +724,7 @@ class DashboardController
                             JOIN user_profiles p ON u.id = p.user_id 
                             LEFT JOIN departments d ON p.department_id = d.id
                             WHERE u.role = 'user' 
+                            AND p.deleted_at IS NULL
                             ORDER BY d.id, p.first_name";
 
                     $result = mysqli_query($conn, $sql);

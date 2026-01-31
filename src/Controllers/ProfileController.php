@@ -1,7 +1,4 @@
 <?php
-// src/Controllers/ProfileController.php
-require_once __DIR__ . '/../../includes/db.php';
-
 class ProfileController {
     
     public function index() {
@@ -130,4 +127,5 @@ class ProfileController {
         
         require_once __DIR__ .'/../../views/profile/index.php'; 
     }
+
 }

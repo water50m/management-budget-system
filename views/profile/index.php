@@ -5,15 +5,10 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 include_once __DIR__ . '/../../includes/header.php';
 include_once __DIR__ . '/language.php';
 
-// --- 🌐 Auto Language Detection Logic ---
-// ตรวจสอบว่าในชื่อมีตัวอักษรไทยหรือไม่ (ถ้าไม่มีภาษาไทยเลย ให้ถือว่าเป็นต่างชาติ/English)
-$is_thai = preg_match('/[ก-๙]/', $user_info['first_name']);
 
-// ชุดคำแปล (Dictionary)
 
 ?>
 
-<body class="bg-gray-100 h-screen pb-10 text-gray-800 verflow-hidden flex flex-col">
 
     <nav class="bg-white shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-50">
         <div class="font-bold text-xl text-blue-800 flex items-center gap-2"><i class="fas fa-seedling"></i> Mali Project</div>
@@ -44,6 +39,15 @@ $is_thai = preg_match('/[ก-๙]/', $user_info['first_name']);
                         <div class="flex items-center gap-1 justify-center">
                             <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
                             <?php renderUserRoleManageComponent($user_info, $role, $conn) ?>
+
+                        </div>
+                        <div class="flex items-center gap-1 justify-center mt-2">
+
+                            <button type="button" 
+                                            class="text-red-500 hover:text-red-700" 
+                                            onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
+                                        <i class="fas fa-trash"></i> ลบข้อมูล
+                            </button>
                         </div>
                     </div>
                 </div>

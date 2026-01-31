@@ -8,56 +8,10 @@ include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
 include_once __DIR__ . "/../../includes/saveLogFunction.php";
 
 ?>
-<body class="bg-gray-100 h-screen overflow-hidden flex flex-col">
-
-    <nav class="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div>
-            <h1 class="text-xl font-bold text-blue-800">ระบบบริหารงานวิจัย</h1>
-            <p class="text-xs text-gray-500">Mali Project</p>
-        </div>
-        <div class="flex items-center gap-4">
-            <div class="text-right hidden sm:block">
-                <div class="text-sm font-bold text-gray-700"><?php echo $_SESSION['fullname']; ?></div>
-                <div class="text-xs text-gray-500 capitalize"><?php echo $_SESSION['role']; ?></div>
-            </div>
-            <a href="index.php?page=logout" class="bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 text-sm">ออกจากระบบ</a>
-        </div>
-    </nav>
-
     <div class="w-full px-4 p-4 md:px-8 flex-1 flex flex-col overflow-hidden">
 
         <?php if (strpos($data['view_mode'], 'admin_') === 0): ?>
 
-            <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        <?php echo ($data['current_tab'] == 'approval') ? 'สรุปยอดงบประมาณที่อนุมัติ' : 'ภาพรวมคำขอ (Request)'; ?>
-                    </h2>
-                    <p class="text-gray-500 text-sm">ปีงบประมาณ 2569</p>
-                </div>
-
-                <div class="flex bg-white rounded-lg shadow-sm p-1 border">
-                    <a href="index.php?page=dashboard&tab=approval"
-                        class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'approval' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
-                        ✅ ยอดที่อนุมัติ (Approved)
-                    </a>
-                    <a href="index.php?page=dashboard&tab=expense"
-                        class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'expense' ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
-                        📝 ยอดที่ขอ (Request)
-                    </a>
-
-                    <a href="index.php?page=dashboard&tab=users"
-                        class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'users' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
-                        👥 ผู้ใช้งาน (Users)
-                    </a>
-                    <?php if ($_SESSION['role'] == 'high-admin'): ?>
-                        <a href="index.php?page=dashboard&tab=logs"
-                            class="px-4 py-2 rounded-md text-sm font-medium transition <?php echo $data['current_tab'] == 'logs' ? 'bg-orange-100 text-orange-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'; ?>">
-                            🕒 ประวัติระบบ (Logs)
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
             <?php if ($data['view_mode'] == 'admin_approval_table'): ?>
                 <?php
                 renderApprovalTableComponent(
@@ -249,5 +203,7 @@ include_once __DIR__ . "/../../includes/saveLogFunction.php";
             </form>
         </div>
     </div>
+
 <?php include_once __DIR__ . '/../../includes/footer.php';?>
+
     

@@ -121,6 +121,11 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                     <a href="index.php?page=profile&id=<?php echo $u['id']; ?>" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">👤 โปรไฟล์</a>
                                     <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>', <?php echo $balance; ?>)" class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition flex items-center gap-1">➖ ตัดยอด</button>
                                     <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>')" class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition flex items-center gap-1">➕ เติมเงิน</button>
+                                    <button type="button" 
+                                            class="text-red-500 hover:text-red-700" 
+                                            onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['prefix'] . $u['first_name'] . ' ' . $u['last_name']); ?>')">
+                                        <i class="fas fa-trash"></i> ลบ
+                                    </button>
                                 </div>
                             </td>
                         </tr>

@@ -37,7 +37,7 @@ switch ($page) {
         $controller = new ProfileController();
         $controller->index();
         break;
-
+    
     // --- ส่วน Register (ถ้าแยก Controller ก็ใส่ตรงนี้) ---
     // case 'register': ...
 
