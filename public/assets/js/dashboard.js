@@ -7,34 +7,7 @@
 // ==========================================
 let currentOriginalBalance = 0;
 
-function openExpenseModal(userId, userName, balance) {
-    // 1. ใส่ค่าลง Form
-    const idInput = document.getElementById('modalUserId');
-    const nameSpan = document.getElementById('modalUserName');
-    
-    // [ใหม่] จุดแสดงยอดเงิน
-    const balanceDisplay = document.getElementById('modalBalanceDisplay');
-    currentOriginalBalance = balance;
 
-    if (idInput) idInput.value = userId;
-    if (nameSpan) nameSpan.innerText = '👤 สำหรับ: ' + userName;
-    
-    // [ใหม่] อัปเดตตัวเลขเงินคงเหลือ (จัด Format มีลูกน้ำ)
-    if (balanceDisplay) {
-        // แปลงเลขเป็น format เงิน (เช่น 10,000.00)
-        let formattedBalance = new Intl.NumberFormat('th-TH', { 
-            style: 'decimal', 
-            minimumFractionDigits: 2 
-        }).format(balance);
-        
-        balanceDisplay.innerText = formattedBalance + ' บาท';
-    }
-    
-    document.getElementById('modalFullName').value = userName;
-    // 2. แสดง Modal
-    const modal = document.getElementById('expenseModal');
-    if (modal) modal.classList.remove('hidden');
-}
 
 function handleAmountInput(input) {
     // 1. ล้างค่าที่ไม่ใช่ตัวเลขและจุดทศนิยมออก (ป้องกันคนพิมพ์ตัวอักษร)
@@ -47,7 +20,9 @@ function handleAmountInput(input) {
     // 2. เก็บค่าตัวเลขจริงลงใน Hidden Input เพื่อส่งไป PHP
     const realValue = parseFloat(value) || 0;
     document.getElementById('inputAmountReal').value = realValue;
-
+    console.log('get value: ',input)
+    console.log('real value: ',realValue);
+    console.log('check: ',document.getElementById('inputAmountReal').value)
     // 3. ทำ Format สำหรับแสดงผลในช่อง Input (เฉพาะตอนที่ไม่ได้พิมพ์จุดค้างไว้)
     if (value !== "" && !value.endsWith('.')) {
         input.value = new Intl.NumberFormat('th-TH', {
@@ -109,18 +84,6 @@ function updateBalanceUI(originalBal, nextBal) {
     }
 }
 
-function closeExpenseModal() {
-    const modal = document.getElementById('expenseModal');
-    if (modal) modal.classList.add('hidden');
-}
-
-// ปิด Modal เมื่อกดพื้นที่สีดำข้างนอก
-window.onclick = function(event) {
-    const modal = document.getElementById('expenseModal');
-    if (event.target == modal) {
-        closeExpenseModal();
-    }
-}
 
 
 //  ฟังก์ชันตั้งค่า Checkbox ให้ใส่วันที่ปัจจุบันอัตโนมัติ

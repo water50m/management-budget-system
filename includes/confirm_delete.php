@@ -21,7 +21,7 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
                 
                 <form id="deleteForm" action="<?=  $actionUrl; ?>" method="POST" class="mt-4 px-4">
                     <input type="hidden" name="action" value="<?= $actionValue; ?>">
-                    <input type="hidden" name="traget_name" id="traget_name" value=<?= $tergetName; ?>>
+                    <input type="hidden" name="target_name" id="target_name" value=<?= $tergetName; ?>>
                     <input type="hidden" name="<?= $targetInputId; ?>" id="<?= $targetInputId; ?>" value=<?= $id; ?>>
                     
                     <p class="text-sm text-gray-500 mb-2">

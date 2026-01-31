@@ -1,8 +1,3 @@
-
-
-
-
-
 // 1. ฟังก์ชันจัดฟอร์แมตเงิน
 function formatCurrency(input, hiddenElementId) {
     let rawValue = input.value.replace(/[^0-9.]/g, '');
@@ -34,6 +29,8 @@ function formatCurrency(input, hiddenElementId) {
 function showAlert(message) {
     alert("แจ้งเตือน: " + message);
 }
+
+
 
 
 

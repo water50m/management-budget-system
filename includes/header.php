@@ -3,6 +3,9 @@ include_once __DIR__ . '/confirm_delete.php';
 include_once __DIR__ . '/text_box_alert.php';
 include_once __DIR__ . '/db.php';
 include_once __DIR__ . '/add_new_profile.php';
+include_once __DIR__ . '/delete_user_modal.php';
+include_once __DIR__ . '/add_expense_modal.php';
+require_once __DIR__ . '/saveLogFunction.php';
 
 // 1. รับค่า Tab จาก URL ถ้าไม่มีให้เป็นค่าเริ่มต้น 'approval'
 $current_tab = isset($_GET['tab']) ? $_GET['tab'] : 'approval';
@@ -66,12 +69,13 @@ function getTabClass($tabName, $current_tab) {
             }
         }
     </script>
-
+    
     <style>
         
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden flex flex-col">
+
 <nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
     <div class="flex flex-col md:flex-row justify-between items-center gap-4">
         
@@ -87,11 +91,11 @@ function getTabClass($tabName, $current_tab) {
 
         <div class="flex bg-gray-100/80 p-1.5 rounded-lg border border-gray-200 overflow-x-auto max-w-full">
             <a href="index.php?page=dashboard&tab=approval" class="<?php echo getTabClass('approval', $current_tab); ?>">
-                <i class="fas fa-check-circle"></i> <span class="whitespace-nowrap">อนุมัติ (Approved)</span>
+                <i class="fas fa-check-circle"></i> <span class="whitespace-nowrap">ยอดที่รับ (Received)</span>
             </a>
 
             <a href="index.php?page=dashboard&tab=expense" class="<?php echo getTabClass('expense', $current_tab); ?>">
-                <i class="fas fa-file-invoice-dollar"></i> <span class="whitespace-nowrap">ยอดที่ขอ (Request)</span>
+                <i class="fas fa-file-invoice-dollar"></i> <span class="whitespace-nowrap">ยอดที่ตัด (Expense)</span>
             </a>
 
             <a href="index.php?page=dashboard&tab=users" class="<?php echo getTabClass('users', $current_tab); ?>">

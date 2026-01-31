@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Component สำหรับแสดงตาราง Expense พร้อมตัวกรอง (Filter)
  * * @param array $expenses ข้อมูลรายการที่ query มาได้
@@ -146,12 +147,22 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                 </div>
 
                 <div class="md:col-span-1 flex flex-col justify-end">
-                    <div class="h-[21px] mb-1.5"></div>
-                    <button type="submit" class="w-full bg-<?= $color ?>-600 hover:bg-<?= $color ?>-700 text-white py-2 rounded-md text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
+                    <label class="block text-xs font-bold text-transparent mb-1 select-none">Action</label>
+
+                    <div class="flex items-center gap-2">
+                        <button type="submit"
+                            class="flex-1 bg-<?= $color ?>-600 hover:bg-<?= $color ?>-700 text-white rounded-lg text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+
+                        <a href="index.php?page=dashboard&tab=expense"
+                            class="flex-none w-[38px] h-[38px] bg-white  text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition flex items-center justify-center "
+                            title="ล้างค่าทั้งหมด">
+                            <i class="fas fa-sync-alt text-xs"></i>
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -216,6 +227,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
+
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -241,23 +253,24 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
 }
 
 
-function submitDeleteExpense($conn) {
+function submitDeleteExpense($conn)
+{
     // 1. รับค่า ID
     $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
     $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
 
     // ดึง User ID คนทำรายการ (Actor)
-    $actor_id = $_SESSION['user_id']; 
+    $actor_id = $_SESSION['user_id'];
 
     if ($expense_id > 0) {
-               
+
         // ---------------------------------------------------------
         // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
         // ---------------------------------------------------------
         $sql_check = "SELECT description, amount FROM budget_expenses WHERE id = $expense_id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
-        
+
         $log_desc = "ลบรายการรายจ่าย ID: $expense_id"; // default description
         if ($old_data) {
             // ถ้าเจอข้อมูล ให้ระบุรายละเอียดให้ชัดเจน
@@ -269,19 +282,19 @@ function submitDeleteExpense($conn) {
         // ---------------------------------------------------------
         // เปลี่ยนจาก DELETE เป็น UPDATE deleted_at
         $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
-        
+
         // *หมายเหตุ: ถ้าคุณยังอยากใช้ Hard Delete (ลบถาวร) ให้ใช้บรรทัดล่างนี้แทนครับ
         // $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
 
         if (mysqli_query($conn, $sql)) {
-            
+
             // ---------------------------------------------------------
             // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
             // ---------------------------------------------------------
             // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
             // saveActivityLog($conn, $actor_id, $action_type, $description, $target_id);
-            
-            logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc);
+
+            logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc, $expense_id);
 
             // ---------------------------------------------------------
             // ✅ Step 4: Redirect กลับ
@@ -290,7 +303,6 @@ function submitDeleteExpense($conn) {
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
             header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
             exit();
-            
         } else {
             echo "Error: " . mysqli_error($conn);
             exit();

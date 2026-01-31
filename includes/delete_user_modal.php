@@ -1,74 +1,11 @@
-<?php
-// ตรวจสอบว่ามีการส่ง Form Action 'delete_user' มาหรือไม่
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
 
-    // 1. รับค่า ID
-    $target_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-    $actor_id = $_SESSION['user_id'];
-
-    if ($target_user_id > 0) {
-
-        // ---------------------------------------------------------
-        // ✅ Step 1: ดึงข้อมูลเก่ามาตรวจสอบก่อน
-        // ---------------------------------------------------------
-        $sql_check = "SELECT prefix, first_name, last_name FROM user_profiles WHERE user_id = '$target_user_id'";
-        $result_check = mysqli_query($conn, $sql_check);
-        $old_data = mysqli_fetch_assoc($result_check);
-
-        // ถ้าไม่พบข้อมูล
-        if (!$old_data) {
-            header("Location: index.php?page=users_manage&status=error&msg=" . urlencode("ไม่พบข้อมูลผู้ใช้งาน"));
-            exit();
-        }
-
-        // 🚨 CRITICAL CHECK: ห้ามลบ Admin 🚨
-        if (trim($old_data['first_name']) === 'Admin') {
-            // ส่งกลับไปหน้าเดิมพร้อม Error
-            $error_msg = "ไม่สามารถลบผู้ใช้งานระบบ (Admin) ได้";
-            header("Location: index.php?page=users_manage&status=error&msg=" . urlencode($error_msg));
-            exit();
-        }
-
-        // เตรียมชื่อสำหรับ Log
-        $deleted_name = $old_data['prefix'] . $old_data['first_name'] . ' ' . $old_data['last_name'];
-
-        // ---------------------------------------------------------
-        // ✅ Step 2: ทำ Soft Delete (UPDATE deleted_at)
-        // ---------------------------------------------------------
-        $sql_delete = "UPDATE user_profiles SET deleted_at = NOW() WHERE user_id = '$target_user_id'";
-
-        if (mysqli_query($conn, $sql_delete)) {
-
-            // ---------------------------------------------------------
-            // ✅ Step 3: บันทึก Log
-            // ---------------------------------------------------------
-            $log_message = "ลบข้อมูลบุคลากร: " . $deleted_name;
-            logActivity($conn, $actor_id, $target_user_id, 'delete_user', $log_message);
-
-            // ---------------------------------------------------------
-            // ✅ Step 4: Redirect สำเร็จ
-            // ---------------------------------------------------------
-            $msg = "ลบข้อมูลของ $deleted_name เรียบร้อยแล้ว";
-            header("Location: index.php?page=users_manage&status=delete&msg=" . urlencode($msg));
-            exit();
-        } else {
-            $error_msg = "เกิดข้อผิดพลาด: " . mysqli_error($conn);
-            header("Location: index.php?page=users_manage&status=error&msg=" . urlencode($error_msg));
-            exit();
-        }
-    } else {
-        header("Location: index.php?page=users_manage&status=error&msg=" . urlencode("ไม่พบรหัสผู้ใช้งาน"));
-        exit();
-    }
-}
-?>
 <div id="deleteUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
 
     <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-red-100">
 
-            <form action="index.php?page=users_manage" method="POST">
+            <form action="index.php?page=dashboard&tab=users" method="POST">
                 <input type="hidden" name="action" value="delete_user">
                 <input type="hidden" name="user_id" id="modalDeleteUserId">
 
@@ -115,42 +52,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
     </div>
 </div>
+
 <script>
     // ฟังก์ชันเปิด Modal รับค่า ID และ ชื่อ
     function openDeleteUserModal(userId, fullName) {
-        // 1. ใส่ข้อมูลลงใน Modal
-        document.getElementById('modalDeleteUserId').value = userId;
-        document.getElementById('modalDeleteUserName').innerText = fullName;
+        // 1. ดึง Element ต่างๆ มาเตรียมไว้
+        const idInput = document.getElementById('modalDeleteUserId');
+        const nameSpan = document.getElementById('modalDeleteUserName');
+        const modal = document.getElementById('deleteUserModal');
+        const confirmInput = document.getElementById('confirmDeleteInput');
+        const submitBtn = document.getElementById('btnConfirmDelete');
 
-        // 2. Reset ช่องกรอกและปุ่ม
-        const inputField = document.getElementById('confirmDeleteInput');
-        const btn = document.getElementById('btnConfirmDelete');
+        // Protection: ถ้าหา Element ไม่เจอ (เช่น หน้าเว็บยังโหลดไม่เสร็จ) ให้หยุดทำงาน
+        if (!idInput || !nameSpan || !modal) {
+            console.error("Error: ไม่พบ Element ของ Modal");
+            return;
+        }
 
-        inputField.value = ''; // เคลียร์ค่าเก่า
-        btn.disabled = true; // ปิดปุ่มไว้ก่อน
-        btn.classList.add('opacity-50', 'cursor-not-allowed'); // ใส่ class ให้ดูจางๆ
+        // 2. ใส่ค่า ID และชื่อลงไป
+        idInput.value = userId;
+        nameSpan.innerText = fullName;
 
-        // 3. แสดง Modal
-        document.getElementById('deleteUserModal').classList.remove('hidden');
+        // 3. Reset ช่องกรอกและปุ่มยืนยัน ให้กลับเป็นค่าเริ่มต้น
+        confirmInput.value = '';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
-        // 4. Focus ที่ช่องกรอกทันที (เพื่อความสะดวก)
+        // 4. แสดง Modal (เอา class hidden ออก)
+        modal.classList.remove('hidden');
+
+        // 5. Focus ไปที่ช่องกรอกข้อความทันที เพื่อความสะดวก
         setTimeout(() => {
-            inputField.focus();
+            confirmInput.focus();
         }, 100);
     }
 
-    // ฟังก์ชันตรวจสอบคำที่พิมพ์ (เรียกใช้ตอน oninput)
+    // ฟังก์ชันตรวจสอบคำยืนยัน (ทำงานตอนพิมพ์)
     function checkDeleteConfirmation() {
         const inputVal = document.getElementById('confirmDeleteInput').value;
         const btn = document.getElementById('btnConfirmDelete');
-        const confirmText = "ลบข้อมูลบุคลากรนี้"; // คำที่ต้องการให้พิมพ์
+        const confirmText = "ลบข้อมูลบุคลากรนี้"; // ข้อความที่ต้องพิมพ์ให้ตรงเป๊ะ
 
         if (inputVal === confirmText) {
             // ถ้าพิมพ์ถูก -> เปิดปุ่ม
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
-            // ถ้าพิมพ์ผิด -> ปิดปุ่ม
+            // ถ้าพิมพ์ผิด/ยังไม่ครบ -> ปิดปุ่ม
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
@@ -158,10 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     // ฟังก์ชันปิด Modal
     function closeDeleteUserModal() {
-        document.getElementById('deleteUserModal').classList.add('hidden');
+        const modal = document.getElementById('deleteUserModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
     }
 
-    // (Optional) ทำให้กดปุ่ม Esc แล้วปิด Modal ได้
+    // (แถม) สั่งให้กดปุ่ม ESC แล้วปิด Modal ได้
     document.addEventListener('keydown', function(event) {
         if (event.key === "Escape") {
             closeDeleteUserModal();

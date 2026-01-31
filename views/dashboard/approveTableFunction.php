@@ -29,7 +29,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
 ?>
-    
+
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
         <form method="GET" action="index.php">
             <input type="hidden" name="page" value="dashboard">
@@ -120,12 +120,15 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                     </div>
                 </div>
 
-                <div class="md:col-span-1 flex flex-col justify-end">
+                <div class="flex items-center gap-2">
                     <button type="submit" class="w-full <?php echo "$btnBg $btnHover"; ?> text-white py-2 rounded-md h-[38px] flex items-center justify-center shadow-sm transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </button>
+                    <a href="index.php?page=profile&page=dashboard&tab=approval" class="flex-none w-[38px] h-[38px] bg-white  text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition flex items-center justify-center " title="Reset">
+                        <i class="fas fa-sync-alt"></i>
+                    </a>
                 </div>
 
             </div>
@@ -186,15 +189,14 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                                         <button type="button" disabled
                                             onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วน หรือทั้งหมดถูกใช้ไปแล้ว')"
                                             onmouseleave="hideGlobalAlert()"
-                                            class="text-gray-300 cursor-not-allowed p-2 rounded-full"
-                                        >
+                                            class="text-gray-300 cursor-not-allowed p-2 rounded-full">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                         </button>
                                     <?php else: ?>
                                         <button type="button"
-                                            
+
                                             onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_approval_id')"
                                             class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition duration-150"
                                             title="ลบรายการนี้">
@@ -226,22 +228,23 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
 <?php
 }
 
-function submitDeleteAprove($conn){
+function submitDeleteAprove($conn)
+{
 
     // 1. รับค่า ID และแปลงเป็นตัวเลข
     $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
-    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
+    $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
 
     // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
     if ($id > 0) {
-        
+
         // ---------------------------------------------------------
         // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
         // ---------------------------------------------------------
         // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_approvals หรือ budget_years)*
-        $sql_check = "SELECT * FROM budget_approvals WHERE id = $id"; 
+        $sql_check = "SELECT * FROM budget_received WHERE id = $id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
 
@@ -258,23 +261,22 @@ function submitDeleteAprove($conn){
         // ✅ Step 2: สั่งลบแบบ Soft Delete (ใช้ deleted_at)
         // ---------------------------------------------------------
         // แนะนำให้ใช้ deleted_at = NOW() เพื่อให้ตรงกับ View ที่เราเขียนไปก่อนหน้านี้
-        $sql = "UPDATE budget_approvals SET deleted_at = NOW() WHERE id = $id"; 
+        $sql = "UPDATE budget_received SET deleted_at = NOW() WHERE id = $id";
 
         // 3. สั่งรันคำสั่ง SQL
         if (mysqli_query($conn, $sql)) {
-            
+
             // ---------------------------------------------------------
             // ✅ Step 3: บันทึก Log เมื่อลบสำเร็จ
             // ---------------------------------------------------------
             // logActivity($conn, $actor_id, $target_id, $action, $desc)
-            logActivity($conn, $actor_id, $id, 'delete_approval', $log_desc);
-            
+            logActivity($conn, $actor_id, $id, 'delete_received', $log_desc, $id);
+
             // 4. Redirect กลับ
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=dashboard&tab=income&status=success&toastMsg=" . urlencode($toastMsg));
+            header("Location: index.php?page=dashboard&tab=approval&status=success&toastMsg=" . urlencode($toastMsg));
             exit();
-
         } else {
             echo "Error deleting record: " . mysqli_error($conn);
             exit();
