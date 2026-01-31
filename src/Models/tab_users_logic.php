@@ -20,8 +20,9 @@ function showAndSearchUsers($conn)
     // ---------------------------------------------------------
     // 3. สร้าง SQL
     // ---------------------------------------------------------
-    $sql = "SELECT u.*, p.*, d.thai_name AS department 
+    $sql = "SELECT u.*, p.*, d.thai_name AS department ,r.description AS role_user
                             FROM users u
+                            LEFT JOIN roles r ON u.role_id = r.id
                             LEFT JOIN user_profiles p ON u.id = p.user_id
                             LEFT JOIN departments d ON p.department_id = d.id
                             WHERE 1=1 
@@ -51,7 +52,7 @@ function showAndSearchUsers($conn)
 
     // ✅ 4.3 กรอง Role
     if (!empty($role_user)) {
-        $sql .= " AND u.role = '$role_user' ";
+        $sql .= " AND u.role_id = '$role_user' ";
     }
 
     // ---------------------------------------------------------

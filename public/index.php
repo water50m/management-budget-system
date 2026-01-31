@@ -1,5 +1,5 @@
 <?php
-// public/index.php
+ob_start();
 session_start();
 
 // เรียกใช้ Controller ที่จำเป็น
@@ -8,7 +8,7 @@ require_once __DIR__ . '/../src/Controllers/DashboardController.php';
 require_once __DIR__ . '/../src/Controllers/ProfileController.php';
 // ... require controller อื่นๆ ...
 
-$page = $_GET['page'] ?? 'dashboard'; // ถ้าไม่ระบุหน้า ให้ไปหน้า login ก่อนเลย
+$page = $_GET['page'] ?? 'dashboard'; 
 
 switch ($page) {
     // --- ส่วนจัดการ Login/Logout ---
@@ -49,4 +49,6 @@ switch ($page) {
         echo "404 Not Found";
         break;
 }
+// ล้าง Buffer และส่ง output ทั้งหมดออกไป
+ob_end_flush();
 ?>

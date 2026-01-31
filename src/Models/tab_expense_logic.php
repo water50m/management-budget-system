@@ -42,7 +42,7 @@ function showAndSearchExpense($conn)
     } elseif ($start_date === '' && $end_date !== '') {
         $start_date = $end_date; // มีแต่สิ้นสุด -> ให้เริ่มเท่ากับสิ้นสุด
     }
-
+    
     // คู่ที่ 2: จำนวนเงิน (Amount Range)
     // ใช้ is_numeric เพราะค่าอาจจะเป็น 0 ได้
     if (is_numeric($min_amt) && !is_numeric($max_amt)) {
@@ -281,5 +281,63 @@ function addExpense($conn)
         mysqli_rollback($conn);
         echo "เกิดข้อผิดพลาด: " . $e->getMessage();
         exit;
+    }
+}
+
+
+function submitDeleteExpense($conn)
+{
+    // 1. รับค่า ID
+    $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
+    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
+
+    // ดึง User ID คนทำรายการ (Actor)
+    $actor_id = $_SESSION['user_id'];
+
+    if ($expense_id > 0) {
+
+        // ---------------------------------------------------------
+        // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
+        // ---------------------------------------------------------
+        $sql_check = "SELECT description, amount FROM budget_expenses WHERE id = $expense_id";
+        $res_check = mysqli_query($conn, $sql_check);
+        $old_data = mysqli_fetch_assoc($res_check);
+
+        $log_desc = "ลบรายการรายจ่าย ID: $expense_id"; // default description
+        if ($old_data) {
+            // ถ้าเจอข้อมูล ให้ระบุรายละเอียดให้ชัดเจน
+            $log_desc = "ลบรายการ: " . $old_data['description'] . " (จำนวน " . number_format($old_data['amount']) . " บาท)";
+        }
+
+        // ---------------------------------------------------------
+        // ✅ Step 2: ทำการลบ (แนะนำเป็น Soft Delete)
+        // ---------------------------------------------------------
+        // เปลี่ยนจาก DELETE เป็น UPDATE deleted_at
+        $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
+
+        // *หมายเหตุ: ถ้าคุณยังอยากใช้ Hard Delete (ลบถาวร) ให้ใช้บรรทัดล่างนี้แทนครับ
+        // $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
+
+        if (mysqli_query($conn, $sql)) {
+
+            // ---------------------------------------------------------
+            // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
+            // ---------------------------------------------------------
+            // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
+            // saveActivityLog($conn, $actor_id, $action_type, $description, $target_id);
+
+            logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc, $expense_id);
+
+            // ---------------------------------------------------------
+            // ✅ Step 4: Redirect กลับ
+            // ---------------------------------------------------------
+            $more_details = "ลบข้อมูลของ $name \n";
+            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+            header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
+            exit();
+        } else {
+            echo "Error: " . mysqli_error($conn);
+            exit();
+        }
     }
 }

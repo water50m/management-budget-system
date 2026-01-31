@@ -156,57 +156,115 @@ function showAndSearchApprove($conn)
     ];
 
     return $data;
-
 }
 
-function addReceiveBudget($conn){
-   // 1. รับค่าจากฟอร์มและป้องกัน SQL Injection
-                // สังเกต: รับค่า user_id ครั้งเดียวและใช้ตัวแปรชื่อ $user_id ตลอดการทำงาน
-                $user_id = mysqli_real_escape_string($conn, $_POST['user_id']);
-                $amount = floatval($_POST['amount']);
-                $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
-                $remark = mysqli_real_escape_string($conn, $_POST['remark']);
-                $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
+function addReceiveBudget($conn)
+{
+    // 1. รับค่าจากฟอร์มและป้องกัน SQL Injection
+    // สังเกต: รับค่า user_id ครั้งเดียวและใช้ตัวแปรชื่อ $user_id ตลอดการทำงาน
+    $user_id = mysqli_real_escape_string($conn, $_POST['user_id']);
+    $amount = floatval($_POST['amount']);
+    $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
+    $remark = mysqli_real_escape_string($conn, $_POST['remark']);
+    $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
 
-                // 2. คำนวณปีงบประมาณ (Fiscal Year)
-                $timestamp = strtotime($approved_date);
-                $year_th = date('Y', $timestamp) + 543;
+    // 2. คำนวณปีงบประมาณ (Fiscal Year)
+    $timestamp = strtotime($approved_date);
+    $year_th = date('Y', $timestamp) + 543;
 
-                // 3. เริ่ม Transaction (เพื่อความปลอดภัยข้อมูล)
-                mysqli_begin_transaction($conn);
+    // 3. เริ่ม Transaction (เพื่อความปลอดภัยข้อมูล)
+    mysqli_begin_transaction($conn);
 
-                try {
-                    // A. บันทึกข้อมูลงบประมาณ
-                    $sql_budget = "INSERT INTO budget_received 
+    try {
+        // A. บันทึกข้อมูลงบประมาณ
+        $sql_budget = "INSERT INTO budget_received 
                                 (user_id, approved_amount, approved_date, remark) 
                                 VALUES 
                                 ('$user_id', '$amount', '$approved_date', '$remark')
                                 ";
 
-                    if (!mysqli_query($conn, $sql_budget)) {
-                        throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
-                    }
+        if (!mysqli_query($conn, $sql_budget)) {
+            throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
+        }
 
-                    // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
-                    $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
-                    $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท (หมายเหตุ: $remark)";
+        // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
+        $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
+        $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท (หมายเหตุ: $remark)";
 
-                    // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
-                    logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc);
+        // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
+        logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc);
 
-                    // ยืนยันข้อมูลทั้งหมด (Commit)
-                    mysqli_commit($conn);
-                    $target_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
-                    $total_msg = $target_name_phrase . $log_desc;
-                    // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
-                    header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
-                    exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
+        // ยืนยันข้อมูลทั้งหมด (Commit)
+        mysqli_commit($conn);
+        $target_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
+        $total_msg = $target_name_phrase . $log_desc;
+        // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
+        header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
+        exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
 
-                } catch (Exception $e) {
-                    // หากเกิดข้อผิดพลาด ให้ยกเลิกการบันทึกทั้งหมด (Rollback)
-                    mysqli_rollback($conn);
-                    echo "เกิดข้อผิดพลาด: " . $e->getMessage();
-                    // ใน Production อาจเปลี่ยน echo เป็นการบันทึก error log ลงไฟล์แทน
-                } 
+    } catch (Exception $e) {
+        // หากเกิดข้อผิดพลาด ให้ยกเลิกการบันทึกทั้งหมด (Rollback)
+        mysqli_rollback($conn);
+        echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+        // ใน Production อาจเปลี่ยน echo เป็นการบันทึก error log ลงไฟล์แทน
+    }
+}
 
+function submitDeleteAprove($conn)
+{
+
+    // 1. รับค่า ID และแปลงเป็นตัวเลข
+    $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
+    $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
+    // ดึง ID คนทำรายการจาก Session
+    $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+
+    // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
+    if ($id > 0) {
+
+        // ---------------------------------------------------------
+        // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
+        // ---------------------------------------------------------
+        // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_approvals หรือ budget_years)*
+        $sql_check = "SELECT * FROM budget_received WHERE id = $id";
+        $res_check = mysqli_query($conn, $sql_check);
+        $old_data = mysqli_fetch_assoc($res_check);
+
+        // สร้างข้อความ Log
+        $log_desc = "ลบการอนุมัติงบ ID: $id"; // ค่า Default
+        if ($old_data) {
+            // ตัวอย่าง: "ลบการอนุมัติงบ 50,000 บาท ของโครงการ ABC"
+            // ปรับชื่อ field ตามตารางจริง (เช่น approved_amount, remark, description)
+            $amount_show = isset($old_data['approved_amount']) ? number_format($old_data['approved_amount']) : '-';
+            $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท ";
+        }
+
+        // ---------------------------------------------------------
+        // ✅ Step 2: สั่งลบแบบ Soft Delete (ใช้ deleted_at)
+        // ---------------------------------------------------------
+        // แนะนำให้ใช้ deleted_at = NOW() เพื่อให้ตรงกับ View ที่เราเขียนไปก่อนหน้านี้
+        $sql = "UPDATE budget_received SET deleted_at = NOW() WHERE id = $id";
+
+        // 3. สั่งรันคำสั่ง SQL
+        if (mysqli_query($conn, $sql)) {
+
+            // ---------------------------------------------------------
+            // ✅ Step 3: บันทึก Log เมื่อลบสำเร็จ
+            // ---------------------------------------------------------
+            // logActivity($conn, $actor_id, $target_id, $action, $desc)
+            logActivity($conn, $actor_id, $id, 'delete_received', $log_desc, $id);
+
+            // 4. Redirect กลับ
+            $more_details = "ลบข้อมูลของ $name \n";
+            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+            header("Location: index.php?page=dashboard&tab=approval&status=success&toastMsg=" . urlencode($toastMsg));
+            exit();
+        } else {
+            echo "Error deleting record: " . mysqli_error($conn);
+            exit();
+        }
+    } else {
+        echo "Invalid ID.";
+        exit();
+    }
 }

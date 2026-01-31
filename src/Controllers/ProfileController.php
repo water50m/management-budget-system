@@ -5,6 +5,8 @@ class ProfileController
     public function index()
     {
         global $conn;
+        require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
+
         $user_id = isset($_GET['id']) ? intval($_GET['id']) : $_SESSION['user_id'];
 
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
@@ -56,16 +58,13 @@ class ProfileController
         $f_search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
         $f_year   = isset($_GET['year']) ? intval($_GET['year']) : ($years_list[0] ?? $current_fiscal_year);
         $f_cat    = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
-        $f_min    = isset($_GET['min_amount']) ? floatval($_GET['min_amount']) : '';
-        $f_max    = isset($_GET['max_amount']) ? floatval($_GET['max_amount']) : '';
+        $f_min    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
+        $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
 
         // ---------------------------------------------------------
         // 🔄 Logic จับคู่ข้อมูล (ถ้ามาแค่อย่างเดียว ให้เป็นค่าเดียวกัน)
         // ---------------------------------------------------------
 
-
-
-        // คู่ที่ 2: จำนวนเงิน (Amount Range)
         // ใช้ is_numeric เพราะค่าอาจจะเป็น 0 ได้
         if (is_numeric($f_min) && !is_numeric($f_max)) {
             $f_max = $f_min;
@@ -144,20 +143,58 @@ class ProfileController
             }
         }
 
+
         $filters = [
             'search' => $f_search,
-            'year' => $f_year,
-            'cat' => $f_cat,
-            'min' => $f_min == 0 ? '' : $f_min,
-            'max' => $f_max == 0 ? '' : $f_max,
-            'type' => $f_type // ส่งค่า type กลับไป view
+            'year'   => $f_year,
+            'cat'    => $f_cat,
+            'min'    => $f_min == 0 ? '' : $f_min,
+            'max'    => $f_max == 0 ? '' : $f_max,
+            'type'   => $f_type
+        ];
+
+        // 2. 🟢 มัดรวมตัวแปรทั้งหมดลงใน $data (จุดที่หายไป)
+        $data = [
+            'user_info'    => $user_info,
+            'transactions' => $transactions,
+            'years_list'   => $years_list,
+            'cats_list'    => $cats_list,
+            'filters'      => $filters,      // ส่ง filters ไปด้วย
+            'sum_income'   => $sum_income,
+            'sum_expense'  => $sum_expense,
+            'current_fiscal_year' => $current_fiscal_year
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
             submitDeleteUser($conn);
         }
 
+        if (isset($_SERVER['HTTP_HX_REQUEST'])) {
+            $hx_target = $_SERVER['HTTP_HX_TARGET'] ?? '';
+
+            if ($hx_target == 'app-container') {
+                // 🔵 กรณีที่ 2: กดจาก Navbar มาหน้า Profile
+                header("HX-Push-Url: index.php?page=profile&id=$user_id...");
+                require __DIR__ . '/../../views/profile/language.php';
+                extract($data);
+                // ส่งไปทั้งหน้า Profile (แต่ไม่เอา Header/Footer หลัก)
+                require_once __DIR__ . '/../../views/profile/index.php';
+                exit;
+            } elseif ($hx_target == 'txn-table-container') {
+                // 🔵 กรณีที่ 3: กด Filter ในหน้า Profile
+                // (Logic เดิม)
+                require __DIR__ . '/../../views/profile/language.php';
+                extract($data);
+                include __DIR__ . '/../../views/profile/transactions_table.php';
+                exit;
+            }
+        }
+
+        // 🔵 กรณีที่ 1: Full Page Load
+        require_once __DIR__ . '/../../includes/header.php'; // Header เปิด #app-container
+        extract($data);
         require_once __DIR__ . '/../../views/profile/index.php';
+        require_once __DIR__ . '/../../includes/footer.php';
     }
 
     public function addProfile($conn)
@@ -165,7 +202,7 @@ class ProfileController
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'add_user') {
 
             $return_page = isset($_POST['current_page']) ? $_POST['current_page'] : 'dashboard';
-            $return_tab  = isset($_POST['current_tab']) ? $_POST['current_tab'] : '';
+            $return_tab  = "users";
             // 1. รับค่าจากฟอร์ม
             $prefix = mysqli_real_escape_string($conn, $_POST['prefix']);
             $first_name = mysqli_real_escape_string($conn, $_POST['first_name']);

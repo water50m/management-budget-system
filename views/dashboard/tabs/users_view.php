@@ -1,14 +1,22 @@
 <?php
 
+renderUserTableComponent(
+    $user_list ?? [],
+    $filters ?? [],
+    $departments_list ?? [],
+    $_SESSION['role'],
+    $conn // ตัวแปร $conn global จะถูกส่งผ่านมา
+);
+
 function renderUserTableComponent($users, $filters, $departments, $currentUserRole, $conn) {
-    // 1. รวม search_user กับ search_username เป็นตัวเดียวกัน (ใช้ key 'search_text')
+    // 1. รวม search_user กับ search_username เป็นตัวเดียวกัน
     $filters = array_merge([
-        'search_text' => '', // ✅ เปลี่ยนชื่อตัวแปรให้สื่อความหมายรวม
+        'search_text' => '',
         'dept_user' => 0,
         'role_user' => ''
     ], $filters ?? []);
 
-    // 2. ธีมสีฟ้า
+    // 2. ธีมสี (คงเดิม)
     $theme = 'blue';
     $bgHeader = "bg-{$theme}-50";
     $textHeader = "text-{$theme}-900";
@@ -18,10 +26,11 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
     
     ?>
     
-    <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
-        <form method="GET" action="index.php">
-            <input type="hidden" name="page" value="dashboard">
-            <input type="hidden" name="tab" value="users">
+    <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6 animate-fade-in">
+        <form hx-get="index.php?page=dashboard&tab=users" 
+              hx-target="#tab-content" 
+              hx-push-url="true"
+              class="w-full">
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 
@@ -29,20 +38,24 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                     <label class="block text-xs font-bold text-gray-700 mb-1">ค้นหา (ชื่อ / Username)</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                            </svg>
+                            <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="text" name="search_text" value="<?php echo htmlspecialchars($filters['search_text']); ?>" 
-                            class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> pl-9 pr-3 py-2 border text-sm" 
-                            placeholder="พิมพ์ชื่ออาจารย์ หรือ username...">
-                    </div>
+                        <input type="text" name="search_text" 
+                               value="<?php echo htmlspecialchars($filters['search_text']); ?>" 
+                               class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> pl-9 pr-3 py-2 border text-sm" 
+                               placeholder="พิมพ์ชื่ออาจารย์ หรือ username..."
+                               hx-trigger="keyup changed delay:500ms search" 
+                               hx-get="index.php?page=dashboard&tab=users" 
+                               hx-target="#tab-content">
+                        </div>
                 </div>
 
                 <div class="md:col-span-3">
                     <label class="block text-xs font-bold text-gray-700 mb-1">ภาควิชา</label>
-                    <select name="dept_user" class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm">
-                        <option value="0">-- ทุกภาควิชา --</option>
+                    <select name="dept_user" 
+                            class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
+                            onchange="this.form.requestSubmit()"> 
+                            <option value="0">-- ทุกภาควิชา --</option>
                         <?php foreach ($departments as $dept): ?>
                             <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_user'] == $dept['id']) ? 'selected' : ''; ?>>
                                 <?php echo $dept['thai_name']; ?>
@@ -54,7 +67,9 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                 <?php if ($_SESSION['role'] == 'high-admin'):  ?>
                 <div class="md:col-span-3">
                     <label class="block text-xs font-bold text-gray-700 mb-1">สิทธิ์ (Role)</label>
-                    <select name="role_user" class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm">
+                    <select name="role_user" 
+                            class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
+                            onchange="this.form.requestSubmit()">
                         <option value="">-- ทั้งหมด --</option>
                         <option value="user" <?php echo ($filters['role_user'] == 'user') ? 'selected' : ''; ?>>User</option>
                         <option value="admin" <?php echo ($filters['role_user'] == 'admin') ? 'selected' : ''; ?>>Admin</option>
@@ -62,14 +77,20 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                     </select>
                 </div>
                 <?php endif;?>
+
                 <div class="md:col-span-2 flex items-center gap-2">
                     <button type="submit" class="w-full <?php echo $btnPrimary; ?> text-white px-4 py-2 rounded-md shadow-sm transition h-[38px] flex items-center justify-center text-sm font-medium">
                         ค้นหา
                     </button>
+                    
                     <?php if(!empty($filters['search_text']) || $filters['dept_user'] > 0 || !empty($filters['role_user'])): ?>
-                        <a href="index.php?page=dashboard&tab=users" class="text-gray-400 hover:text-red-500 transition p-2" title="ล้างค่า">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </a>
+                        <button hx-get="index.php?page=dashboard&tab=users" 
+                                hx-target="#tab-content"
+                                type="button"
+                                class="text-gray-400 hover:text-red-500 transition p-2 border border-gray-200 rounded-md h-[38px] w-[38px] flex items-center justify-center bg-gray-50" 
+                                title="ล้างค่า">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -92,10 +113,15 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-base">
                     <?php if (empty($users)): ?>
-                        <tr><td colspan="7" class="p-10 text-center text-gray-400">ไม่พบข้อมูลผู้ใช้งาน</td></tr>
+                        <tr><td colspan="7" class="p-10 text-center text-gray-400">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-user-slash text-4xl mb-3 text-gray-300"></i>
+                                ไม่พบข้อมูลผู้ใช้งาน
+                            </div>
+                        </td></tr>
                     <?php else: ?>
                         <?php foreach ($users as $index => $u): ?>
-                        <tr class="hover:bg-blue-50/40 transition">
+                        <tr class="hover:bg-blue-50/40 transition group">
                             <td class="px-6 py-4 text-center text-gray-400"><?php echo $index + 1; ?></td>
                             <td class="px-6 py-4">
                                 <div class="font-bold text-gray-800"><?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?></div>
@@ -106,8 +132,11 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                             </td>
                             <td class="px-6 py-4 font-mono text-gray-600 text-xs"><?php echo $u['username']; ?></td>
                             <td class="px-6 py-4">
-                                <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
-                                <?php renderUserRoleManageComponent($u, $currentUserRole, $conn); ?>
+                                <?php if(function_exists('renderUserRoleManageComponent') || true) {
+                                     renderUserRoleManageComponent($u, $currentUserRole, $conn); 
+                                } else {
+                                     echo "<span class='text-xs'>{$u['role_user']}</span>";
+                                } ?>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <?php 
@@ -117,14 +146,24 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                 <span class="font-mono font-bold <?php echo $balanceColor; ?> text-base"><?php echo number_format($balance, 2); ?></span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <a href="index.php?page=profile&id=<?php echo $u['id']; ?>" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">👤 โปรไฟล์</a>
-                                    <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>', <?php echo $balance; ?>)" class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition flex items-center gap-1">➖ ตัดยอด</button>
-                                    <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?>')" class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition flex items-center gap-1">➕ เติมเงิน</button>
-                                    <button type="button" 
-                                            class="text-red-500 hover:text-red-700" 
-                                            onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['prefix'] . $u['first_name'] . ' ' . $u['last_name']); ?>')">
-                                        <i class="fas fa-trash"></i> ลบ
+                                <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
+                                    <a href="index.php?page=profile&id=<?php echo $u['id']; ?>" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">
+                                        <i class="fas fa-user"></i>
+                                    </a>
+                                    
+                                    <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['first_name']); ?>', <?php echo $balance; ?>)" 
+                                            class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition" title="ตัดยอด">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    
+                                    <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['first_name']); ?>')" 
+                                            class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    
+                                    <button type="button" onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?>')"
+                                            class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition" title="ลบ">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </td>
@@ -137,3 +176,4 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
     </div>
     <?php
 }
+?>

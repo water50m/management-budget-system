@@ -1,11 +1,13 @@
 <?php
+// เรียกใช้ฟังก์ชันแสดงตาราง Approval
+renderApprovalTableComponent(
+    $approvals ?? [],
+    $filters ?? [],
+    $departments_list ?? [],
+    $years_list ?? [],
+    'emerald'
+);
 
-/**
- * Component แสดงตารางอนุมัติงบ (Approval)
- * - เหมือน Expense Table ทุกอย่าง
- * - ตัด Category ออก
- * - ปรับ Layout Grid ให้เต็มพื้นที่
- */
 function renderApprovalTableComponent($approvals, $filters, $departments, $years = [], $theme = 'emerald')
 {
     // 1. ตั้งค่า Default
@@ -227,65 +229,4 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
     </div>
 <?php
 }
-
-function submitDeleteAprove($conn)
-{
-
-    // 1. รับค่า ID และแปลงเป็นตัวเลข
-    $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
-    $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
-    // ดึง ID คนทำรายการจาก Session
-    $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-
-    // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
-    if ($id > 0) {
-
-        // ---------------------------------------------------------
-        // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
-        // ---------------------------------------------------------
-        // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_approvals หรือ budget_years)*
-        $sql_check = "SELECT * FROM budget_received WHERE id = $id";
-        $res_check = mysqli_query($conn, $sql_check);
-        $old_data = mysqli_fetch_assoc($res_check);
-
-        // สร้างข้อความ Log
-        $log_desc = "ลบการอนุมัติงบ ID: $id"; // ค่า Default
-        if ($old_data) {
-            // ตัวอย่าง: "ลบการอนุมัติงบ 50,000 บาท ของโครงการ ABC"
-            // ปรับชื่อ field ตามตารางจริง (เช่น approved_amount, remark, description)
-            $amount_show = isset($old_data['approved_amount']) ? number_format($old_data['approved_amount']) : '-';
-            $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท ";
-        }
-
-        // ---------------------------------------------------------
-        // ✅ Step 2: สั่งลบแบบ Soft Delete (ใช้ deleted_at)
-        // ---------------------------------------------------------
-        // แนะนำให้ใช้ deleted_at = NOW() เพื่อให้ตรงกับ View ที่เราเขียนไปก่อนหน้านี้
-        $sql = "UPDATE budget_received SET deleted_at = NOW() WHERE id = $id";
-
-        // 3. สั่งรันคำสั่ง SQL
-        if (mysqli_query($conn, $sql)) {
-
-            // ---------------------------------------------------------
-            // ✅ Step 3: บันทึก Log เมื่อลบสำเร็จ
-            // ---------------------------------------------------------
-            // logActivity($conn, $actor_id, $target_id, $action, $desc)
-            logActivity($conn, $actor_id, $id, 'delete_received', $log_desc, $id);
-
-            // 4. Redirect กลับ
-            $more_details = "ลบข้อมูลของ $name \n";
-            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=dashboard&tab=approval&status=success&toastMsg=" . urlencode($toastMsg));
-            exit();
-        } else {
-            echo "Error deleting record: " . mysqli_error($conn);
-            exit();
-        }
-    } else {
-        echo "Invalid ID.";
-        exit();
-    }
-}
-// if (isset($_POST['action']) && $_POST['action'] == 'delete_budget'){
-//     submitDeleteAproval($conn);
-// }
+?>

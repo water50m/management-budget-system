@@ -2,9 +2,6 @@
 // src/Controllers/DashboardController.php
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/saveLogFunction.php';
-require_once __DIR__ . '/../../views//dashboard/approveTableFunction.php';
-require_once __DIR__ . '/../../views//dashboard/expenseTableFunction.php';
-require_once __DIR__ . '/../../views//dashboard/userTableFunction.php';
 
 include_once __DIR__ . "/../Helper/function.php";
 require_once __DIR__ . '/../Models/tab_approval_logic.php';
@@ -16,10 +13,20 @@ class DashboardController
     public function index()
     {
         global $conn;
+        require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
 
         // 1. ตรวจสอบสิทธิ์
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?page=login");
+            exit();
+        }
+        
+        $page = $_GET['page'] ?? 'dashboard';
+
+        // ✅ แก้ไขเงื่อนไข: ต้องอยู่หน้า dashboard และไม่มีการส่งค่า tab มาเท่านั้น
+        if ($page === 'dashboard' && (!isset($_GET['tab']) || empty($_GET['tab']))) {
+            // สั่ง Redirect ไปที่ Tab แรกของ Dashboard
+            header("Location: index.php?page=dashboard&tab=received"); 
             exit();
         }
 
@@ -31,22 +38,19 @@ class DashboardController
         // 🟢 ส่วนที่ 1: จัดการ POST REQUEST (บันทึกข้อมูล) ** ทำก่อนแสดงผลเสมอ **
         // ==================================================================================
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-
             if (isset($_POST['action']) && $_POST['action'] == 'add_budget') {
                 addReceiveBudget($conn);
             }
             if (isset($_POST['action']) && $_POST['action'] == 'delete_budget') {
                 submitDeleteAprove($conn);
             }
-            // 1.2 Action: เพิ่มรายการใช้จ่าย (Add Expense)
             if (isset($_POST['action']) && $_POST['action'] == 'add_expense') {
                 addExpense($conn);
             }
             if (isset($_POST['action']) && $_POST['action'] == 'delete_expense') {
                 submitDeleteExpense($conn);
             }
-            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
+            if (isset($_POST['action']) && $_POST['action'] == 'delete_user') {
                 submitDeleteUser($conn);
             }
             if (isset($_POST['action']) && $_POST['action'] == 'restore_data') {
@@ -113,11 +117,9 @@ class DashboardController
 
         // --- กรณี: ADMIN MODE (ดูภาพรวม) ---
         if ($session_role == 'admin' || $session_role == 'high-admin') { // รองรับ high-admin ด้วย
-
             if (!$target_id) { // ถ้าไม่ได้ระบุ ID (ดูตารางรวม)
+                if ($tab == 'received') {
 
-                if ($tab == 'approval') {
-   
                     $data = array_merge($data, showAndSearchApprove($conn));
                 } elseif ($tab == 'expense') {
 
@@ -126,7 +128,7 @@ class DashboardController
 
                     $data = array_merge($data, showAndSearchUsers($conn));
                 } elseif ($tab == 'logs' && $session_role == 'high-admin') {
-  
+
                     $data = array_merge($data, showAndManageLogs($conn));
                 } else {
                     // ... (Logic เดิม: Request Table) ...
@@ -157,8 +159,36 @@ class DashboardController
             // --- กรณี: USER ธรรมดา (ดูของตัวเอง) ---
             $this->loadUserDetail($conn, $user_id, $data, false);
         }
+        // ==================================================================================
+        // 🟢 ส่วนที่ 4: HTMX RESPONSE (ส่งเฉพาะไส้ใน)
+        // ==================================================================================
+        if (isset($_SERVER['HTTP_HX_REQUEST'])) {
+            // ปิดการแสดงผล Error ชั่วคราวเพื่อให้ HTML ไม่พัง (Optional)
+            // error_reporting(0); 
+            $hx_target = $_SERVER['HTTP_HX_TARGET'] ?? '';
+            if ($hx_target == 'app-container') {
+                // 🟢 กรณีที่ 2: กดจาก Navbar (เปลี่ยนหน้าใหญ่)
+                // ส่งไปทั้งหน้า Dashboard (แต่ไม่เอา Header/Footer หลัก)
+                header("HX-Push-Url: index.php?page=dashboard&tab=" . $tab);
+                extract($data);
+                require_once __DIR__ . '/../../views/dashboard/index.php';
+                exit;
+            } elseif ($hx_target == 'tab-content') {
 
+                // 🟢 กรณีที่ 3: กด Tab ย่อย (เปลี่ยนแค่ไส้ใน)
+                // (Logic เดิมของคุณ)
+                extract($data);
+                include __DIR__ . '/../../views/dashboard/tabs/' . $tab . '_view.php';
+                exit;
+            }
+        }
+
+        require_once __DIR__ . '/../../includes/header.php';
+        extract($data);
         require_once __DIR__ . '/../../views/dashboard/index.php';
+        require_once __DIR__ . '/../../includes/footer.php';
+        // 🛑 สำคัญมาก! สั่งหยุดทันที เพื่อไม่ให้โหลด Header/Footer ซ้ำ
+        exit();
     }
 
     // ฟังก์ชันย่อยสำหรับโหลดข้อมูล Detail (เพื่อลด code ซ้ำซ้อน)
