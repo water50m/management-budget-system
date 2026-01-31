@@ -73,7 +73,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                             </svg>
                         </div>
                         <select name="dept_id" class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
-                            <option value="0">ทุกภาควิชา</option>
+                            <option value="0">--ทุกภาควิชา--</option>
                             <?php foreach ($departments as $dept): ?>
                                 <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
                                     <?php echo $dept['thai_name']; ?>
@@ -109,7 +109,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                             </svg>
                         </div>
                         <select name="cat_id" class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
-                            <option value="0">ทุกหมวด</option>
+                            <option value="0">--ทุกหมวด--</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo $cat['id']; ?>" <?php echo ($filters['cat_id'] == $cat['id']) ? 'selected' : ''; ?>>
                                     <?php echo $cat['name_th']; ?>
@@ -227,7 +227,8 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                 "index.php?page=dashboard",  // action
                                 "delete_expense",            // value (action name)
                                 "delete_target_id",           // id ของ hidden input
-                                $row['id']
+                                $row['id'],
+                                $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name']
                             );
                         }
                         ?>
@@ -243,6 +244,8 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
 function submitDeleteExpense($conn) {
     // 1. รับค่า ID
     $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
+    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
+
     // ดึง User ID คนทำรายการ (Actor)
     $actor_id = $_SESSION['user_id']; 
 
@@ -283,7 +286,9 @@ function submitDeleteExpense($conn) {
             // ---------------------------------------------------------
             // ✅ Step 4: Redirect กลับ
             // ---------------------------------------------------------
-            header("Location: index.php?page=dashboard&tab=expense&status=deleted");
+            $more_details = "ลบข้อมูลของ $name \n";
+            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+            header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
             exit();
             
         } else {

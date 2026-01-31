@@ -156,12 +156,15 @@ include_once __DIR__ . "/../../includes/saveLogFunction.php";
             <div class="flex justify-between items-center mb-4 border-b pb-2">
                 <h3 class="text-lg font-bold text-gray-800">
                     📝 บันทึกรายจ่าย
-                    <span class="block text-sm text-blue-600 font-normal mt-1" id="modalUserName">กำลังโหลด...</span>
+                    <span  class="block text-sm text-blue-600 font-normal mt-1" id="modalUserName">กำลังโหลด...</span>
+                    
                 </h3>
                 <button onclick="closeExpenseModal()" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button>
             </div>
 
             <form method="POST" action="index.php?page=dashboard">
+                
+
                 <div class="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded-lg mb-4 text-center">
                     <div class="flex justify-around items-center divide-x divide-green-300">
                         <div>
@@ -191,6 +194,7 @@ include_once __DIR__ . "/../../includes/saveLogFunction.php";
 
                 <input type="hidden" name="action" value="add_expense">
                 <input type="hidden" name="target_user_id" id="modalUserId" value="">
+                <input type="hidden" name="traget_name" id="modalFullName" value="" >
 
                 <div class="space-y-3">
                     <div class="mb-4">

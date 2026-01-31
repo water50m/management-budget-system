@@ -68,7 +68,7 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $focusRing; ?>">
                         <select name="dept_id" class="w-full border-none text-xs text-gray-700 py-2 pl-2 cursor-pointer focus:ring-0">
-                            <option value="0">ทุกภาควิชา</option>
+                            <option value="0">--ทุกภาควิชา--</option>
                             <?php foreach ($departments as $dept): ?>
                                 <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
                                     <?php echo $dept['thai_name']; ?>
@@ -213,7 +213,8 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
                                 "index.php?page=dashboard",
                                 "delete_budget",
                                 "delete_approval_id",
-                                $row['id']
+                                $row['id'],
+                                $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name']
                             );
                         }
                         ?>
@@ -229,7 +230,7 @@ function submitDeleteAprove($conn){
 
     // 1. รับค่า ID และแปลงเป็นตัวเลข
     $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
-    
+    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
 
@@ -250,7 +251,7 @@ function submitDeleteAprove($conn){
             // ตัวอย่าง: "ลบการอนุมัติงบ 50,000 บาท ของโครงการ ABC"
             // ปรับชื่อ field ตามตารางจริง (เช่น approved_amount, remark, description)
             $amount_show = isset($old_data['approved_amount']) ? number_format($old_data['approved_amount']) : '-';
-            $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท";
+            $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท ";
         }
 
         // ---------------------------------------------------------
@@ -267,9 +268,11 @@ function submitDeleteAprove($conn){
             // ---------------------------------------------------------
             // logActivity($conn, $actor_id, $target_id, $action, $desc)
             logActivity($conn, $actor_id, $id, 'delete_approval', $log_desc);
-
+            
             // 4. Redirect กลับ
-            header("Location: index.php?page=dashboard&tab=income&status=success&msg=deleted");
+            $more_details = "ลบข้อมูลของ $name \n";
+            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+            header("Location: index.php?page=dashboard&tab=income&status=success&toastMsg=" . urlencode($toastMsg));
             exit();
 
         } else {

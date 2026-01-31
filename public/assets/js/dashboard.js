@@ -30,6 +30,7 @@ function openExpenseModal(userId, userName, balance) {
         balanceDisplay.innerText = formattedBalance + ' บาท';
     }
     
+    document.getElementById('modalFullName').value = userName;
     // 2. แสดง Modal
     const modal = document.getElementById('expenseModal');
     if (modal) modal.classList.remove('hidden');

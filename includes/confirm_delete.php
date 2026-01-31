@@ -1,6 +1,6 @@
 <?php
 
-function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id) {
+function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $tergetName) {
     // ป้องกัน XSS เบื้องต้น
     $actionUrl = htmlspecialchars($actionUrl);
     $actionValue = htmlspecialchars($actionValue);
@@ -21,7 +21,7 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id) {
                 
                 <form id="deleteForm" action="<?=  $actionUrl; ?>" method="POST" class="mt-4 px-4">
                     <input type="hidden" name="action" value="<?= $actionValue; ?>">
-                    
+                    <input type="hidden" name="traget_name" id="traget_name" value=<?= $tergetName; ?>>
                     <input type="hidden" name="<?= $targetInputId; ?>" id="<?= $targetInputId; ?>" value=<?= $id; ?>>
                     
                     <p class="text-sm text-gray-500 mb-2">

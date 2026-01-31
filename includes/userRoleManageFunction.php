@@ -40,6 +40,7 @@ function renderUserRoleManageComponent($u, $currentUserRole, $conn)
                 <form method="POST" action="index.php?page=dashboard" class="flex items-center gap-2">
                     <input type="hidden" name="action" value="update_role">
                     <input type="hidden" name="target_user_id" value="<?php echo $u['id']; ?>">
+
                     <input type="hidden" name="redirect_url" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
 
                     <select name="new_role"

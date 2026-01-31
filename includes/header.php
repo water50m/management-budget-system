@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . '/confirm_delete.php';
+include_once __DIR__ . '/text_box_alert.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -12,7 +13,7 @@ include_once __DIR__ . '/confirm_delete.php';
             } else if (!empty($title)){
                 echo $title;
             } else {
-                echo 'เว็บจัดการงบประมาณการวิจัย';
+                echo 'ระบบจัดการงบประมาณการวิจัย';
             }
 
 ?>

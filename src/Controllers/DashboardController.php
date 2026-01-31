@@ -99,6 +99,7 @@ class DashboardController
                 $amount = floatval($_POST['amount']);
                 $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
                 $remark = mysqli_real_escape_string($conn, $_POST['remark']);
+                $full_name = mysqli_real_escape_string($conn, $_POST['traget_full_name']);
 
                 // 2. คำนวณปีงบประมาณ (Fiscal Year)
                 $timestamp = strtotime($approved_date);
@@ -128,9 +129,10 @@ class DashboardController
 
                     // ยืนยันข้อมูลทั้งหมด (Commit)
                     mysqli_commit($conn);
-
+                    $traget_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
+                    $total_msg = $traget_name_phrase . $log_desc;
                     // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
-                    header("Location: index.php?page=dashboard&status=success");
+                    header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
                     exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
 
                 } catch (Exception $e) {
@@ -150,10 +152,9 @@ class DashboardController
                 $page = 'users';
                 $user_id = mysqli_real_escape_string($conn, $_POST['target_user_id']);
                 $amount_needed = floatval($_POST['amount']);
-                $expense_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
                 $category_id = intval($_POST['category_id']);
                 $description = mysqli_real_escape_string($conn, $_POST['description']);
-
+                $full_name = mysqli_real_escape_string($conn, $_POST['traget_name']);
                 mysqli_begin_transaction($conn);
 
                 try {
@@ -227,17 +228,18 @@ class DashboardController
                     $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
                     // เปลี่ยนคำอธิบาย Log นิดหน่อยให้เข้าใจง่าย
-                    $log_desc = "บันทึกรายจ่าย (FIFO): $description จำนวน " . number_format($amount_needed, 2) . " บาท";
+                    $log_desc = "รายการ: $description จำนวน " . number_format($amount_needed, 2) . " บาท";
 
                     logActivity($conn, $actor_id, $user_id, 'add_expense', $log_desc);
-
+                    
+                    $total_msg = "เพิ่มรายการตัดยอดของ $full_name \n" . $log_desc;
                     mysqli_commit($conn);
 
                     // Redirect
                     if ($page == '') {
-                        header("Location: index.php?page=dashboard&status=success");
+                        header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
                     } else {
-                        header("Location: index.php?page=dashboard&status=success&tab=" . $page);
+                        header("Location: index.php?page=dashboard&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
                     }
                     exit;
                 } catch (Exception $e) {

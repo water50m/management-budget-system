@@ -15,6 +15,7 @@
             <div class="mb-4 bg-green-50 p-3 rounded border border-green-200">
                 <p class="text-sm text-gray-600">กำลังเพิ่มงบให้:</p>
                 <p class="font-bold text-lg text-green-800" id="add_budget_user_name">-</p>
+                <input type="hidden" name="traget_full_name" id="add_budget_full_name">
             </div>
 
             <div class="mb-4">
@@ -57,6 +58,7 @@
     function openAddBudgetModal(userId, userName) {
         document.getElementById('add_budget_user_id').value = userId;
         document.getElementById('add_budget_user_name').innerText = userName;
+        document.getElementById('add_budget_full_name').value = userName;
         document.getElementById('addBudgetModal').classList.remove('hidden');
     }
 
