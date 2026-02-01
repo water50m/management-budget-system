@@ -5,8 +5,37 @@ function showAndManageLogs($conn)
     // === [ใหม่] แท็บที่ 4: ประวัติการใช้งาน (System Logs) ===
     $data['title'] = "ประวัติการทำงานของระบบ (Activity Logs)";
     $data['view_mode'] = 'admin_activity_logs';
+
+    // ---------------------------------------------------------
+    // 1. รับค่า Pagination & Filter
+    // ---------------------------------------------------------
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10; // Default 20 รายการ
+    $page  = isset($_GET['page_num']) ? intval($_GET['page_num']) : 1;
+    if ($page < 1) $page = 1;
+    $offset = ($page - 1) * $limit;
+
+    // Filter User Permission
     $safe_seer_id = mysqli_real_escape_string($conn, $_SESSION['user_id']);
-    $seer_id = ($safe_seer_id == 1) ? '' : "WHERE l.actor_id = '$safe_seer_id'";
+    // ถ้าไม่ใช่ user_id = 1 (Super Admin) ให้เห็นแค่ของตัวเอง (หรือตาม Logic เดิมของคุณ)
+    $where_sql = ($safe_seer_id == 1) ? "WHERE 1=1" : "WHERE l.actor_id = '$safe_seer_id'";
+
+    // ---------------------------------------------------------
+    // 2. Query นับจำนวนทั้งหมด (Count Total)
+    // ---------------------------------------------------------
+    $count_sql = "SELECT COUNT(*) as total FROM activity_logs l $where_sql";
+    $res_count = mysqli_query($conn, $count_sql);
+    $total_rows = ($res_count) ? mysqli_fetch_assoc($res_count)['total'] : 0;
+    
+    // คำนวณจำนวนหน้าทั้งหมด
+    if ($limit > 0) {
+        $total_pages = ceil($total_rows / $limit);
+    } else {
+        $total_pages = 1; // กรณี limit=0 (ทั้งหมด)
+    }
+
+    // ---------------------------------------------------------
+    // 3. Query ดึงข้อมูล (Main Query)
+    // ---------------------------------------------------------
     // SQL: ดึงข้อมูล Log + ชื่อคนทำ (Actor) + ชื่อคนโดน (Target)
     $sql = "SELECT 
                 l.id, l.action_type, l.description, l.created_at,
@@ -21,7 +50,6 @@ function showAndManageLogs($conn)
                 CONCAT(pt.prefix, pt.first_name, ' ', pt.last_name) AS target_name,
                 l.target_id AS target_id,
                 l.status AS status
-        
 
             FROM activity_logs l
             -- JOIN ครั้งที่ 1: หาคนทำ (Actor)
@@ -32,17 +60,36 @@ function showAndManageLogs($conn)
             LEFT JOIN users u_target ON l.target_id = u_target.id
             LEFT JOIN user_profiles pt ON l.target_id = pt.user_id
             
-            $seer_id
-            ORDER BY l.created_at DESC
-            LIMIT 100"; // ดึงล่าสุด 100 รายการ
+            $where_sql
+            ORDER BY l.created_at DESC ";
 
+    // เพิ่ม LIMIT offset (ถ้า limit > 0)
+    if ($limit > 0) {
+        $sql .= " LIMIT $limit OFFSET $offset";
+    }
+
+    // Run Query
     $data['logs'] = [];
     $result = mysqli_query($conn, $sql);
-    while ($row = mysqli_fetch_assoc($result)) {
-        // แปลงวันที่ให้สวยงาม
-        $row['thai_datetime'] = date('d/m/Y H:i', strtotime($row['created_at']));
-        $data['logs'][] = $row;
+    
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            // แปลงวันที่ให้สวยงาม
+            $row['thai_datetime'] = date('d/m/Y H:i', strtotime($row['created_at']));
+            $data['logs'][] = $row;
+        }
     }
+
+    // ---------------------------------------------------------
+    // 4. ส่งค่า Pagination กลับไปที่ View
+    // ---------------------------------------------------------
+    $data['pagination'] = [
+        'current_page' => $page,
+        'total_pages'  => $total_pages,
+        'total_rows'   => $total_rows,
+        'limit'        => $limit
+    ];
+
     return $data;
 }
 

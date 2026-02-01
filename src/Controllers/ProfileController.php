@@ -6,6 +6,7 @@ class ProfileController
     {
         global $conn;
         require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
+        include_once __DIR__ . "/../Helper/function.php";
 
         $user_id = isset($_GET['id']) ? intval($_GET['id']) : $_SESSION['user_id'];
 

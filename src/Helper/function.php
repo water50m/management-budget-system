@@ -73,3 +73,25 @@ function getRemainingBalance($conn, $user_id)
 
         return $total_approved - $total_spent;
     }
+
+
+    // =================================================================================================
+    // ---------------------------------------------------------
+// 1. ฟังก์ชันคำนวณ Offset (ใช้ฝั่ง Logic/Database)
+// ---------------------------------------------------------
+function getPaginationParams($default_limit = 20) {
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : $default_limit;
+    if ($limit < 1 && $limit != 0) $limit = $default_limit; // กันค่าติดลบ (ยกเว้น 0 ที่แปลว่าทั้งหมด)
+    
+    $page  = isset($_GET['page_num']) ? intval($_GET['page_num']) : 1;
+    if ($page < 1) $page = 1;
+    
+    $offset = ($page - 1) * $limit;
+    
+    return [
+        'limit'  => $limit,
+        'page'   => $page,
+        'offset' => $offset
+    ];
+}
+

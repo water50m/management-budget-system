@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 include_once __DIR__ . "/../Helper/function.php";
+
 require_once __DIR__ . '/../Models/tab_approval_logic.php';
 require_once __DIR__ . '/../Models/tab_users_logic.php';
 require_once __DIR__ . '/../Models/tab_logs_logic.php';
@@ -14,7 +15,6 @@ class DashboardController
     {
         global $conn;
         require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
-
         // 1. ตรวจสอบสิทธิ์
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?page=login");

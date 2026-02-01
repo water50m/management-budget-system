@@ -10,14 +10,17 @@ renderExpenseTableComponent(
     'purple'
 );
 
-function renderExpenseTableComponent($expenses, $filters, $departments, $categories, $years = [], $color = 'purple')
+
+
+// 🟢 1. เพิ่ม $pagination = null ใน parameter ตัวสุดท้าย
+function renderExpenseTableComponent($expenses, $filters, $departments, $categories, $years = [], $color = 'purple', $pagination = null)
 {
     // ป้องกัน Error
     $expenses = $expenses ?? [];
     $filters = $filters ?? [];
     $departments = $departments ?? [];
     $categories = $categories ?? [];
-    
+
     // ตั้งค่า Default Filters
     $defaultFilters = [
         'search' => '',
@@ -28,24 +31,29 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
         'end_date' => '',
         'min_amount' => '',
         'max_amount' => '',
-        'year' => 0
+        'year' => 0,
+        'limit' => 10 // เพิ่ม limit เข้าไปใน filter ด้วย
     ];
     $filters = array_merge($defaultFilters, $filters);
+
+    // 🟢 2. สร้าง String สำหรับ hx-include (รวมทุกตัวกรองเพื่อให้ส่งค่าไปด้วยตอนเปลี่ยนหน้า)
+    // จำเป็นมากสำหรับหน้านี้เพราะตัวกรองเยอะ
+    $hx_selectors = "[name='search'], [name='dept_id'], [name='cat_id'], [name='date_type'], [name='start_date'], [name='end_date'], [name='min_amount'], [name='max_amount'], [name='year']";
 ?>
     <div class="bg-white p-5 rounded-xl shadow-sm border border-<?= $color ?>-100 mb-6 animate-fade-in">
-        <form hx-get="index.php?page=dashboard&tab=expense" 
-              hx-target="#tab-content" 
-              hx-push-url="true"
-              class="w-full">
+        <form hx-get="index.php?page=dashboard&tab=expense"
+            hx-target="#tab-content"
+            hx-push-url="true"
+            class="w-full">
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
 
                 <div class="md:col-span-1 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ปีงบประมาณ</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $color; ?>">
-                        <select name="year" 
-                                onchange="this.form.requestSubmit()"
-                                class="w-full border-none text-xs text-gray-700 py-2 pl-2 cursor-pointer focus:ring-0">
+                        <select name="year"
+                            onchange="this.form.requestSubmit()"
+                            class="w-full border-none text-xs text-gray-700 py-2 pl-2 cursor-pointer focus:ring-0">
                             <option value="0">ทุกปีงบฯ</option>
                             <?php foreach ($years as $y): ?>
                                 <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
@@ -62,22 +70,22 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <div class="pl-2 pr-1 text-gray-400">
                             <i class="fas fa-search text-xs"></i>
                         </div>
-                        <input type="text" name="search" 
-                               value="<?php echo htmlspecialchars($filters['search']); ?>"
-                               class="w-full border-none text-xs text-gray-700 py-2 focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
-                               placeholder="ชื่อ/รายละเอียด"
-                               hx-get="index.php?page=dashboard&tab=expense"
-                               hx-target="#tab-content"
-                               hx-trigger="keyup changed delay:500ms search">
+                        <input type="text" name="search"
+                            value="<?php echo htmlspecialchars($filters['search']); ?>"
+                            class="w-full border-none text-xs text-gray-700 py-2 focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
+                            placeholder="ชื่อ/รายละเอียด"
+                            hx-get="index.php?page=dashboard&tab=expense"
+                            hx-target="#tab-content"
+                            hx-trigger="keyup changed delay:500ms search">
                     </div>
                 </div>
 
                 <div class="md:col-span-2 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                        <select name="dept_id" 
-                                onchange="this.form.requestSubmit()"
-                                class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
+                        <select name="dept_id"
+                            onchange="this.form.requestSubmit()"
+                            class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
                             <option value="0">--ทุกภาควิชา--</option>
                             <?php foreach ($departments as $dept): ?>
                                 <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
@@ -92,32 +100,33 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                     <div class="flex items-center gap-2 mb-1.5">
                         <label class="block text-xs font-bold text-gray-700">ช่วงวันที่</label>
                         <div class="relative">
-                            <select name="date_type" 
-                                    onchange="this.form.requestSubmit()"
-                                    class="appearance-none bg-<?= $color ?>-50 hover:bg-<?= $color ?>-100 border border-<?= $color ?>-200 text-<?= $color ?>-700 text-[10px] font-bold rounded px-2 py-0.5 pr-5 cursor-pointer focus:outline-none transition">
+                            <select name="date_type"
+                                onchange="this.form.requestSubmit()"
+                                class="appearance-none bg-<?= $color ?>-50 hover:bg-<?= $color ?>-100 border border-<?= $color ?>-200 text-<?= $color ?>-700 text-[10px] font-bold rounded px-2 py-0.5 pr-5 cursor-pointer focus:outline-none transition">
                                 <option value="approved" <?php echo ($filters['date_type'] == 'approved') ? 'selected' : ''; ?>>เอกสาร</option>
                                 <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>>วันคีย์</option>
                             </select>
                         </div>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                        <input type="date" name="start_date" 
-                               value="<?php echo $filters['start_date']; ?>" 
-                               class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                               onchange="this.form.requestSubmit()"> <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-[10px] text-gray-500 font-medium">ถึง</div>
-                        <input type="date" name="end_date" 
-                               value="<?php echo $filters['end_date']; ?>" 
-                               class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                               onchange="this.form.requestSubmit()">
+                        <input type="date" name="start_date"
+                            value="<?php echo $filters['start_date']; ?>"
+                            class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
+                            onchange="this.form.requestSubmit()">
+                        <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-[10px] text-gray-500 font-medium">ถึง</div>
+                        <input type="date" name="end_date"
+                            value="<?php echo $filters['end_date']; ?>"
+                            class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
+                            onchange="this.form.requestSubmit()">
                     </div>
                 </div>
 
                 <div class="md:col-span-2 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">หมวดหมู่</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                        <select name="cat_id" 
-                                onchange="this.form.requestSubmit()"
-                                class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
+                        <select name="cat_id"
+                            onchange="this.form.requestSubmit()"
+                            class="w-full border-none text-xs text-gray-700 py-2 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
                             <option value="0">--ทุกหมวด--</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo $cat['id']; ?>" <?php echo ($filters['cat_id'] == $cat['id']) ? 'selected' : ''; ?>>
@@ -135,7 +144,8 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <input type="text" inputmode="decimal" placeholder="Min"
                             value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
                             class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="formatCurrency(this, 'min_amount_hidden')"> <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400 text-xs">-</div>
+                            oninput="formatCurrency(this, 'min_amount_hidden')">
+                        <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400 text-xs">-</div>
 
                         <input type="hidden" name="max_amount" id="max_amount_hidden" value="<?php echo $filters['max_amount']; ?>">
                         <input type="text" inputmode="decimal" placeholder="Max"
@@ -163,6 +173,10 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         </button>
                     </div>
                 </div>
+
+                <?php if ($pagination): ?>
+                    <input type="hidden" name="limit" value="<?php echo $pagination['limit']; ?>">
+                <?php endif; ?>
 
             </div>
         </form>
@@ -195,7 +209,16 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                     <?php else: ?>
                         <?php foreach ($expenses as $index => $row): ?>
                             <tr class="odd:bg-white even:bg-gray-50 hover:bg-<?= $color ?>-100 transition group border-b border-gray-100">
-                                <td class="px-6 py-4 text-center text-gray-400"><?php echo $index + 1; ?></td>
+                                <td class="px-6 py-4 text-center text-gray-400">
+                                    <?php
+                                    // คำนวณลำดับที่ (เพื่อให้เลขรันต่อกันเมื่อเปลี่ยนหน้า)
+                                    if ($pagination) {
+                                        echo number_format(($pagination['current_page'] - 1) * $pagination['limit'] + ($index + 1));
+                                    } else {
+                                        echo $index + 1;
+                                    }
+                                    ?>
+                                </td>
                                 <td class="px-6 py-4 text-gray-600 whitespace-nowrap">
                                     <?php echo $row['thai_date']; ?>
                                     <div class="text-[10px] text-gray-400">เวลา: <?php echo date('H:i', strtotime($row['created_at'])); ?> น.</div>
@@ -217,9 +240,9 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <button type="button"
-                                            onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_target_id')"
-                                            class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-full transition"
-                                            title="ลบรายการนี้">
+                                        onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_target_id')"
+                                        class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-full transition"
+                                        title="ลบรายการนี้">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -229,21 +252,29 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                 </tbody>
             </table>
         </div>
+
+
+        <?php
+        if (function_exists('renderPaginationBar')) {
+            renderPaginationBar(
+                $pagination,       // ข้อมูล Pagination
+                'expense',         // ชื่อ Tab (tab=expense)
+                $hx_selectors,     // ตัวกรองที่จะส่งไปด้วย (hx-include)
+                $color             // ธีมสี (purple)
+            );
+        }
+        ?>
     </div>
-    
     <?php
-    // ✅ ย้าย renderDeleteModal ออกมานอก Loop เพื่อไม่ให้ Render ซ้ำๆ
-    // สมมติว่า function นี้ render "โครง" ของ Modal เปล่าๆ รอให้ JS มาเติม ID ทีหลัง
     if (function_exists('renderDeleteModal')) {
         renderDeleteModal(
-            "index.php?page=dashboard",  // action
-            "delete_expense",            // value (action name)
-            "delete_target_id",          // id ของ hidden input
-            0,                           // default id (JS จะมาแก้ตรงนี้)
-            ""                           // default text (JS จะมาแก้ตรงนี้)
+            "index.php?page=dashboard",
+            "delete_expense",
+            "delete_target_id",
+            0,
+            ""
         );
     }
     ?>
 <?php
 }
-?>
