@@ -3,7 +3,15 @@
 $role = $_SESSION['role'];
 $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 include_once __DIR__ . '/language.php';
+include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
+include_once __DIR__ . "/../../includes/saveLogFunction.php";
 
+include_once __DIR__ . '/../../includes/confirm_delete.php';
+include_once __DIR__ . '/../../includes/text_box_alert.php';
+include_once __DIR__ . '/../../includes/db.php';
+include_once __DIR__ . '/../../includes/add_new_profile.php';
+include_once __DIR__ . '/../../includes/delete_user_modal.php';
+include_once __DIR__ . '/../../includes/add_expense_modal.php';
 
 ?>
 

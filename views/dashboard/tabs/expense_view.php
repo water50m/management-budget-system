@@ -1,5 +1,5 @@
 <?php
-
+include_once __DIR__ . '/../../../src/Helper/FE_function.php';
 
 renderExpenseTableComponent(
     $expenses ?? [],
@@ -7,9 +7,9 @@ renderExpenseTableComponent(
     $departments_list ?? [],
     $categories_list ?? [],
     $years_list ?? [],
-    'purple'
+    'purple',
+    $pagination
 );
-
 
 
 // 🟢 1. เพิ่ม $pagination = null ใน parameter ตัวสุดท้าย
@@ -187,7 +187,30 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
             <table class="w-full text-sm text-left">
                 <thead class="sticky top-0 z-10 bg-<?= $color ?>-50 text-<?= $color ?>-900 border-b border-<?= $color ?>-100 shadow-sm">
                     <tr>
-                        <th class="px-6 py-4 font-bold text-center w-16">#</th>
+                        <th class="px-6 py-4 font-bold text-center w-16">
+                            <select name="limit"
+                                hx-get="index.php?page=dashboard&tab=expense"
+                                hx-target="#tab-content"
+                                hx-include="[name='search_text'], [name='dept_user'], [name='role_user']"
+                                class="border-gray-300 rounded shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500 py-1  cursor-pointer">
+                                <?php
+                                $limits = [
+                                    10 => '10',
+                                    25 => '25',
+                                    50 => '50',
+                                    100 => '100',
+                                    1000000 => 'ทั้งหมด'
+                                ];
+
+                                foreach ($limits as $val => $text):
+                                ?>
+                                    <option value="<?php echo $val; ?>" <?php echo ($pagination['limit'] == $val) ? 'selected' : ''; ?>>
+                                        <?php echo $text; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span>/ <b><?php echo number_format($pagination['total_rows']); ?></b> </span>
+                        </th>
                         <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่รายการ</th>
                         <th class="px-6 py-4 font-bold">ผู้เบิกจ่าย</th>
                         <th class="px-6 py-4 font-bold whitespace-nowrap text-center">หมวดหมู่</th>

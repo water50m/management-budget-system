@@ -3,6 +3,13 @@
 include_once __DIR__ . "/modal_add_budget.php";
 include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
 include_once __DIR__ . "/../../includes/saveLogFunction.php";
+
+include_once __DIR__ . '/../../includes/confirm_delete.php';
+include_once __DIR__ . '/../../includes/text_box_alert.php';
+include_once __DIR__ . '/../../includes/db.php';
+include_once __DIR__ . '/../../includes/add_new_profile.php';
+include_once __DIR__ . '/../../includes/delete_user_modal.php';
+include_once __DIR__ . '/../../includes/add_expense_modal.php';
 ?>
 
 <div id="tab-content" class="w-full px-4 p-4 md:px-8 flex-1 flex flex-col overflow-hidden animate-fade-in">

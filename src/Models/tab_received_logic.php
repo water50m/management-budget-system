@@ -3,7 +3,7 @@
 function showAndSearchApprove($conn)
 {
     $data['title'] = "สรุปยอดงบประมาณที่อนุมัติ";
-    $data['view_mode'] = 'admin_approval_table';
+    $data['view_mode'] = 'admin_received_table';
 
     // ---------------------------------------------------------
     // 1. รับค่าจากตัวกรอง (Filter Inputs)

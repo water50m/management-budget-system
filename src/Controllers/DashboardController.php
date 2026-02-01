@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 include_once __DIR__ . "/../Helper/function.php";
 
-require_once __DIR__ . '/../Models/tab_approval_logic.php';
+require_once __DIR__ . '/../Models/tab_received_logic.php';
 require_once __DIR__ . '/../Models/tab_users_logic.php';
 require_once __DIR__ . '/../Models/tab_logs_logic.php';
 require_once __DIR__ . '/../Models/tab_expense_logic.php';
@@ -130,34 +130,11 @@ class DashboardController
                 } elseif ($tab == 'logs' && $session_role == 'high-admin') {
 
                     $data = array_merge($data, showAndManageLogs($conn));
-                } else {
-                    // ... (Logic เดิม: Request Table) ...
-                    $data['title'] = "ภาพรวมคำของบประมาณ (Request)";
-                    $data['view_mode'] = 'admin_request_table';
-
-                    $sql = "SELECT u.id, p.prefix, p.first_name, p.last_name, 
-                                   d.thai_name AS department
-                            FROM users u 
-                            JOIN user_profiles p ON u.id = p.user_id 
-                            LEFT JOIN departments d ON p.department_id = d.id
-                            WHERE p.deleted_at IS NULL
-                            ORDER BY d.id, p.first_name";
-
-                    $result = mysqli_query($conn, $sql);
-                    $users_list = [];
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        $row['budget'] = $this->calculateBudget($conn, $row['id']);
-                        $users_list[] = $row;
-                    }
-                    $data['users'] = $users_list;
-                }
-            } else {
-                // --- กรณี: Admin ดู Detail ของคนอื่น (มี target_id) ---
-                $this->loadUserDetail($conn, $target_id, $data, true);
+                } 
+                
+            
             }
-        } else {
-            // --- กรณี: USER ธรรมดา (ดูของตัวเอง) ---
-            $this->loadUserDetail($conn, $user_id, $data, false);
+        
         }
         // ==================================================================================
         // 🟢 ส่วนที่ 4: HTMX RESPONSE (ส่งเฉพาะไส้ใน)
@@ -191,18 +168,6 @@ class DashboardController
         exit();
     }
 
-    // ฟังก์ชันย่อยสำหรับโหลดข้อมูล Detail (เพื่อลด code ซ้ำซ้อน)
-    private function loadUserDetail($conn, $view_id, &$data, $is_admin_viewing)
-    {
-        $data['view_mode'] = 'user_detail';
-        $data['is_admin_viewing'] = $is_admin_viewing;
-
-        $sql_name = "SELECT p.prefix, p.first_name, p.last_name, d.thai_name AS department FROM user_profiles p LEFT JOIN departments d ON p.department_id = d.id WHERE p.user_id = $view_id AND p.deleted_at IS NULL";
-        $res_name = mysqli_query($conn, $sql_name);
-        $data['profile'] = mysqli_num_rows($res_name) > 0 ? mysqli_fetch_assoc($res_name) : ['prefix' => '', 'first_name' => 'Unknown', 'department' => '-'];
-        $data['budget'] = $this->calculateBudget($conn, $view_id);
-        $data['title'] = $is_admin_viewing ? "รายละเอียด: " . $data['profile']['first_name'] : "Dashboard ของคุณ";
-    }
 
     // ฟังก์ชันคำนวณงบ (ใช้ตารางใหม่ budget_expenses ที่มี source_type แล้ว)
     private function calculateBudget($conn, $uid)
@@ -218,5 +183,67 @@ class DashboardController
         }
         $budget['total_expense'] = $budget['travel'] + $budget['book'] + $budget['computer'] + $budget['medical'];
         return $budget;
+    }
+}
+
+function submitDeleteExpense($conn)
+{
+    // 1. รับค่า ID
+    $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
+    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
+
+    // ดึง User ID คนทำรายการ (Actor)
+    $actor_id = $_SESSION['user_id']; 
+
+    if ($expense_id > 0) {
+               
+
+        // ---------------------------------------------------------
+        // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
+        // ---------------------------------------------------------
+        $sql_check = "SELECT description, amount FROM budget_expenses WHERE id = $expense_id";
+        $res_check = mysqli_query($conn, $sql_check);
+        $old_data = mysqli_fetch_assoc($res_check);
+        
+
+        $log_desc = "ลบรายการรายจ่าย ID: $expense_id"; // default description
+        if ($old_data) {
+            // ถ้าเจอข้อมูล ให้ระบุรายละเอียดให้ชัดเจน
+            $log_desc = "ลบรายการ: " . $old_data['description'] . " (จำนวน " . number_format($old_data['amount']) . " บาท)";
+        }
+
+        // ---------------------------------------------------------
+        // ✅ Step 2: ทำการลบ (แนะนำเป็น Soft Delete)
+        // ---------------------------------------------------------
+        // เปลี่ยนจาก DELETE เป็น UPDATE deleted_at
+        $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
+        
+
+        // *หมายเหตุ: ถ้าคุณยังอยากใช้ Hard Delete (ลบถาวร) ให้ใช้บรรทัดล่างนี้แทนครับ
+        // $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
+
+        if (mysqli_query($conn, $sql)) {
+            
+
+            // ---------------------------------------------------------
+            // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
+            // ---------------------------------------------------------
+            // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
+            // saveActivityLog($conn, $actor_id, $action_type, $description, $target_id);
+            
+            logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc, $expense_id);
+
+            // ---------------------------------------------------------
+            // ✅ Step 4: Redirect กลับ
+            // ---------------------------------------------------------
+            $more_details = "ลบข้อมูลของ $name \n";
+            $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+            header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
+            exit();
+            
+        } else {
+            echo "Error: " . mysqli_error($conn);
+            exit();
+        }
     }
 }

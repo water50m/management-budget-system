@@ -1,13 +1,6 @@
 <?php
 // header.php
-include_once __DIR__ . '/confirm_delete.php';
-include_once __DIR__ . '/text_box_alert.php';
-include_once __DIR__ . '/db.php';
-include_once __DIR__ . '/add_new_profile.php';
-include_once __DIR__ . '/delete_user_modal.php';
-include_once __DIR__ . '/add_expense_modal.php';
-include_once __DIR__ . '/saveLogFunction.php';
-include_once __DIR__ . '/../src/Helper/FE_function.php';
+
 
 // 1. รับค่า Tab จาก URL ถ้าไม่มีให้เป็นค่าเริ่มต้น 'received'
 $current_tab = isset($_GET['tab']) ? $_GET['tab'] : 'received';

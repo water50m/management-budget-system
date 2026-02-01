@@ -1,14 +1,15 @@
 <?php
 // เรียกใช้ฟังก์ชันแสดงตาราง Approval
-renderApprovalTableComponent(
+renderReceivedTableComponent(
     $approvals ?? [],
     $filters ?? [],
     $departments_list ?? [],
     $years_list ?? [],
-    'emerald'
+    'emerald',
+    $pagination
 );
 
-function renderApprovalTableComponent($approvals, $filters, $departments, $years = [], $theme = 'emerald')
+function renderReceivedTableComponent($approvals, $filters, $departments, $years = [], $theme = 'emerald', $pagination = null)
 {
     // 1. ตั้งค่า Default
     $approvals = $approvals ?? [];
@@ -141,14 +142,30 @@ function renderApprovalTableComponent($approvals, $filters, $departments, $years
         <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
             <table class="w-full text-sm text-left">
                 <thead class="sticky top-0 z-10 <?php echo $bgLight; ?> <?php echo $textDark; ?> border-b <?php echo $borderBase; ?>">
-                    <tr>
-                        <th class="px-6 py-4 font-bold text-center w-16">#</th>
-                        <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่อนุมัติ</th>
-                        <th class="px-6 py-4 font-bold">ผู้ขออนุมัติ</th>
-                        <th class="px-6 py-4 font-bold">รายละเอียด</th>
-                        <th class="px-6 py-4 font-bold">ยอดอนุมัติ (บาท)</th>
-                        <th class="px-6 py-4 font-bold text-center w-20">จัดการ</th>
-                    </tr>
+                    <th class="px-6 py-4 font-bold text-center w-16">
+                            <select name="limit"
+                                hx-get="index.php?page=dashboard&tab=users"
+                                hx-target="#tab-content"
+                                hx-include="[name='search_text'], [name='dept_user'], [name='role_user']"
+                                class="border-gray-300 rounded shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500 py-1  cursor-pointer">
+                                <?php
+                                $limits = [
+                                    10 => '10',
+                                    25 => '25',
+                                    50 => '50',
+                                    100 => '100',
+                                    1000000 => 'ทั้งหมด'
+                                ];
+
+                                foreach ($limits as $val => $text):
+                                ?>
+                                    <option value="<?php echo $val; ?>" <?php echo ($pagination['limit'] == $val) ? 'selected' : ''; ?>>
+                                        <?php echo $text; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span>/ <b><?php echo number_format($pagination['total_rows']); ?></b> </span>
+                        </th>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     <?php if (empty($approvals)): ?>
