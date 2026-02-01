@@ -86,7 +86,7 @@ class AuthController
                     exit();
                 } else {
                     $b = @ldap_bind($ad, $user . $local, $psw);
-                 
+
                     // -----------------------------------------------------------
                     // ส่วนแสดงผล Debug แบบละเอียด (Copy ไปวางต่อท้ายได้เลย)
                     // -----------------------------------------------------------
@@ -96,7 +96,7 @@ class AuthController
                     // เช่น บอกว่า data 52e (รหัสผิด), data 532 (รหัสหมดอายุ), data 773 (ต้องเปลี่ยนรหัส)
                     $extended_error = "";
                     if (!$b) {
-                    @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
+                        @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
                     }
 
                     // กำหนดสีและข้อความสถานะ
@@ -110,7 +110,7 @@ class AuthController
                     $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
                     $_SESSION['seer'] = 0;
 
- ?>                    
+?>
 
                     <div style="font-family: 'Sarabun', sans-serif; max-width: 800px; margin: 30px auto; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
 
@@ -190,9 +190,38 @@ class AuthController
                         </div>
 
                         <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-                            <a href="index.php" style="display: inline-block; text-decoration: none; background-color: #2563eb; color: white; padding: 12px 30px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4); transition: all 0.2s;">
-                                เข้าสู่หน้าเว็บไซต์หลัก (Go to Website) &rarr;
-                            </a>
+                            <div style="margin-top: 25px; border-top: 2px dashed #f3f4f6; padding-top: 20px;">
+                                <h4 style="margin: 0 0 15px 0; color: #4b5563; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    🧪 ทดสอบระบบด้วยสิทธิ์ต่างๆ (Test Roles - POST Method)
+                                </h4>
+
+                                <form action="index.php?page=fast-login" method="POST">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+
+                                        <?php
+                                        $testRoles = [
+                                            'ad_anatomy' => ['name' => 'กายวิภาคศาสตร์', 'color' => '#8b5cf6'],
+                                            'ad_biochemistr' => ['name' => 'ชีวเคมี', 'color' => '#ec4899'],
+                                            'ad_mic_par' => ['name' => 'จุลชีววิทยาฯ', 'color' => '#10b981'],
+                                            'ad_physiology' => ['name' => 'สรีรวิทยา', 'color' => '#f59e0b'],
+                                            'ad_office' => ['name' => 'สำนักงานเลขานุการ', 'color' => '#3b82f6'],
+                                            'high_admin' => ['name' => 'High Admin (Default)', 'color' => '#ef4444'],
+                                        ];
+
+                                        foreach ($testRoles as $key => $info):
+                      
+                                        ?>
+                                            <button type="submit" name="test-role-test" value="<?php echo $key;?>"
+                                                style="display: block; width: 100%; text-align: center; background-color: white; border: 1px solid <?php echo $info['color']; ?>; color: <?php echo $info['color']; ?>; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; transition: all 0.2s;"
+                                                onmouseover="this.style.backgroundColor='<?php echo $info['color']; ?>'; this.style.color='white';"
+                                                onmouseout="this.style.backgroundColor='white'; this.style.color='<?php echo $info['color']; ?>';">
+                                                <?php echo $key ?>
+                                            </button>
+                                        <?php endforeach; ?>
+
+                                    </div>
+                                </form>
+                            </div>
                             <br>
                             <div style="margin-top: 10px;">
                                 <a href="javascript:history.back()" style="color: #6b7280; text-decoration: none; font-size: 0.9em;">&larr; กลับไปลองใหม่</a>
@@ -225,10 +254,35 @@ class AuthController
     {
         $_SESSION['user_id'] = '1';
         $_SESSION['username'] = 'high-admin';
-        $_SESSION['role'] = 'high-admin';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
-        $_SESSION['seer'] = 0;
-        header("Location: index.php?page=dashboard");
+
+        $role = $_POST['test-role-test'];
+
+        if ($role == 'ad_anatomy') {
+            $_SESSION['role'] = 'admin-anatomy';
+            $_SESSION['seer'] = 1;
+            header("Location: index.php?page=dashboard&tab=users");
+        } else if ($role == 'ad_biochemistr') {
+            $_SESSION['role'] = 'admin-biochemistry';
+            $_SESSION['seer'] = 2;
+            header("Location: index.php?page=dashboard&tab=users");
+        } else if ($role == 'ad_mic_par') {
+            $_SESSION['role'] = 'admin-mic-par';
+            $_SESSION['seer'] = 3;
+            header("Location: index.php?page=dashboard&tab=users");
+        } else if ($role == 'ad_physiology') {
+            $_SESSION['role'] = 'admin-physiology ';
+            $_SESSION['seer'] = 4;
+            header("Location: index.php?page=dashboard&tab=users");
+        } else if ($role == 'ad_office') {
+            $_SESSION['role'] = 'admin-office';
+            $_SESSION['seer'] = 6;
+            header("Location: index.php?page=dashboard&tab=users");
+        } else {
+            $_SESSION['role'] = 'high-admin';
+            $_SESSION['seer'] = 0;
+            header("Location: index.php?page=dashboard&tab=users");
+        }
     }
 
     // ฟังก์ชัน Logout

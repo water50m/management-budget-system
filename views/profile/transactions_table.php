@@ -1,14 +1,21 @@
+<?php
+
+?>
+
 <div id="txn-table-container" class="bg-white rounded-xl shadow-lg border flex flex-col min-h-0 overflow-hidden">
     <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
-        <table  class="w-full text-sm  text-left">
+        <table class="w-full text-sm  text-left">
             <thead class="bg-white border-b border-gray-200 text-gray-500 font-semibold text-sm sticky top-0 shadow-sm z-10">
                 <tr>
                     <th class="px-6 py-4 w-20 text-center"><?php echo $t['th_seq']; ?></th>
                     <th class="px-6 py-4 w-32"><?php echo $t['th_date']; ?></th>
-                    <th class="px-6 py-4"><?php echo $t['th_desc']; ?></th>
+                    <th class="px-6 py-4 w-64"><?php echo $t['th_desc']; ?></th>
                     <th class="px-6 py-4 w-48 text-center"><?php echo $t['th_cat']; ?></th>
                     <th class="px-6 py-4 w-40 text-right"><?php echo $t['th_amount']; ?></th>
                     <th class="px-6 py-4 w-28 text-center"><?php echo $t['th_type']; ?></th>
+                    <?php if ($_SESSION['role'] == 'high-admin' || $_SESSION['seer'] == $user_info['department_id']): ?>
+                        <th class="px-6 py-4 w-28 text-center"> จัดการ </th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-base">
@@ -63,6 +70,30 @@
                                     <div class="w-8 h-8 mx-auto rounded-full bg-red-100 text-red-500 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-up"></i></div>
                                 <?php endif; ?>
                             </td>
+                            <?php if ($_SESSION['role'] == 'high-admin' || $_SESSION['seer'] == $user_info['department_id']): ?>
+                                <td class="px-6 py-4 text-center">
+                                    <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
+
+                                        <button type="button" onclick="openExpenseModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['first_name']); ?>', <?php echo $user_info['remaining_balance']; ?>)"
+                                            class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition" title="ตัดยอด">
+                                            ตัดยอด
+                                        </button>
+
+                                        <button type="button" onclick="openAddBudgetModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['first_name']); ?>')"
+                                            class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
+                                            รับยอด
+                                        </button>
+                                        <?php if ($_SESSION['role'] == 'high-admin'): ?>
+
+                                            <button type="button" onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['first_name'] . ' ' . $u['last_name']); ?>')"
+                                                class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition" title="ลบ">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            <?php endif; ?>
+
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>

@@ -10,6 +10,7 @@ include_once __DIR__ . '/../../includes/db.php';
 include_once __DIR__ . '/../../includes/add_new_profile.php';
 include_once __DIR__ . '/../../includes/delete_user_modal.php';
 include_once __DIR__ . '/../../includes/add_expense_modal.php';
+
 ?>
 
 <div id="tab-content" class="w-full px-4 p-4 md:px-8 flex-1 flex flex-col overflow-hidden animate-fade-in">
@@ -17,11 +18,12 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
     // Logic สำหรับการโหลดครั้งแรก (First Load)
     // เช็คว่า Tab ปัจจุบันคืออะไร แล้วเรียกไฟล์ View ย่อยมาแสดง
     
-    // แตกตัวแปร array $data ออกมาเป็นตัวแปรย่อย ($filters, $approvals, etc.)
+    // แตกตัวแปร array $data ออกมาเป็นตัวแปรย่อย ($filters, $received, etc.)
     if(isset($data)) extract($data);
 
-    // Default Tab = approval
-    $tab = $current_tab ?? 'approval';
+    // Default Tab = received
+    $tab = $current_tab ?? 'received';
+
 
     switch ($tab) {
         case 'expense':

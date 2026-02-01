@@ -37,6 +37,7 @@ function showAndSearchUsers($conn)
                   LEFT JOIN departments d ON p.department_id = d.id
                   WHERE p.deleted_at IS NULL ";
     
+    $count_sql = applyPermissionFilter($count_sql);
     // Filter Logic (เหมือนเดิม)
     if (!empty($search_text)) {
         $count_sql .= " AND (p.first_name LIKE '%$search_text%' OR p.last_name LIKE '%$search_text%' OR u.username LIKE '%$search_text%') ";

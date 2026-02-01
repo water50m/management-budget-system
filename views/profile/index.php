@@ -12,6 +12,8 @@ include_once __DIR__ . '/../../includes/db.php';
 include_once __DIR__ . '/../../includes/add_new_profile.php';
 include_once __DIR__ . '/../../includes/delete_user_modal.php';
 include_once __DIR__ . '/../../includes/add_expense_modal.php';
+include_once __DIR__ . "/../dashboard/modal_add_budget.php";
+
 
 ?>
 

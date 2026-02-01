@@ -24,16 +24,14 @@ class DashboardController
         $page = $_GET['page'] ?? 'dashboard';
 
         // ✅ แก้ไขเงื่อนไข: ต้องอยู่หน้า dashboard และไม่มีการส่งค่า tab มาเท่านั้น
-        if ($page === 'dashboard' && (!isset($_GET['tab']) || empty($_GET['tab']))) {
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && $page === 'dashboard' && (!isset($_GET['tab']) || empty($_GET['tab']))) {
             // สั่ง Redirect ไปที่ Tab แรกของ Dashboard
-            header("Location: index.php?page=dashboard&tab=received"); 
+            header("Location: index.php?page=dashboard&tab=users"); 
             exit();
         }
 
-        $user_id = $_SESSION['user_id'];
         $session_role = $_SESSION['role'];
         $data = [];
-
         // ==================================================================================
         // 🟢 ส่วนที่ 1: จัดการ POST REQUEST (บันทึกข้อมูล) ** ทำก่อนแสดงผลเสมอ **
         // ==================================================================================
@@ -111,24 +109,22 @@ class DashboardController
         // 🟢 ส่วนที่ 3: แยก LOGIC ตาม TABS
         // ==================================================================================
 
-        $tab = isset($_GET['tab']) ? $_GET['tab'] : 'approval';
+        $tab = isset($_GET['tab']) ? $_GET['tab'] : 'received';
         $data['current_tab'] = $tab;
         $target_id = isset($_GET['id']) ? intval($_GET['id']) : null;
 
         // --- กรณี: ADMIN MODE (ดูภาพรวม) ---
-        if ($session_role == 'admin' || $session_role == 'high-admin') { // รองรับ high-admin ด้วย
-            if (!$target_id) { // ถ้าไม่ได้ระบุ ID (ดูตารางรวม)
+
+        $role_list = getAllAdminRole($conn);
+        if (in_array($session_role, $role_list)) {
+            if (!$target_id) { 
                 if ($tab == 'received') {
-
-                    $data = array_merge($data, showAndSearchApprove($conn));
+                    $data = array_merge($data, showAndSearchReceived($conn));
                 } elseif ($tab == 'expense') {
-
                     $data = array_merge($data, showAndSearchExpense($conn));
                 } elseif ($tab == 'users') {
-
                     $data = array_merge($data, showAndSearchUsers($conn));
                 } elseif ($tab == 'logs' && $session_role == 'high-admin') {
-
                     $data = array_merge($data, showAndManageLogs($conn));
                 } 
                 
@@ -136,6 +132,7 @@ class DashboardController
             }
         
         }
+
         // ==================================================================================
         // 🟢 ส่วนที่ 4: HTMX RESPONSE (ส่งเฉพาะไส้ใน)
         // ==================================================================================
@@ -147,7 +144,7 @@ class DashboardController
                 // 🟢 กรณีที่ 2: กดจาก Navbar (เปลี่ยนหน้าใหญ่)
                 // ส่งไปทั้งหน้า Dashboard (แต่ไม่เอา Header/Footer หลัก)
                 header("HX-Push-Url: index.php?page=dashboard&tab=" . $tab);
-                extract($data);
+                    ($data);
                 require_once __DIR__ . '/../../views/dashboard/index.php';
                 exit;
             } elseif ($hx_target == 'tab-content') {
@@ -168,29 +165,13 @@ class DashboardController
         exit();
     }
 
-
-    // ฟังก์ชันคำนวณงบ (ใช้ตารางใหม่ budget_expenses ที่มี source_type แล้ว)
-    private function calculateBudget($conn, $uid)
-    {
-        $budget = ['travel' => 0, 'book' => 0, 'computer' => 0, 'medical' => 0, 'total_expense' => 0];
-
-        // 2. รายจ่าย (Expenses) - ปรับให้รองรับ category เป็นภาษาอังกฤษ
-        $res_ex = mysqli_query($conn, "SELECT * FROM budget_expenses WHERE user_id = $uid AND deleted_at IS NULL");
-        while ($r = mysqli_fetch_assoc($res_ex)) {
-            if (isset($budget[$r['category']])) {
-                $budget[$r['category']] += $r['amount'];
-            }
-        }
-        $budget['total_expense'] = $budget['travel'] + $budget['book'] + $budget['computer'] + $budget['medical'];
-        return $budget;
-    }
 }
 
 function submitDeleteExpense($conn)
 {
     // 1. รับค่า ID
     $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
-    $name = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : '';
+    $name = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : '';
 
     // ดึง User ID คนทำรายการ (Actor)
     $actor_id = $_SESSION['user_id']; 

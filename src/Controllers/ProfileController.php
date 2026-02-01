@@ -11,7 +11,7 @@ class ProfileController
         $user_id = isset($_GET['id']) ? intval($_GET['id']) : $_SESSION['user_id'];
 
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
-        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name, 
+        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, 
                             b.remaining_balance, b.previous_year_budget, b.current_year_budget
                      FROM users u
                      LEFT JOIN user_profiles p ON u.id = p.user_id

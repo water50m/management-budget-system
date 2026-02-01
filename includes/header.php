@@ -66,7 +66,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
     </script>
 </head>
 
-<body class="bg-gray-100 h-screen overflow-hidden flex flex-col font-sarabun">
+<body class="bg-gray-100 h-screen lg:overflow-hidden flex flex-col font-sarabun">
 
     <nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -80,7 +80,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                     <p class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">Mali Project</p>
                 </div>
             </div>
-
+            <?php if ($_SESSION['role'] != 'user'): ?>
             <div class="flex bg-gray-100/80 p-1.5 rounded-lg border border-gray-200 overflow-x-auto max-w-full" id="nav-container">
 
                 <a href="javascript:void(0)"
@@ -117,7 +117,9 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                     <i class="fas fa-users"></i> <span class="whitespace-nowrap ml-1">ผู้ใช้งาน (Users)</span>
                 </a>
 
-                <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
+                <?php 
+                
+                if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
                     <a href="javascript:void(0)"
                         hx-get="index.php?page=dashboard&tab=logs"
                         hx-target="#app-container"
@@ -169,6 +171,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                     <i class="fas fa-sign-out-alt text-lg"></i>
                 </a>
             </div>
+            <?php endif; ?>
 
         </div>
     </nav>

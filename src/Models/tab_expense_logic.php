@@ -163,7 +163,6 @@ function showAndSearchExpense($conn)
     // ใส่ Permission Filter (แบบ Hack: เอา SQL ไปผ่าน function แล้วดึงค่า total ออกมา ถ้าทำได้)
     // หรือถ้า applyPermissionFilter แค่เติม string ก็เอามาต่อท้าย
     $count_sql = applyPermissionFilter($count_sql);
-
     $res_count = mysqli_query($conn, $count_sql);
     $total_rows = ($res_count) ? mysqli_fetch_assoc($res_count)['total'] : 0;
 

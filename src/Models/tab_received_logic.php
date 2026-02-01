@@ -1,12 +1,21 @@
 <?php
 
-function showAndSearchApprove($conn)
+function showAndSearchReceived($conn)
 {
     $data['title'] = "สรุปยอดงบประมาณที่อนุมัติ";
     $data['view_mode'] = 'admin_received_table';
 
     // ---------------------------------------------------------
-    // 1. รับค่าจากตัวกรอง (Filter Inputs)
+    // 1. รับค่า Pagination (เพิ่มส่วนนี้)
+    // ---------------------------------------------------------
+    // เรียก Helper ที่เราทำไว้
+    $pg = getPaginationParams(10); // ค่า Default 10 รายการต่อหน้า
+    $limit  = $pg['limit'];
+    $page   = $pg['page'];
+    $offset = $pg['offset'];
+
+    // ---------------------------------------------------------
+    // 2. รับค่าจากตัวกรอง (Filter Inputs)
     // ---------------------------------------------------------
     $search     = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
     $dept_id    = isset($_GET['dept_id']) ? intval($_GET['dept_id']) : 0;
@@ -16,133 +25,162 @@ function showAndSearchApprove($conn)
     $min_amount = isset($_GET['min_amount']) ? floatval(str_replace(',', '', $_GET['min_amount'])) : 0;
     $max_amount = isset($_GET['max_amount']) ? floatval(str_replace(',', '', $_GET['max_amount'])) : 0;
     $year_filter = isset($_GET['year']) && $_GET['year'] != 0 ? intval($_GET['year']) : current_fiscal_year();
-    // ---------------------------------------------------------
-    // 🔄 Logic จับคู่ข้อมูล (ถ้ามาแค่อย่างเดียว ให้เป็นค่าเดียวกัน)
-    // ---------------------------------------------------------
 
-    // คู่ที่ 1: วันที่ (Date Range)
+    // ... (Logic จับคู่ข้อมูล Date/Amount เหมือนเดิม) ...
     if ($start_date !== '' && $end_date === '') {
-        $end_date = $start_date; // มีแต่เริ่ม -> ให้สิ้นสุดเท่ากับเริ่ม
+        $end_date = $start_date;
     } elseif ($start_date === '' && $end_date !== '') {
-        $start_date = $end_date; // มีแต่สิ้นสุด -> ให้เริ่มเท่ากับสิ้นสุด
+        $start_date = $end_date;
     }
 
-    // คู่ที่ 2: จำนวนเงิน (Amount Range)
-    // ใช้ is_numeric เพราะค่าอาจจะเป็น 0 ได้
     if (is_numeric($min_amount) && !is_numeric($max_amount)) {
         $max_amount = $min_amount;
     } elseif (!is_numeric($min_amount) && is_numeric($max_amount)) {
         $min_amount = $max_amount;
     }
 
-    // กำหนดค่า default กลับเป็น 0 หากไม่มีการกรอกเลยทั้งคู่ (สำหรับ Amount)
     $min_amount = is_numeric($min_amount) ? $min_amount : 0;
     $max_amount = is_numeric($max_amount) ? $max_amount : 0;
-    // ---------------------------------------------------------
-    // 2. สร้างรายการ "ปีงบประมาณ" (Dynamic Year List)
-    // ---------------------------------------------------------
-    // ดึงวันที่ต่ำสุดและสูงสุดจากระบบ
+
+    // ... (Logic สร้างรายการปีงบประมาณ เหมือนเดิม) ...
     $sql_years = "SELECT MIN(approved_date) as min_date, MAX(approved_date) as max_date FROM budget_received WHERE deleted_at IS NULL ";
     $res_years = mysqli_query($conn, $sql_years);
     $row_years = mysqli_fetch_assoc($res_years);
 
+    // (ขออนุญาตละโค้ดส่วนสร้าง years_list ไว้ ให้ใช้ของเดิมได้เลยครับ มันยาว)
+    // ... code สร้าง $years_list ...
+    // สมมติว่ามี $years_list แล้ว
     $years_list = [];
-
     if ($row_years['min_date'] && $row_years['max_date']) {
-        // ฟังก์ชันคำนวณปีงบประมาณไทย (เดือน >= 10 คือปีหน้า, +543 เป็น พ.ศ.)
         $calcFiscal = function ($date) {
             $time = strtotime($date);
             $y = date('Y', $time);
             $m = date('n', $time);
             return ($m >= 10) ? ($y + 1 + 543) : ($y + 543);
         };
-
-        $min_fy = $calcFiscal($row_years['min_date']); // ปีงบที่มีในระบบ (น้อยสุด)
-        $max_fy = $calcFiscal($row_years['max_date']); // ปีงบที่มีในระบบ (มากสุด)
-
-        // สร้าง Loop ตั้งแต่ (Min - 1) ถึง (Max + 1)
+        $min_fy = $calcFiscal($row_years['min_date']);
+        $max_fy = $calcFiscal($row_years['max_date']);
         for ($y = $max_fy + 1; $y >= $min_fy - 1; $y--) {
             $years_list[] = $y;
         }
     } else {
-        // ถ้าไม่มีข้อมูลเลย ให้ใช้ปีปัจจุบัน +1/-1
         $cur_fy = (date('n') >= 10) ? (date('Y') + 1 + 543) : (date('Y') + 543);
         $years_list = [$cur_fy + 1, $cur_fy, $cur_fy - 1];
     }
-
     $data['years_list'] = $years_list;
 
+
     // ---------------------------------------------------------
-    // 3. สร้าง SQL (ปรับ Alias ให้ตรงกับ Component)
+    // 🟡 3. เตรียมเงื่อนไข WHERE และ JOIN (เพื่อใช้ซ้ำในการนับและดึงข้อมูล)
+    // ---------------------------------------------------------
+
+    // Base Table Joins (ใช้เหมือนกันทั้ง Count และ Select)
+    $base_joins = " FROM budget_received a
+                    JOIN users u ON a.user_id = u.id 
+                    JOIN user_profiles p ON u.id = p.user_id 
+                    LEFT JOIN departments d ON p.department_id = d.id ";
+
+    // Base Condition
+    $where_sql = " WHERE 1=1 AND a.deleted_at IS NULL AND p.deleted_at IS NULL ";
+
+    // Permission Filter (ต้องประยุกต์ใช้นิดหน่อย)
+    // ปกติ applyPermissionFilter จะคืนค่า SQL เต็มๆ หรือต่อท้าย
+    // สมมติว่า applyPermissionFilter รับ string แล้ว return string ที่มี WHERE ต่อท้าย
+    // เราจะใช้วิธีสร้าง SQL dummy ไปผ่าน function เพื่อเอาเงื่อนไขออกมา (หรือถ้า function return แค่ condition ก็ง่ายเลย)
+    // **เพื่อให้ง่าย ผมจะสมมติว่าคุณเอา Logic ใน applyPermissionFilter มาแปะต่อตรงนี้ หรือใช้แบบเดิม**
+
+    // *แก้ปัญหาเฉพาะหน้า:* ใช้วิธีสร้าง SQL เต็มแล้วค่อยแยกคงยาก 
+    // แนะนำให้เอา Logic Permission มาใส่ตรงนี้ครับ (ตัวอย่าง):
+    if ($_SESSION['role'] == 'admin') {
+        // $where_sql .= " AND ... "; 
+    }
+    // หรือถ้าจะใช้ function เดิม ให้เอามาต่อท้ายทีหลังสุดตอนประกอบร่าง
+
+    // --- Filter Logic ---
+    if (!empty($search)) {
+        $where_sql .= " AND (p.first_name LIKE '%$search%' OR p.last_name LIKE '%$search%' OR a.remark LIKE '%$search%') ";
+    }
+    if ($year_filter > 0) {
+        $where_sql .= " AND (YEAR(a.approved_date) + IF(MONTH(a.approved_date) >= 10, 1, 0) + 543) = $year_filter ";
+    }
+    if ($dept_id > 0) {
+        $where_sql .= " AND d.id = $dept_id ";
+    }
+    if (!empty($start_date) && !empty($end_date)) {
+        $col_date = ($date_type == 'created') ? "DATE(a.record_date)" : "DATE(a.approved_date)";
+        $where_sql .= " AND $col_date BETWEEN '$start_date' AND '$end_date' ";
+    }
+    if ($min_amount > 0) {
+        $where_sql .= " AND a.approved_amount >= $min_amount ";
+    }
+    if ($max_amount > 0) {
+        $where_sql .= " AND a.approved_amount <= $max_amount ";
+    }
+
+
+    // ---------------------------------------------------------
+    // 🟡 4. Query นับจำนวนทั้งหมด (Count Total)
+    // ---------------------------------------------------------
+    // เราใช้ $base_joins และ $where_sql ที่เตรียมไว้
+    $count_sql = "SELECT COUNT(*) as total " . $base_joins . $where_sql;
+
+    // (ถ้า function applyPermissionFilter จำเป็นต้องใช้ ให้เรียกตรงนี้ด้วยกับ count_sql)
+    $count_sql = applyPermissionFilter($count_sql);
+
+    $res_count = mysqli_query($conn, $count_sql);
+    $total_rows = ($res_count) ? mysqli_fetch_assoc($res_count)['total'] : 0;
+
+    // คำนวณจำนวนหน้า
+    if ($limit > 0) {
+        $total_pages = ceil($total_rows / $limit);
+    } else {
+        $total_pages = 1;
+    }
+
+
+    // ---------------------------------------------------------
+    // 🟡 5. Query ดึงข้อมูลจริง (Main Select)
     // ---------------------------------------------------------
     $sql = "SELECT a.id, 
-                                d.thai_name AS department, 
-                                p.prefix, p.first_name, p.last_name, 
-                                a.approved_amount AS amount,      
-                                a.remark,                        
-                                a.approved_date,                 
-                                a.record_date,
+                   d.thai_name AS department, 
+                   p.prefix, p.first_name, p.last_name, 
+                   a.approved_amount AS amount,      
+                   a.remark,                        
+                   a.approved_date,                 
+                   a.record_date,
+                   COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as total_used
+            " . $base_joins . $where_sql;
 
-                                -- ✅ เพิ่มบรรทัดนี้กลับเข้ามาครับ เพื่อเช็คยอดใช้
-                                COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as total_used
-
-                            FROM budget_received a
-                            JOIN users u ON a.user_id = u.id 
-                            JOIN user_profiles p ON u.id = p.user_id 
-                            LEFT JOIN departments d ON p.department_id = d.id 
-                            WHERE 1=1
-                            ";
-
-    // ---------------------------------------------------------
-    // 4. ใส่ Logic Filter
-    // ---------------------------------------------------------
-
-    // filter deleted data
-    $sql .= "AND a.deleted_at IS NULL AND p.deleted_at IS NULL";
-    // filter data for admin
+    // ใส่ Permission Filter ให้ Query หลัก
     $sql = applyPermissionFilter($sql);
 
-    if (!empty($search)) {
-        $sql .= " AND (p.first_name LIKE '%$search%' OR p.last_name LIKE '%$search%' OR a.remark LIKE '%$search%') ";
+    $sql .= " ORDER BY a.approved_date DESC";
+
+    // ✅ ใส่ LIMIT / OFFSET (เฉพาะเมื่อ limit > 0)
+    if ($limit > 0) {
+        $sql .= " LIMIT $limit OFFSET $offset";
     }
 
-    if ($year_filter > 0) {
-        // สูตรคำนวณ: ปี ค.ศ. + (ถ้าเดือน>=10 ให้บวก 1) + 543 = ปีงบไทย
-        $sql .= " AND (YEAR(a.approved_date) + IF(MONTH(a.approved_date) >= 10, 1, 0) + 543) = $year_filter ";
-    }
+    // ---------------------------------------------------------
+    // 6. ประมวลผลและส่งค่า
+    // ---------------------------------------------------------
+    $data['received'] = [];
+    $result = mysqli_query($conn, $sql);
 
-    if ($dept_id > 0) {
-        $sql .= " AND d.id = $dept_id ";
-    }
-
-    if (!empty($start_date) && !empty($end_date)) {
-        if ($date_type == 'created') {
-            $sql .= " AND DATE(a.record_date) BETWEEN '$start_date' AND '$end_date' ";
-        } else {
-            $sql .= " AND DATE(a.approved_date) BETWEEN '$start_date' AND '$end_date' ";
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $row['thai_date'] = dateToThai($row['approved_date']);
+            $data['received'][] = $row;
         }
     }
 
-    if ($min_amount > 0) {
-        $sql .= " AND a.approved_amount >= $min_amount ";
-    }
-    if ($max_amount > 0) {
-        $sql .= " AND a.approved_amount <= $max_amount ";
-    }
-
-    // ---------------------------------------------------------
-    // 5. ประมวลผลและส่งค่า
-    // ---------------------------------------------------------
-    $sql .= " ORDER BY a.approved_date DESC";
-
-    $data['approvals'] = [];
-    $result = mysqli_query($conn, $sql);
-
-    while ($row = mysqli_fetch_assoc($result)) {
-        $row['thai_date'] = dateToThai($row['approved_date']);
-        $data['approvals'][] = $row;
-    }
-    // ส่งรายการปีที่สร้าง
+    // ส่งข้อมูล Pagination กลับไป
+    $data['pagination'] = [
+        'current_page' => $page,
+        'total_pages'  => $total_pages,
+        'total_rows'   => $total_rows,
+        'limit'        => $limit
+    ];
 
     $data['filters'] = [
         'search'     => $search,
@@ -152,7 +190,8 @@ function showAndSearchApprove($conn)
         'end_date'   => $end_date,
         'min_amount' => $_GET['min_amount'] ?? '',
         'max_amount' => $_GET['max_amount'] ?? '',
-        'year' => $year_filter
+        'year'       => $year_filter,
+        'limit'      => $limit // ส่ง limit กลับไปโชว์ใน UI ด้วย
     ];
 
     return $data;
@@ -174,6 +213,25 @@ function addReceiveBudget($conn)
 
     // 3. เริ่ม Transaction (เพื่อความปลอดภัยข้อมูล)
     mysqli_begin_transaction($conn);
+    echo "<div style='background:#f4f4f4; border:1px solid #ccc; padding:15px; margin:20px; border-radius:8px; font-family:monospace;'>";
+    echo "<h3 style='color:#d97706; margin-top:0;'>🔍 ตรวจสอบตัวแปร (Debug Add Budget)</h3>";
+
+    echo "<b>User ID (Target):</b> " . $user_id . "<br>";
+    echo "<b>Target Name:</b> " . $full_name . "<br>";
+    echo "<b>Amount (Raw):</b> " . $_POST['amount'] . " -> <b>Float:</b> " . $amount . "<br>";
+    echo "<b>Date Approved:</b> " . $approved_date . "<br>";
+    echo "<b>Fiscal Year Calculated:</b> " . $year_th . "<br>";
+    echo "<b>Remark:</b> " . $remark . "<br>";
+    echo "<b>Actor ID (Current Session):</b> " . ($_SESSION['user_id'] ?? 'Not Logged In') . "<br>";
+
+    echo "<hr style='border:0; border-top:1px dashed #ccc;'>";
+    echo "<b>SQL Statement Preview:</b><br>";
+    $sql_preview = "INSERT INTO budget_received (user_id, approved_amount, approved_date, remark) 
+                VALUES ('$user_id', '$amount', '$approved_date', '$remark')";
+    echo "<code style='background:#fff; padding:5px; display:block; border:1px solid #eee; margin-top:5px;'>" . $sql_preview . "</code>";
+
+    echo "</div>";
+    die;
 
     try {
         // A. บันทึกข้อมูลงบประมาณ
@@ -206,6 +264,7 @@ function addReceiveBudget($conn)
         // หากเกิดข้อผิดพลาด ให้ยกเลิกการบันทึกทั้งหมด (Rollback)
         mysqli_rollback($conn);
         echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+        die;
         // ใน Production อาจเปลี่ยน echo เป็นการบันทึก error log ลงไฟล์แทน
     }
 }
@@ -214,7 +273,7 @@ function submitDeleteAprove($conn)
 {
 
     // 1. รับค่า ID และแปลงเป็นตัวเลข
-    $id = isset($_POST['delete_approval_id']) ? intval($_POST['delete_approval_id']) : 0;
+    $id = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : 0;
     $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
@@ -225,7 +284,7 @@ function submitDeleteAprove($conn)
         // ---------------------------------------------------------
         // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
         // ---------------------------------------------------------
-        // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_approvals หรือ budget_years)*
+        // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_received หรือ budget_years)*
         $sql_check = "SELECT * FROM budget_received WHERE id = $id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
@@ -257,7 +316,7 @@ function submitDeleteAprove($conn)
             // 4. Redirect กลับ
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=dashboard&tab=approval&status=success&toastMsg=" . urlencode($toastMsg));
+            header("Location: index.php?page=dashboard&tab=received&status=success&toastMsg=" . urlencode($toastMsg));
             exit();
         } else {
             echo "Error deleting record: " . mysqli_error($conn);

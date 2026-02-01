@@ -123,7 +123,7 @@ function restoreData($conn)
             if ($data_id > 0) {
                 $sql_restore = "UPDATE budget_received SET deleted_at = NULL WHERE id = '$data_id'";
                 $log_msg = "กู้คืนข้อมูลรายรับ (Received ID: $data_id)";
-                $redirect_tab = "approval";
+                $redirect_tab = "received";
             }
             break;
 

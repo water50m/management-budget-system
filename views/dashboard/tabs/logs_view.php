@@ -1,3 +1,7 @@
+<?php
+include_once __DIR__ . '/../../../src/Helper/FE_function.php';
+
+?>
 <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-orange-200 flex flex-col min-h-0">
     <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
         <table class="w-full text-sm text-left">
@@ -88,93 +92,19 @@
         </table>
     </div>
 
-    <?php if ($pagination): ?>
-        <div class="bg-gray-50 border-t <?php echo $borderBase; ?> px-6 py-4 flex flex-col md:flex-row items-center justify-center gap-4">
+                                        
+    <?php
+    $hx_selectors = "[name='search_text']";
 
-            <div class="flex items-center gap-1">
-                <?php
-                $curr = $pagination['current_page'];
-                $total = $pagination['total_pages'];
-                $limit = $pagination['limit'];
-
-                // --- ส่วน Logic คำนวณเลขหน้า (Fixed 3 หน้า) ---
-                $window = 3;
-                $start = $curr - 1;
-                $end   = $curr + 1;
-
-                if ($start < 1) {
-                    $start = 1;
-                    $end   = min($total, $start + $window - 1);
-                }
-                if ($end > $total) {
-                    $end   = $total;
-                    $start = max(1, $end - $window + 1);
-                }
-                // ---------------------------------------------
-                ?>
-
-                <button hx-get="index.php?page=dashboard&tab=logs&page_num=1&limit=<?php echo $limit; ?>"
-                    hx-target="#tab-content"
-                    hx-include="[name='search_text']" 
-                    <?php echo ($curr == 1) ? 'disabled class="px-2 py-1 rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition"'; ?>
-                    title="หน้าแรก">
-                    <i class="fas fa-angle-double-left text-xs"></i>
-                </button>
-
-                <button hx-get="index.php?page=dashboard&tab=logs&page_num=<?php echo max(1, $curr - 1); ?>&limit=<?php echo $limit; ?>"
-                    hx-target="#tab-content"
-                    hx-include="[name='search_text']"
-                    <?php echo ($curr == 1) ? 'disabled class="px-3 py-1  rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-3 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition"'; ?>
-                    title="ย้อนกลับ">
-                    <i class="fas fa-chevron-left text-xs"></i>
-                </button>
-
-                <?php
-                // แสดงเลข 1 และ ...
-                if ($start > 1) {
-                    echo "<button hx-get='index.php?page=dashboard&tab=logs&page_num=1&limit=$limit' hx-target='#tab-content' hx-include=\"[name='search_text']\" class='px-3 py-1 rounded border text-sm font-medium transition bg-white text-gray-600 border-gray-300 hover:bg-gray-50'>1</button>";
-                    if ($start > 2) echo "<span class='px-1 text-gray-400'>...</span>";
-                }
-
-                // Loop แสดงเลขหน้าตรงกลาง
-                for ($i = $start; $i <= $end; $i++) {
-                    $isActive = ($i == $curr);
-                    $cls = $isActive
-                        ? "bg-purple-600 text-white border-purple-600 shadow-sm pointer-events-none" // เปลี่ยนสีเป็น purple ตามธีม Logs (หรือใช้ตัวแปร $theme)
-                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50";
-
-                    echo "<button hx-get='index.php?page=dashboard&tab=logs&page_num=$i&limit=$limit' 
-                                  hx-target='#tab-content' 
-                                  hx-include=\"[name='search_text']\"
-                                  class='px-3 py-1 rounded border text-sm font-medium transition $cls'>
-                            $i
-                          </button>";
-                }
-
-                // แสดง ... และเลขหน้าสุดท้าย
-                if ($end < $total) {
-                    if ($end < $total - 1) echo "<span class='px-1 text-gray-400'>...</span>";
-                    echo "<button hx-get='index.php?page=dashboard&tab=logs&page_num=$total&limit=$limit' hx-target='#tab-content' hx-include=\"[name='search_text']\" class='px-3 py-1 rounded border text-sm font-medium transition bg-white text-gray-600 border-gray-300 hover:bg-gray-50'>$total</button>";
-                }
-                ?>
-
-                <button hx-get="index.php?page=dashboard&tab=logs&page_num=<?php echo min($total, $curr + 1); ?>&limit=<?php echo $limit; ?>"
-                    hx-target="#tab-content"
-                    hx-include="[name='search_text']"
-                    <?php echo ($curr == $total) ? 'disabled class="px-3 py-1 rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-3 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition"'; ?>
-                    title="ถัดไป">
-                    <i class="fas fa-chevron-right text-xs"></i>
-                </button>
-
-                <button hx-get="index.php?page=dashboard&tab=logs&page_num=<?php echo $total; ?>&limit=<?php echo $limit; ?>"
-                    hx-target="#tab-content"
-                    hx-include="[name='search_text']"
-                    <?php echo ($curr == $total) ? 'disabled class="px-2 py-1 rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition"'; ?>
-                    title="หน้าสุดท้าย">
-                    <i class="fas fa-angle-double-right text-xs"></i>
-                </button>
-
-            </div>
-        </div>
-    <?php endif; ?>
+    // 2. เรียกใช้ฟังก์ชัน
+    if (function_exists('renderPaginationBar')) {
+        renderPaginationBar(
+            $pagination,       // ข้อมูล Pagination
+            'logs',            // ชื่อ Tab (tab=logs)
+            $hx_selectors,     // hx-include
+            'purple'           // ธีมสี (ใช้ purple ตามหน้า Logs)
+        ); 
+    }
+    ?>
+    
 </div> 
