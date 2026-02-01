@@ -25,7 +25,7 @@ class ProfileController
         }
 
         // 2. คำนวณยอดรวมต่างๆ (เหมือนเดิม)
-        $sql_total_rec = "SELECT SUM(approved_amount) as total FROM budget_received WHERE user_id = $user_id AND deleted_at IS NULL";
+        $sql_total_rec = "SELECT SUM(amount) as total FROM budget_received WHERE user_id = $user_id AND deleted_at IS NULL";
         $user_info['total_received_all'] = mysqli_fetch_assoc(mysqli_query($conn, $sql_total_rec))['total'] ?? 0;
 
         $cur_month = date('n');
@@ -95,11 +95,11 @@ class ProfileController
             $where_exp .= " AND e.category_id = $f_cat ";
         }
         if ($f_min !== '' && $f_min > 0) {
-            $where_inc .= " AND approved_amount >= $f_min ";
+            $where_inc .= " AND amount >= $f_min ";
             $where_exp .= " AND e.amount >= $f_min ";
         }
         if ($f_max !== '' && $f_max > 0) {
-            $where_inc .= " AND approved_amount <= $f_max ";
+            $where_inc .= " AND amount <= $f_max ";
             $where_exp .= " AND e.amount <= $f_max ";
         }
 
@@ -109,7 +109,7 @@ class ProfileController
         // ส่วนรายรับ (Income)
         if ($f_type == 'all' || $f_type == 'income') {
             $sql_parts[] = "(SELECT 
-                                id, approved_date as txn_date, remark as description, approved_amount as amount,
+                                id, approved_date as txn_date, remark as description, amount as amount,
                                 'income' as type, NULL as category_name,
                                 IF(MONTH(approved_date) >= 10, YEAR(approved_date) + 1, YEAR(approved_date)) + 543 as fiscal_year_num
                              FROM budget_received $where_inc)";

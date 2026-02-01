@@ -50,7 +50,7 @@ function getRemainingBalance($conn, $user_id)
     $today = date('Y-m-d');
 
     // 1. หา "เงินเข้า"
-    $sql_income = "SELECT COALESCE(SUM(approved_amount), 0) as total_approved 
+    $sql_income = "SELECT COALESCE(SUM(amount), 0) as total_approved 
                     FROM budget_received 
                     WHERE user_id = $user_id 
                     AND approved_date >= DATE_SUB('$today', INTERVAL 2 YEAR)

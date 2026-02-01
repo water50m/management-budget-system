@@ -111,10 +111,10 @@ function showAndSearchReceived($conn)
         $where_sql .= " AND $col_date BETWEEN '$start_date' AND '$end_date' ";
     }
     if ($min_amount > 0) {
-        $where_sql .= " AND a.approved_amount >= $min_amount ";
+        $where_sql .= " AND a.amount >= $min_amount ";
     }
     if ($max_amount > 0) {
-        $where_sql .= " AND a.approved_amount <= $max_amount ";
+        $where_sql .= " AND a.amount <= $max_amount ";
     }
 
 
@@ -144,7 +144,7 @@ function showAndSearchReceived($conn)
     $sql = "SELECT a.id, 
                    d.thai_name AS department, 
                    p.prefix, p.first_name, p.last_name, 
-                   a.approved_amount AS amount,      
+                   a.amount AS amount,      
                    a.remark,                        
                    a.approved_date,                 
                    a.record_date,
@@ -208,37 +208,35 @@ function addReceiveBudget($conn)
     $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
 
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
+    // 1. แปลงวันที่เป็น Timestamp
     $timestamp = strtotime($approved_date);
+
+    // 2. หามร พ.ศ. ปกติก่อน (User เดิม)
     $year_th = date('Y', $timestamp) + 543;
+
+    // 3. หาเดือน (1-12)
+    $month = date('n', $timestamp);
+
+    // 4. คำนวณปีงบประมาณ
+    if ($month >= 10) {
+        // ถ้าเป็นเดือน 10, 11, 12 ให้ถือเป็นปีงบประมาณหน้า
+        $fiscal_year = $year_th + 1;
+    } else {
+        // ถ้าเป็นเดือน 1-9 ให้ใช้ปีปัจจุบัน
+        $fiscal_year = $year_th;
+    }
 
     // 3. เริ่ม Transaction (เพื่อความปลอดภัยข้อมูล)
     mysqli_begin_transaction($conn);
-    echo "<div style='background:#f4f4f4; border:1px solid #ccc; padding:15px; margin:20px; border-radius:8px; font-family:monospace;'>";
-    echo "<h3 style='color:#d97706; margin-top:0;'>🔍 ตรวจสอบตัวแปร (Debug Add Budget)</h3>";
 
-    echo "<b>User ID (Target):</b> " . $user_id . "<br>";
-    echo "<b>Target Name:</b> " . $full_name . "<br>";
-    echo "<b>Amount (Raw):</b> " . $_POST['amount'] . " -> <b>Float:</b> " . $amount . "<br>";
-    echo "<b>Date Approved:</b> " . $approved_date . "<br>";
-    echo "<b>Fiscal Year Calculated:</b> " . $year_th . "<br>";
-    echo "<b>Remark:</b> " . $remark . "<br>";
-    echo "<b>Actor ID (Current Session):</b> " . ($_SESSION['user_id'] ?? 'Not Logged In') . "<br>";
-
-    echo "<hr style='border:0; border-top:1px dashed #ccc;'>";
-    echo "<b>SQL Statement Preview:</b><br>";
-    $sql_preview = "INSERT INTO budget_received (user_id, approved_amount, approved_date, remark) 
-                VALUES ('$user_id', '$amount', '$approved_date', '$remark')";
-    echo "<code style='background:#fff; padding:5px; display:block; border:1px solid #eee; margin-top:5px;'>" . $sql_preview . "</code>";
-
-    echo "</div>";
     die;
 
     try {
         // A. บันทึกข้อมูลงบประมาณ
         $sql_budget = "INSERT INTO budget_received 
-                                (user_id, approved_amount, approved_date, remark) 
+                                (user_id, amount, approved_date, remark, fiscal_year) 
                                 VALUES 
-                                ('$user_id', '$amount', '$approved_date', '$remark')
+                                ('$user_id', '$amount', '$approved_date', '$remark', '$fiscal_year')
                                 ";
 
         if (!mysqli_query($conn, $sql_budget)) {
@@ -293,8 +291,8 @@ function submitDeleteAprove($conn)
         $log_desc = "ลบการอนุมัติงบ ID: $id"; // ค่า Default
         if ($old_data) {
             // ตัวอย่าง: "ลบการอนุมัติงบ 50,000 บาท ของโครงการ ABC"
-            // ปรับชื่อ field ตามตารางจริง (เช่น approved_amount, remark, description)
-            $amount_show = isset($old_data['approved_amount']) ? number_format($old_data['approved_amount']) : '-';
+            // ปรับชื่อ field ตามตารางจริง (เช่น amount, remark, description)
+            $amount_show = isset($old_data['amount']) ? number_format($old_data['amount']) : '-';
             $log_desc = "ลบการอนุมัติงบจำนวน $amount_show บาท ";
         }
 

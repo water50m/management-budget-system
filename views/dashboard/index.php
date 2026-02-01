@@ -35,6 +35,9 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
         case 'logs':
             include __DIR__ . '/tabs/logs_view.php';
             break;
+        case 'summary':
+            include __DIR__ . '/tabs/summary_view.php';
+            break;
         default:
             include __DIR__ . '/tabs/received_view.php';
             break;

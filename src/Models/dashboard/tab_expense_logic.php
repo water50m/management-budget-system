@@ -250,15 +250,31 @@ function addExpense($conn)
         // A. บันทึกรายจ่ายลงตารางหลัก (budget_expenses)
         // ---------------------------------------------------------
         $approved_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+        $timestamp = strtotime($approved_date);
+
+        // 2. หามร พ.ศ. ปกติก่อน (User เดิม)
+        $year_th = date('Y', $timestamp) + 543;
+
+        // 3. หาเดือน (1-12)
+        $month = date('n', $timestamp);
+
+        // 4. คำนวณปีงบประมาณ
+        if ($month >= 10) {
+            // ถ้าเป็นเดือน 10, 11, 12 ให้ถือเป็นปีงบประมาณหน้า
+            $fiscal_year = $year_th + 1;
+        } else {
+            // ถ้าเป็นเดือน 1-9 ให้ใช้ปีปัจจุบัน
+            $fiscal_year = $year_th;
+        }
 
         // กำหนด Type เป็น 'FIFO' หรือ 'System' เพื่อให้รู้ว่าระบบตัดเอง
         // (ถ้า Database คุณบังคับ ENUM 'current_year','carry_over' อาจต้องไปแก้ DB หรือใส่ค่าใดค่าหนึ่งไปก่อน)
         $budget_source = 'FIFO';
 
         $sql_ins = "INSERT INTO budget_expenses 
-                                (user_id, category_id, description, amount, approved_date, budget_source_type) 
+                                (user_id, category_id, description, amount, approved_date, budget_source_type, fiscal_year) 
                                 VALUES 
-                                ('$user_id', '$category_id', '$description', '$amount_needed', '$approved_date', '$budget_source')";
+                                ('$user_id', '$category_id', '$description', '$amount_needed', '$approved_date', '$budget_source', '$fiscal_year')";
 
         if (!mysqli_query($conn, $sql_ins)) {
             throw new Exception("Error Inserting Expense: " . mysqli_error($conn));
@@ -272,13 +288,13 @@ function addExpense($conn)
 
         // ✅ Query เดียว ดึงหมดทุกใบที่มีเงินเหลือ เรียงตามวันที่อนุมัติ (เก่าสุดขึ้นก่อน)
         // ตัดเงื่อนไข Fiscal Year ออก เพื่อให้มันมองเห็นงบทุกก้อน
-        $sql_app = "SELECT a.id, a.approved_amount, a.approved_date, 
+        $sql_app = "SELECT a.id, a.amount, a.approved_date, 
                                 COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as used_so_far
                                 FROM budget_received a
                                 WHERE a.user_id = '$user_id'
                                 AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) -- (Optional) กรองใบที่เก่าเกิน 2 ปีทิ้ง ถ้าไม่ใช้ก็ลบบรรทัดนี้ได้
                                 AND deleted_at IS NULL
-                                HAVING (a.approved_amount - used_so_far) > 0
+                                HAVING (a.amount - used_so_far) > 0
                                 ORDER BY a.approved_date ASC"; // หัวใจสำคัญของ FIFO คือตรงนี้ (เก่าไปใหม่)
 
         $res_app = mysqli_query($conn, $sql_app);
@@ -290,7 +306,7 @@ function addExpense($conn)
         while ($row = mysqli_fetch_assoc($res_app)) {
             if ($money_to_cut <= 0) break;
 
-            $available_on_this_slip = $row['approved_amount'] - $row['used_so_far'];
+            $available_on_this_slip = $row['amount'] - $row['used_so_far'];
             $cut_amount = 0;
 
             if ($money_to_cut >= $available_on_this_slip) {

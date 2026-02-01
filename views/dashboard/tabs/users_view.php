@@ -31,7 +31,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
     $borderBase = "border-{$theme}-200";
     $btnPrimary = "bg-{$theme}-600 hover:bg-{$theme}-700";
     $focusRing = "focus:border-{$theme}-500 focus:ring-{$theme}-500";
-    
+
 
 ?>
 
@@ -41,9 +41,9 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
             hx-push-url="true"
             class="w-full">
 
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div class="flex flex-col md:flex-row gap-4 items-end w-full">
 
-                <div class="md:col-span-4">
+                <div class="w-full md:flex-1">
                     <label class="block text-xs font-bold text-gray-700 mb-1">ค้นหา (ชื่อ / Username)</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -59,7 +59,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                     </div>
                 </div>
 
-                <div class="md:col-span-3">
+                <div class="w-full md:w-56">
                     <label class="block text-xs font-bold text-gray-700 mb-1">ภาควิชา</label>
                     <select name="dept_user"
                         class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
@@ -74,7 +74,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                 </div>
 
                 <?php if ($_SESSION['role'] == 'high-admin'):  ?>
-                    <div class="md:col-span-3">
+                    <div class="w-full md:w-40">
                         <label class="block text-xs font-bold text-gray-700 mb-1">สิทธิ์ (Role)</label>
                         <select name="role_user"
                             class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
@@ -87,8 +87,8 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                     </div>
                 <?php endif; ?>
 
-                <div class="md:col-span-2 flex items-center gap-2">
-                    <button type="submit" class="w-full <?php echo $btnPrimary; ?> text-white px-4 py-2 rounded-md shadow-sm transition h-[38px] flex items-center justify-center text-sm font-medium">
+                <div class="w-full md:w-auto flex items-center gap-2">
+                    <button type="submit" class="<?php echo $btnPrimary; ?> text-white px-4 py-2 rounded-md shadow-sm transition h-[38px] flex items-center justify-center text-sm font-medium whitespace-nowrap min-w-[80px]">
                         ค้นหา
                     </button>
 
@@ -143,17 +143,17 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                         <th class="px-6 py-4 font-bold">ชื่อ - นามสกุล</th>
                         <th class="px-6 py-4 font-bold">ภาควิชา</th>
                         <th class="px-6 py-4 font-bold">Username</th>
-                        <?php if ($_SESSION['role'] == 'high-admin'): 
+                        <?php if ($_SESSION['role'] == 'high-admin'):
 
-                            ?>
-                        <th class="px-6 py-4 font-bold text-center">สิทธิ์ (Role)</th>
-                        <?php endif;?>
+                        ?>
+                            <th class="px-6 py-4 font-bold text-center">สิทธิ์ (Role)</th>
+                        <?php endif; ?>
                         <th class="px-6 py-4 font-bold ">ยอดคงเหลือ (บาท)</th>
                         <th class="px-6 py-4 font-bold text-center">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-base">
-                    <?php if (empty($users) ): ?>
+                    <?php if (empty($users)): ?>
                         <tr>
                             <td colspan="7" class="p-10 text-center text-gray-400">
                                 <div class="flex flex-col items-center">
@@ -184,13 +184,13 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                 </td>
                                 <td class="px-6 py-4 font-mono text-gray-600 text-xs"><?php echo $u['username']; ?></td>
                                 <?php if ($_SESSION['role'] == 'high-admin'): ?>
-                                <td class="px-6 py-4">
-                                    <?php if (function_exists('renderUserRoleManageComponent') || true) {
-                                        renderUserRoleManageComponent($u, $currentUserRole, $conn);
-                                    } else {
-                                        echo "<span class='text-xs'>{$u['role_user']}</span>";
-                                    } ?>
-                                </td>
+                                    <td class="px-6 py-4">
+                                        <?php if (function_exists('renderUserRoleManageComponent') || true) {
+                                            renderUserRoleManageComponent($u, $currentUserRole, $conn);
+                                        } else {
+                                            echo "<span class='text-xs'>{$u['role_user']}</span>";
+                                        } ?>
+                                    </td>
                                 <?php endif; ?>
                                 <td class="px-6 py-4 ">
                                     <?php
@@ -205,14 +205,14 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                             <i class="fas fa-user"></i> ดูโปรไฟล์
                                         </a>
 
-                                        <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['first_name']); ?>', <?php echo $balance; ?>)"
+                                        <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>', <?php echo $balance; ?>)"
                                             class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition" title="ตัดยอด">
                                             <i class="fas fa-minus"></i> ตัดยอด
                                         </button>
 
-                                        <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['first_name']); ?>')"
+                                        <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>')"
                                             class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
-                                            <i class="fas fa-plus"></i> รับยอก
+                                            <i class="fas fa-plus"></i> รับยอด
                                         </button>
                                         <?php if ($_SESSION['role'] == 'high-admin'): ?>
                                             <button type="button" onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?>')"

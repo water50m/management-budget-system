@@ -5,10 +5,12 @@ require_once __DIR__ . '/../../includes/saveLogFunction.php';
 
 include_once __DIR__ . "/../Helper/function.php";
 
-require_once __DIR__ . '/../Models/tab_received_logic.php';
-require_once __DIR__ . '/../Models/tab_users_logic.php';
-require_once __DIR__ . '/../Models/tab_logs_logic.php';
-require_once __DIR__ . '/../Models/tab_expense_logic.php';
+require_once __DIR__ . '/../Models/dashboard/tab_received_logic.php';
+require_once __DIR__ . '/../Models/dashboard/tab_users_logic.php';
+require_once __DIR__ . '/../Models/dashboard/tab_logs_logic.php';
+require_once __DIR__ . '/../Models/dashboard/tab_expense_logic.php';
+require_once __DIR__ . '/../Models/dashboard/tab_summary_logic.php';
+
 class DashboardController
 {
     public function index()
@@ -20,13 +22,13 @@ class DashboardController
             header("Location: index.php?page=login");
             exit();
         }
-        
+
         $page = $_GET['page'] ?? 'dashboard';
 
         // ✅ แก้ไขเงื่อนไข: ต้องอยู่หน้า dashboard และไม่มีการส่งค่า tab มาเท่านั้น
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && $page === 'dashboard' && (!isset($_GET['tab']) || empty($_GET['tab']))) {
             // สั่ง Redirect ไปที่ Tab แรกของ Dashboard
-            header("Location: index.php?page=dashboard&tab=users"); 
+            header("Location: index.php?page=dashboard&tab=users");
             exit();
         }
 
@@ -117,7 +119,7 @@ class DashboardController
 
         $role_list = getAllAdminRole($conn);
         if (in_array($session_role, $role_list)) {
-            if (!$target_id) { 
+            if (!$target_id) {
                 if ($tab == 'received') {
                     $data = array_merge($data, showAndSearchReceived($conn));
                 } elseif ($tab == 'expense') {
@@ -126,11 +128,10 @@ class DashboardController
                     $data = array_merge($data, showAndSearchUsers($conn));
                 } elseif ($tab == 'logs' && $session_role == 'high-admin') {
                     $data = array_merge($data, showAndManageLogs($conn));
-                } 
-                
-            
+                } elseif ($tab == 'summary') {
+                    $data = array_merge($data, showAndSearchOverview($conn));
+                }
             }
-        
         }
 
         // ==================================================================================
@@ -144,7 +145,7 @@ class DashboardController
                 // 🟢 กรณีที่ 2: กดจาก Navbar (เปลี่ยนหน้าใหญ่)
                 // ส่งไปทั้งหน้า Dashboard (แต่ไม่เอา Header/Footer หลัก)
                 header("HX-Push-Url: index.php?page=dashboard&tab=" . $tab);
-                    ($data);
+                ($data);
                 require_once __DIR__ . '/../../views/dashboard/index.php';
                 exit;
             } elseif ($hx_target == 'tab-content') {
@@ -164,7 +165,6 @@ class DashboardController
         // 🛑 สำคัญมาก! สั่งหยุดทันที เพื่อไม่ให้โหลด Header/Footer ซ้ำ
         exit();
     }
-
 }
 
 function submitDeleteExpense($conn)
@@ -174,10 +174,10 @@ function submitDeleteExpense($conn)
     $name = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : '';
 
     // ดึง User ID คนทำรายการ (Actor)
-    $actor_id = $_SESSION['user_id']; 
+    $actor_id = $_SESSION['user_id'];
 
     if ($expense_id > 0) {
-               
+
 
         // ---------------------------------------------------------
         // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
@@ -185,7 +185,7 @@ function submitDeleteExpense($conn)
         $sql_check = "SELECT description, amount FROM budget_expenses WHERE id = $expense_id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
-        
+
 
         $log_desc = "ลบรายการรายจ่าย ID: $expense_id"; // default description
         if ($old_data) {
@@ -198,20 +198,20 @@ function submitDeleteExpense($conn)
         // ---------------------------------------------------------
         // เปลี่ยนจาก DELETE เป็น UPDATE deleted_at
         $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
-        
+
 
         // *หมายเหตุ: ถ้าคุณยังอยากใช้ Hard Delete (ลบถาวร) ให้ใช้บรรทัดล่างนี้แทนครับ
         // $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
 
         if (mysqli_query($conn, $sql)) {
-            
+
 
             // ---------------------------------------------------------
             // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
             // ---------------------------------------------------------
             // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
             // saveActivityLog($conn, $actor_id, $action_type, $description, $target_id);
-            
+
             logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc, $expense_id);
 
             // ---------------------------------------------------------
@@ -221,7 +221,6 @@ function submitDeleteExpense($conn)
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
             header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
             exit();
-            
         } else {
             echo "Error: " . mysqli_error($conn);
             exit();

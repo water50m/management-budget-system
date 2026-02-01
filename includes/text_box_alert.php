@@ -11,6 +11,7 @@
 </div>
 
 <script>
+    {
     const alertBox = document.getElementById('global_alert_box');
     const alertText = document.getElementById('global_alert_text');
 
@@ -28,6 +29,7 @@
         alertBox.classList.remove('opacity-100', 'translate-y-0');
         alertBox.classList.add('opacity-0', 'translate-y-full');
     }
+}
 </script>
 
 <!--------------------------------------------------การนำไปใช้ ----------------------------------------------------->
