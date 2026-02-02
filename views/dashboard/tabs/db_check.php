@@ -1,5 +1,8 @@
 <?php
 include_once __DIR__ . '/../../../includes/db.php';
+$result = $conn->query("SELECT DATABASE()");
+$row = $result->fetch_row();
+$current_db_name = $row[0];
 ?>
 
 
@@ -17,7 +20,7 @@ include_once __DIR__ . '/../../../includes/db.php';
 
 <div class="overflow-y-auto" >
 
-    <h1>🔍 รายชื่อตารางในฐานข้อมูล: <?php echo $dbname; ?></h1>
+    <h1>🔍 รายชื่อตารางในฐานข้อมูล: <?php echo $current_db_name; ?></h1>
 
     <?php
     // 2. คำสั่งดึงรายชื่อตารางทั้งหมด
