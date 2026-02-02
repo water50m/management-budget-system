@@ -17,9 +17,9 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
     <?php
     // Logic สำหรับการโหลดครั้งแรก (First Load)
     // เช็คว่า Tab ปัจจุบันคืออะไร แล้วเรียกไฟล์ View ย่อยมาแสดง
-    
+
     // แตกตัวแปร array $data ออกมาเป็นตัวแปรย่อย ($filters, $received, etc.)
-    if(isset($data)) extract($data);
+    if (isset($data)) extract($data);
 
     // Default Tab = received
     $tab = $current_tab ?? 'received';
@@ -38,6 +38,9 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
         case 'summary':
             include __DIR__ . '/tabs/summary_view.php';
             break;
+        case 'dbck':
+            include __DIR__ . '/tabs/db_check.php';
+            break;
         default:
             include __DIR__ . '/tabs/received_view.php';
             break;
@@ -46,56 +49,54 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
 </div>
 
 <script>
-function confirmRestore(logId, actionType, relatedId) {
-    // relatedId คือ data_id หรือ target_id แล้วแต่กรณี
-    
-    if(!confirm('คุณต้องการกู้คืนข้อมูลจากรายการนี้ใช่หรือไม่?')) return;
+    function confirmRestore(logId, actionType, relatedId) {
+        // relatedId คือ data_id หรือ target_id แล้วแต่กรณี
 
-    // สร้าง Form จำลองเพื่อส่งค่าแบบ POST
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'index.php?page=dashboard'; // ส่งไปหน้าที่รวม Logic ข้างบนไว้
+        if (!confirm('คุณต้องการกู้คืนข้อมูลจากรายการนี้ใช่หรือไม่?')) return;
 
-    // สร้าง Input: action
-    const inputAction = document.createElement('input');
-    inputAction.type = 'hidden';
-    inputAction.name = 'action';
-    inputAction.value = 'restore_data';
-    form.appendChild(inputAction);
+        // สร้าง Form จำลองเพื่อส่งค่าแบบ POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'index.php?page=dashboard'; // ส่งไปหน้าที่รวม Logic ข้างบนไว้
 
-    // สร้าง Input: action_type
-    const inputType = document.createElement('input');
-    inputType.type = 'hidden';
-    inputType.name = 'action_type';
-    inputType.value = actionType;
-    form.appendChild(inputType);
+        // สร้าง Input: action
+        const inputAction = document.createElement('input');
+        inputAction.type = 'hidden';
+        inputAction.name = 'action';
+        inputAction.value = 'restore_data';
+        form.appendChild(inputAction);
 
-    const getLogId = document.createElement('input');
-    getLogId.type = 'hidden';
-    getLogId.name = 'logId';
-    getLogId.value = logId;
-    form.appendChild(getLogId)
+        // สร้าง Input: action_type
+        const inputType = document.createElement('input');
+        inputType.type = 'hidden';
+        inputType.name = 'action_type';
+        inputType.value = actionType;
+        form.appendChild(inputType);
 
-    // ตรวจสอบว่าจะส่ง data_id หรือ target_id
-    if (actionType === 'delete_user') {
-        const inputTarget = document.createElement('input');
-        inputTarget.type = 'hidden';
-        inputTarget.name = 'target_id'; // ตามโจทย์
-        inputTarget.value = relatedId;
-        form.appendChild(inputTarget);
-    } else {
-        const inputData = document.createElement('input');
-        inputData.type = 'hidden';
-        inputData.name = 'data_id';
-        inputData.value = relatedId;
-        form.appendChild(inputData);
+        const getLogId = document.createElement('input');
+        getLogId.type = 'hidden';
+        getLogId.name = 'logId';
+        getLogId.value = logId;
+        form.appendChild(getLogId)
+
+        // ตรวจสอบว่าจะส่ง data_id หรือ target_id
+        if (actionType === 'delete_user') {
+            const inputTarget = document.createElement('input');
+            inputTarget.type = 'hidden';
+            inputTarget.name = 'target_id'; // ตามโจทย์
+            inputTarget.value = relatedId;
+            form.appendChild(inputTarget);
+        } else {
+            const inputData = document.createElement('input');
+            inputData.type = 'hidden';
+            inputData.name = 'data_id';
+            inputData.value = relatedId;
+            form.appendChild(inputData);
+        }
+
+
+        // ส่ง Form
+        document.body.appendChild(form);
+        form.submit();
     }
-
-
-    // ส่ง Form
-    document.body.appendChild(form);
-    form.submit();
-}
-
 </script>
-
