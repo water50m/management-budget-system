@@ -61,7 +61,6 @@ class ProfileController
         $f_cat    = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
         $f_min    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
         $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
-
         // ---------------------------------------------------------
         // 🔄 Logic จับคู่ข้อมูล (ถ้ามาแค่อย่างเดียว ให้เป็นค่าเดียวกัน)
         // ---------------------------------------------------------
@@ -102,6 +101,7 @@ class ProfileController
             $where_inc .= " AND amount <= $f_max ";
             $where_exp .= " AND e.amount <= $f_max ";
         }
+        
 
         // Combine Query based on Type
         $sql_parts = [];
@@ -251,6 +251,7 @@ class ProfileController
                     throw new Exception("บันทึก User ไม่สำเร็จ: " . mysqli_error($conn));
                 }
 
+
                 // ✅ Commit ข้อมูลเมื่อผ่านทั้งคู่
                 mysqli_commit($conn);
 
@@ -260,13 +261,18 @@ class ProfileController
                 $fullname = "$prefix$first_name $last_name";
                 logActivity($conn, $actor_id, $profile_id, 'add_user', "เพิ่มผู้ใช้งานใหม่: $fullname (User: $username)");
 
+                $_SESSION['tragettab'] = 'users';
+                $_SESSION['tragetfilters'] = 'id=' . $profile_id;
+                $_SESSION['show_btn'] = true;
+
                 // Redirect Success
                 header("Location: index.php?page=$return_page&tab=$return_tab&status=add&toastMsg=" . urlencode("เพิ่มข้อมูล $fullname เรียบร้อยแล้ว"));
                 exit();
             } catch (Exception $e) {
                 // ❌ Rollback หากเกิดข้อผิดพลาด
                 mysqli_rollback($conn);
-                header("Location: index.php?page=$return_page&tab=$return_tab&status=error&toastMsg=" . urlencode($e->getMessage()));
+                // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+                header("Location: index.php?page=$return_page&tab=$return_tab&status=error&toastMsg=เกิดปัญหากับการทำรายการ");
                 exit();
             }
         }

@@ -19,7 +19,7 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 
 
 
-<div class="container mx-auto px-4 py-6 max-w-[1800px]">
+<div class="container mx-auto px-4 py-6 max-w-[1800px] ">
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
@@ -102,7 +102,7 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
             </div>
         </div>
 
-        <div class="lg:col-span-4 rounded-xl flex flex-col h-fit">
+        <div class="lg:col-span-4 rounded-xl flex flex-col h-[calc(97vh-5rem)]">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-100 mb-6 ">
                 <form hx-get="index.php?page=profile"
                     hx-target="#txn-table-container"
@@ -221,4 +221,4 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 
     </div>
 </div>
-<?php
+

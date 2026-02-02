@@ -41,6 +41,9 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
         case 'dbck':
             include __DIR__ . '/tabs/db_check.php';
             break;
+        case 'received':
+            include __DIR__ . '/tabs/received_view.php';
+            break;
         default:
             include __DIR__ . '/tabs/received_view.php';
             break;

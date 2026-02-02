@@ -30,16 +30,25 @@ function showAndSearchExpense($conn)
     }
 
     // ... (ส่วนรับค่า Filter Inputs เหมือนเดิม) ...
-    $search_text = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
-    $end_date   = isset($_GET['end_date']) ? $_GET['end_date'] : '';
+    $search_text = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+    $start_date = isset($_GET['start_date']) ? mysqli_real_escape_string($conn, $_GET['start_date']) : '';
+    $end_date   = isset($_GET['end_date'])   ? mysqli_real_escape_string($conn, $_GET['end_date'])   : '';
     $cat_filter = isset($_GET['cat_id']) ? intval($_GET['cat_id']) : 0;
-    $min_amt    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
-    $max_amt    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
+    $min_amt = (isset($_GET['min_amount']) && $_GET['min_amount'] !== '')
+        ? floatval(str_replace(',', '', $_GET['min_amount']))
+        : '';
+    $max_amt = (isset($_GET['max_amount']) && $_GET['max_amount'] !== '')
+        ? floatval(str_replace(',', '', $_GET['max_amount']))
+        : '';
     $dept_filter = isset($_GET['dept_id']) ? intval($_GET['dept_id']) : 0;
-    $date_type  = isset($_GET['date_type']) ? $_GET['date_type'] : 'approved';
-    $year_filter = isset($_GET['year']) && $_GET['year'] != 0 ? intval($_GET['year']) : current_fiscal_year();
-
+    $allowed_date_types = ['approved', 'created', 'updated']; // รายชื่อฟิลด์ที่อนุญาต
+    $date_type = (isset($_GET['date_type']) && in_array($_GET['date_type'], $allowed_date_types))
+        ? $_GET['date_type']
+        : 'approved'; // ถ้าส่งค่ามั่วมา ให้ดีดกลับเป็น approved
+    $year_filter = (isset($_GET['year']) && intval($_GET['year']) != 0)
+        ? intval($_GET['year'])
+        : current_fiscal_year();
+    $select_id = isset($_GET['show_id']) ? intval($_GET['show_id']) : 0;
     // ... (Logic จับคู่ข้อมูล Date/Amount เหมือนเดิม) ...
     if ($start_date !== '' && $end_date === '') {
         $end_date = $start_date;
@@ -146,6 +155,9 @@ function showAndSearchExpense($conn)
     if ($max_amt !== '') {
         $where_sql .= " AND e.amount <= $max_amt ";
     }
+    if ($select_id > 0) {
+        $where_sql .= " AND e.id = $select_id";
+    }
 
 
     // ---------------------------------------------------------
@@ -189,7 +201,6 @@ function showAndSearchExpense($conn)
     $sql = applyPermissionFilter($sql); // ใส่ Filter สิทธิ์
 
     $sql .= " ORDER BY e.approved_date DESC, e.created_at DESC";
-
     // ✅ ใส่ Limit / Offset
     if ($limit > 0) {
         $sql .= " LIMIT $limit OFFSET $offset";
@@ -339,6 +350,9 @@ function addExpense($conn)
         $total_msg = "เพิ่มรายการตัดยอดของ $full_name \n" . $log_desc;
         mysqli_commit($conn);
 
+        $_SESSION['tragettab'] = 'expense';
+        $_SESSION['tragetfilters'] = $new_expense_id;
+        $_SESSION['show_btn'] = true;
         // Redirect
         if ($page == '') {
             header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
@@ -348,7 +362,8 @@ function addExpense($conn)
         exit;
     } catch (Exception $e) {
         mysqli_rollback($conn);
-        echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+        // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+        header("Location: index.php?page=dashboard&status=error&toastMsg=ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง");
         exit;
     }
 }

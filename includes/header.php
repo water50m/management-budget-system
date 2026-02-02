@@ -72,16 +72,45 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 
 <body class="bg-gray-100 h-screen lg:overflow-hidden flex flex-col font-sarabun">
 
+    <?php
+
+    $seer = $_SESSION['seer'];
+    $department_text = "-";
+    switch ($seer) {
+        case 0:
+            $department_text = 'ภาควิชาจุลชีววิทยาและปรสิตวิทยา';
+        case 1:
+            $department_text = 'ภาควิชากายวิภาคศาสตร์';
+        case 2:
+            $department_text = 'ภาควิชาเคมี';
+        case 3:
+            $department_text = 'ภาควิชาจุลชีววิทยาและปรสิตวิทยา';
+        case 4:
+            $department_text = 'ภาควิชาสรีรวิทยา';
+        case 5:
+            $department_text = 'สำนักงานเลขานุการคณะ';
+    }
+
+    ?>
     <nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
 
-            <div class="flex items-center gap-3 min-w-fit">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                    <i class="fas fa-seedling text-lg"></i>
+            <div class="flex items-center gap-3">
+                <div class="rounded-full bg-gradient-to-br  flex items-center justify-center text-white shadow-lg shadow-yellow-100 flex-shrink-0">
+                    <img src="assets/images/Medscinu-01.png" alt="FPA Logo"
+                        class="w-16 h-12 object-contain">
                 </div>
+
                 <div>
-                    <h1 class="text-lg font-bold text-gray-800 leading-tight">ระบบบริหารงานวิจัย</h1>
-                    <p class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">Mali Project</p>
+                    <h1 class="text-lg font-bold text-gray-800 leading-tight">
+                        ระบบบริหารงบประมาณ FPA
+                    </h1>
+                    <p class="text-sm text-gray-500 font-medium">
+                        เพื่อการพัฒนาวิชาการและการวิจัย
+                    </p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-blue-50 text-blue-700 mt-1">
+                        <?= $department_text; ?>
+                    </span>
                 </div>
             </div>
             <?php if ($_SESSION['role'] != 'user'): ?>
@@ -146,11 +175,12 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 
                 </div>
                 <div class="flex items-center gap-4 min-w-fit">
-
-                    <button onclick="openAddUserModal()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg shadow-md flex items-center gap-2 transition transform hover:-translate-y-0.5">
-                        <i class="fas fa-user-plus"></i> <span class="hidden sm:inline">เพิ่มบุคลากร</span>
-                    </button>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'):?>
+                        <button onclick="openAddUserModal()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg shadow-md flex items-center gap-2 transition transform hover:-translate-y-0.5">
+                            <i class="fas fa-user-plus"></i> <span class="hidden sm:inline">เพิ่มบุคลากร</span>
+                        </button>
+                    <?php endif;?>
                     <div class="flex items-center gap-2">
 
                         <div class="h-8 w-px bg-gray-200 mx-1"></div>

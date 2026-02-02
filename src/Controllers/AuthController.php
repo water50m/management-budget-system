@@ -71,11 +71,11 @@ class AuthController
 
                 include_once __DIR__ . '/../../inc/func.php';
                 loadEnv(__DIR__ . '/../../.env');
-                // if (!getenv('LDAP_SERVER')) {
-                //     echo 'Not found secret key (2)';
-                //     exit;
-                // }
-                $server = 'ldaps://ldap.nu.local:636';
+                if (!getenv('LDAP_SERVER')) {
+                    echo 'Not found secret key (2)';
+                    exit;
+                }
+                $server = 'ldaps://ldaps.nu.local:636';
                 $local = "@nu.local";
                 $ad = ldap_connect($server);
                 ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -124,7 +124,7 @@ class AuthController
                                 </p>
                             <?php else: ?>
                                 <p style="margin: 5px 0 0; color: <?php echo $textColor; ?>;">
-                                    กรุณาตรวจสอบ Username, Password หรือการตั้งค่า Server
+                     ฆ               กรุณาตรวจสอบ Username, Password หรือการตั้งค่า Server
                                 </p>
                             <?php endif; ?>
                         </div>

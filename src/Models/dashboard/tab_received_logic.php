@@ -17,14 +17,18 @@ function showAndSearchReceived($conn)
     // ---------------------------------------------------------
     // 2. รับค่าจากตัวกรอง (Filter Inputs)
     // ---------------------------------------------------------
-    $search     = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-    $dept_id    = isset($_GET['dept_id']) ? intval($_GET['dept_id']) : 0;
-    $date_type  = isset($_GET['date_type']) ? $_GET['date_type'] : 'approved';
-    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
-    $end_date   = isset($_GET['end_date']) ? $_GET['end_date'] : '';
+    $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+    $dept_id = isset($_GET['dept_id']) ? intval($_GET['dept_id']) : 0;
+    $allowed_date_types = ['approved', 'created'];
+    $date_type = (isset($_GET['date_type']) && in_array($_GET['date_type'], $allowed_date_types))
+        ? $_GET['date_type']
+        : 'approved';
+    $start_date = isset($_GET['start_date']) ? mysqli_real_escape_string($conn, $_GET['start_date']) : '';
+    $end_date   = isset($_GET['end_date'])   ? mysqli_real_escape_string($conn, $_GET['end_date'])   : '';
     $min_amount = isset($_GET['min_amount']) ? floatval(str_replace(',', '', $_GET['min_amount'])) : 0;
     $max_amount = isset($_GET['max_amount']) ? floatval(str_replace(',', '', $_GET['max_amount'])) : 0;
-    $year_filter = isset($_GET['year']) && $_GET['year'] != 0 ? intval($_GET['year']) : current_fiscal_year();
+    $year_filter = (isset($_GET['year']) && intval($_GET['year']) > 0) ? intval($_GET['year']) : current_fiscal_year();
+    $select_id = isset($_GET['show_id']) ? intval($_GET['show_id']) : 0;
 
     // ... (Logic จับคู่ข้อมูล Date/Amount เหมือนเดิม) ...
     if ($start_date !== '' && $end_date === '') {
@@ -116,7 +120,10 @@ function showAndSearchReceived($conn)
     if ($max_amount > 0) {
         $where_sql .= " AND a.amount <= $max_amount ";
     }
-
+    if ($select_id > 0){
+        $where_sql .= " AND a.id = $select_id";
+    }
+    
 
     // ---------------------------------------------------------
     // 🟡 4. Query นับจำนวนทั้งหมด (Count Total)
@@ -206,6 +213,7 @@ function addReceiveBudget($conn)
     $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
     $remark = mysqli_real_escape_string($conn, $_POST['remark']);
     $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
+    $submit_page = $_POST['submin_page'];
 
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
     // 1. แปลงวันที่เป็น Timestamp
@@ -230,7 +238,7 @@ function addReceiveBudget($conn)
     mysqli_begin_transaction($conn);
 
     try {
-        
+
         // A. บันทึกข้อมูลงบประมาณ
         $sql_budget = "INSERT INTO budget_received 
                                 (user_id, amount, approved_date, remark, fiscal_year) 
@@ -241,20 +249,24 @@ function addReceiveBudget($conn)
         if (!mysqli_query($conn, $sql_budget)) {
             throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
         }
+        $new_budget_id = mysqli_insert_id($conn);
 
         // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
         $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
         $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท  \n(หมายเหตุ: $remark)";
 
         // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
-        logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc, );
+        logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc,);
 
         // ยืนยันข้อมูลทั้งหมด (Commit)
         mysqli_commit($conn);
         $target_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
         $total_msg = $target_name_phrase . $log_desc;
         // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
-        $page = 'users';
+        $_SESSION['tragettab'] = 'received';
+        $_SESSION['tragetfilters'] = $new_budget_id;
+        $_SESSION['show_btn'] = true;
+        $page = $submit_page;
         if ($page == '') {
             header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
         } else {
@@ -279,7 +291,7 @@ function submitDeleteAprove($conn)
     $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-
+    $submit_page = $_POST['submin_page'];
     // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
     if ($id > 0) {
 
@@ -318,10 +330,12 @@ function submitDeleteAprove($conn)
             // 4. Redirect กลับ
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=dashboard&tab=received&status=success&toastMsg=" . urlencode($toastMsg));
+            header("Location: index.php?page=dashboard&tab=$submit_page&status=success&toastMsg=" . urlencode($toastMsg));
             exit();
         } else {
             echo "Error deleting record: " . mysqli_error($conn);
+            // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
+            header("Location: index.php?page=dashboard&tab=$submit_page&status=error&toastMsg=เกิดปัญหากับการทำรายการ");
             exit();
         }
     } else {

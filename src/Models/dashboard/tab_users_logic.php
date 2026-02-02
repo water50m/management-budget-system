@@ -27,6 +27,7 @@ function showAndSearchUsers($conn)
     $search_text = isset($_GET['search_text']) ? mysqli_real_escape_string($conn, $_GET['search_text']) : '';
     $dept_user   = isset($_GET['dept_user']) ? intval($_GET['dept_user']) : 0;
     $role_user   = isset($_GET['role_user']) ? mysqli_real_escape_string($conn, $_GET['role_user']) : '';
+    $select_id = isset($_GET['show_id']) ? intval($_GET['show_id']) : 0;
 
 
     // ---------------------------------------------------------
@@ -36,7 +37,7 @@ function showAndSearchUsers($conn)
                   LEFT JOIN user_profiles p ON u.id = p.user_id 
                   LEFT JOIN departments d ON p.department_id = d.id
                   WHERE p.deleted_at IS NULL ";
-    
+
     $count_sql = applyPermissionFilter($count_sql);
     // Filter Logic (เหมือนเดิม)
     if (!empty($search_text)) {
@@ -44,9 +45,14 @@ function showAndSearchUsers($conn)
     }
     if ($dept_user > 0) $count_sql .= " AND d.id = $dept_user ";
     if (!empty($role_user)) $count_sql .= " AND u.role_id = '$role_user' ";
+    
+    if ($select_id > 0) {
+        $count_sql .= " AND p.user_id = $select_id";
+    }
+
 
     $total_rows = mysqli_fetch_assoc(mysqli_query($conn, $count_sql))['total'];
-    
+
     // ✅ คำนวณหน้าทั้งหมด (รองรับกรณี limit = 0 หรือ ดูทั้งหมด)
     if ($limit > 0) {
         $total_pages = ceil($total_rows / $limit);
@@ -77,6 +83,10 @@ function showAndSearchUsers($conn)
     if (!empty($role_user)) {
         $sql .= " AND u.role_id = '$role_user' ";
     }
+    if ($select_id > 0) {
+        $sql .= " AND p.user_id = $select_id";
+    }
+    // คำถามคือ แยกทำไม งง
 
     $sql .= " ORDER BY d.id ASC, p.first_name ASC";
 
@@ -108,13 +118,13 @@ function showAndSearchUsers($conn)
         'total_rows'   => $total_rows,
         'limit'        => $limit
     ];
-    
+
     $data['filters'] = [
         'search_text' => $search_text,
         'dept_user'   => $dept_user,
         'role_user'   => $role_user,
         'limit'       => $limit
     ];
-    
+
     return $data;
 }

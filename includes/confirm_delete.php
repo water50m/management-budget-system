@@ -1,13 +1,14 @@
 <?php
-
-function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $tergetName) {
+// delete receive, expenes
+function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $tergetName)
+{
     // ป้องกัน XSS เบื้องต้น
     $actionUrl = htmlspecialchars($actionUrl);
     $actionValue = htmlspecialchars($actionValue);
     $targetInputId = htmlspecialchars($targetInputId);
-    
 
-    ?>
+
+?>
     <div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-2xl rounded-xl bg-white transform transition-all scale-100">
             <div class="mt-3 text-center">
@@ -16,23 +17,25 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
-                
+
                 <h3 class="text-lg leading-6 font-bold text-red-600">ยืนยันการลบข้อมูล?</h3>
-                
-                <form id="deleteForm" action="<?=  $actionUrl; ?>" method="POST" class="mt-4 px-4">
+
+                <form id="deleteForm" action="<?= $actionUrl; ?>" method="POST" class="mt-4 px-4">
                     <input type="hidden" name="action" value="<?= $actionValue; ?>">
                     <input type="hidden" name="target_name" id="target_name" value=<?= $tergetName; ?>>
                     <input type="hidden" name="<?= $targetInputId; ?>" id="<?= $targetInputId; ?>" value=<?= $id; ?>>
-                    
+                    <?php $this_page = $_GET['tab'] ?>
+                    <input type="hidden" name="submin_page" value="<?= $this_page ?>">
+
                     <p class="text-sm text-gray-500 mb-2">
                         เพื่อยืนยัน กรุณาพิมพ์คำว่า <br>
                         <span class="font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded select-all border border-gray-300">ลบข้อมูลนี้</span>
                     </p>
 
-                    <input type="text" id="confirm_text_input" 
-                           oninput="checkDeleteMatch()"
-                           class="w-full px-3 py-2 text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
-                           placeholder="พิมพ์คำว่า 'ลบข้อมูลนี้'" autocomplete="off">
+                    <input type="text" id="confirm_text_input"
+                        oninput="checkDeleteMatch()"
+                        class="w-full px-3 py-2 text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition"
+                        placeholder="พิมพ์คำว่า 'ลบข้อมูลนี้'" autocomplete="off">
 
                     <input type="hidden" name="delete_reason" value="User Typed Confirmation">
 
@@ -41,7 +44,7 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
                             class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition duration-200">
                             ยกเลิก
                         </button>
-                        
+
                         <button id="btn_real_delete" type="submit" disabled
                             class="flex-1 px-4 py-2 bg-gray-300 text-white font-bold rounded-lg cursor-not-allowed transition duration-300 shadow-sm">
                             🗑️ ลบทันที
@@ -77,7 +80,7 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
             const modal = document.getElementById('deleteModal');
             const input = document.getElementById('confirm_text_input');
             const btn = document.getElementById('btn_real_delete');
-            
+
             modal.classList.add('hidden');
             input.value = ''; // ล้างช่องพิมพ์
             checkDeleteMatch(); // รีเซ็ตสถานะปุ่ม
@@ -86,11 +89,11 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
         // ฟังก์ชันเปิด Modal (เรียกจากปุ่มถังขยะข้างนอก)
         // param id: ID ของข้อมูลที่จะลบ (database ID)
         // param targetInputId: ID ของ input hidden ที่จะรับค่า (ส่งมาจาก PHP)
-        function openDeleteModal(id,inputId) {
-        
+        function openDeleteModal(id, inputId) {
+
             // ใส่ ID ลงใน Hidden Input ตามชื่อ ID ที่เราตั้งไว้ใน PHP
             document.getElementById(inputId).value = id;
-            
+
             // เปิด Modal
             document.getElementById('deleteModal').classList.remove('hidden');
 

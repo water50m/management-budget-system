@@ -1,10 +1,6 @@
-<?php
-
-?>
-
-<div id="txn-table-container" class="bg-white rounded-xl shadow-lg border flex flex-col min-h-0 overflow-hidden">
-    <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
-        <table class="w-full text-sm  text-left">
+<div id="txn-table-container" class="flex-1 bg-white rounded-xl shadow-lg border flex flex-col min-h-0 overflow-hidden h-screen mb-5">
+    <div class="flex-1 overflow-x-auto overflow-y-auto flex flex-col min-h-0">
+        <table class="w-full text-sm text-left">
             <thead class="bg-white border-b border-gray-200 text-gray-500 font-semibold text-sm sticky top-0 shadow-sm z-10">
                 <tr>
                     <th class="px-6 py-4 w-20 text-center"><?php echo $t['th_seq']; ?></th>
@@ -105,7 +101,7 @@
 
             <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
-                    <td colspan="10" class="p-0">
+                    <td colspan="10" class="p-0 sticky bottom-0 z-20 bg-gray-50 shadow-inner">
                         <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-8">
                             <div class="flex items-center justify-center gap-4 flex-1 w-full sm:w-auto">
                             </div>
