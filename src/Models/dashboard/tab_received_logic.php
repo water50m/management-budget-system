@@ -229,9 +229,8 @@ function addReceiveBudget($conn)
     // 3. เริ่ม Transaction (เพื่อความปลอดภัยข้อมูล)
     mysqli_begin_transaction($conn);
 
-    die;
-
     try {
+        
         // A. บันทึกข้อมูลงบประมาณ
         $sql_budget = "INSERT INTO budget_received 
                                 (user_id, amount, approved_date, remark, fiscal_year) 
@@ -245,17 +244,22 @@ function addReceiveBudget($conn)
 
         // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
         $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
-        $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท (หมายเหตุ: $remark)";
+        $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท  \n(หมายเหตุ: $remark)";
 
         // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
-        logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc);
+        logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc, );
 
         // ยืนยันข้อมูลทั้งหมด (Commit)
         mysqli_commit($conn);
         $target_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
         $total_msg = $target_name_phrase . $log_desc;
         // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
-        header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
+        $page = 'users';
+        if ($page == '') {
+            header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
+        } else {
+            header("Location: index.php?page=dashboard&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
+        }
         exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
 
     } catch (Exception $e) {

@@ -1,7 +1,6 @@
 <?php
 
-$role = $_SESSION['role'];
-$title = $user_info['prefix'] . ' ' . $user_info['first_name'];
+
 include_once __DIR__ . '/language.php';
 include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
 include_once __DIR__ . "/../../includes/saveLogFunction.php";
@@ -14,7 +13,8 @@ include_once __DIR__ . '/../../includes/delete_user_modal.php';
 include_once __DIR__ . '/../../includes/add_expense_modal.php';
 include_once __DIR__ . "/../dashboard/modal_add_budget.php";
 
-
+$role = $_SESSION['role'];
+$title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 ?>
 
 
@@ -23,34 +23,43 @@ include_once __DIR__ . "/../dashboard/modal_add_budget.php";
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
-        <div class="lg:col-span-1 flex flex-col gap-4">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
+        <div class="lg:col-span-1 flex flex-col gap-4 min-h-[256px]">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center flex flex-col h-full">
                 <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-3xl text-blue-600 border-2 border-blue-100 mx-auto mb-3">
                     <i class="fas fa-user"></i>
                 </div>
+
                 <h2 class="font-bold text-lg text-gray-800 leading-tight">
-                    <?php echo $user_info['prefix'] . $user_info['first_name']; ?><br><?php echo $user_info['last_name']; ?>
+                    <?php echo $user_info['prefix'] . ' ' . $user_info['first_name']; ?><br><?php echo $user_info['last_name']; ?>
                 </h2>
+
                 <p class="text-sm text-gray-500 mt-1"><?php echo $user_info['position']; ?></p>
+
                 <div class="mt-2 inline-block bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold text-gray-600">
                     <?php echo $user_info['department_name']; ?>
                 </div>
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <label class="text-xs text-gray-400 font-bold uppercase block mb-1"><?php echo $t['role_level']; ?></label>
-                    <div class="flex items-center gap-1 justify-center">
-                        <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
-                        <?php renderUserRoleManageComponent($user_info, $role, $conn) ?>
+
+                <?php if ($role == 'high-admin'): ?>
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+
+                        <label class="text-xs text-gray-400 font-bold uppercase block mb-1"><?php echo $t['role_level']; ?></label>
+
+                        <div class="flex items-center gap-1 justify-center">
+                            <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
+                            <?php renderUserRoleManageComponent($user_info, $conn) ?>
+                        </div>
+
+                        <div class="flex items-center gap-1 justify-center mt-2">
+                            <button type="button"
+                                class="text-red-500 hover:text-red-700 text-sm"
+                                onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
+                                <i class="fas fa-trash"></i> ลบข้อมูล
+                            </button>
+                        </div>
 
                     </div>
-                    <div class="flex items-center gap-1 justify-center mt-2">
+                <?php endif; ?>
 
-                        <button type="button"
-                            class="text-red-500 hover:text-red-700"
-                            onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
-                            <i class="fas fa-trash"></i> ลบข้อมูล
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <div class="bg-gradient-to-b from-blue-600 to-indigo-700 rounded-xl shadow-lg p-5 text-white relative overflow-hidden">
@@ -163,28 +172,28 @@ include_once __DIR__ . "/../dashboard/modal_add_budget.php";
                     <div class="w-full md:w-[20%]">
                         <label class="block text-xs font-bold text-gray-700 mb-1"><?php echo $t['range_label'] ?? 'ช่วงจำนวนเงิน'; ?></label>
                         <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 <?php echo $focusRing; ?>">
-                        <input type="hidden" name="min_amount" id="min_amount_hidden"
-                            value="<?php echo $filters['min']; ?>">
+                            <input type="hidden" name="min_amount" id="min_amount_hidden"
+                                value="<?php echo $filters['min']; ?>">
 
-                        <input type="text" inputmode="decimal" placeholder="Min"
-                            value="<?php echo ($filters['min'] !== '') ? number_format((float)$filters['min']) : ''; ?>"
-                            class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="formatCurrency(this, 'min_amount_hidden')"></input>
+                            <input type="text" inputmode="decimal" placeholder="Min"
+                                value="<?php echo ($filters['min'] !== '') ? number_format((float)$filters['min']) : ''; ?>"
+                                class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
+                                oninput="formatCurrency(this, 'min_amount_hidden')"></input>
 
-                        <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
+                            <div class="bg-gray-100 border-l border-r border-gray-200 px-2 py-2 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </div>
+
+                            <input type="hidden" name="max_amount" id="max_amount_hidden"
+                                value="<?php echo $filters['max']; ?>">
+
+                            <input type="text" inputmode="decimal" placeholder="Max"
+                                value="<?php echo ($filters['max'] !== '') ? number_format((float)$filters['max']) : ''; ?>"
+                                class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
+                                oninput="formatCurrency(this, 'max_amount_hidden')"></input>
                         </div>
-
-                        <input type="hidden" name="max_amount" id="max_amount_hidden"
-                            value="<?php echo $filters['max']; ?>">
-
-                        <input type="text" inputmode="decimal" placeholder="Max"
-                            value="<?php echo ($filters['max'] !== '') ? number_format((float)$filters['max']) : ''; ?>"
-                            class="w-1/2 border-none text-xs text-gray-600 py-2 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="formatCurrency(this, 'max_amount_hidden')"></input>
-                    </div>
                     </div>
 
                     <div class="flex items-center gap-2 w-full fit:w-auto mt-2 fit:mt-0 pb-[1px]">

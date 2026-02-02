@@ -13,29 +13,31 @@ if (isset($_POST['action']) && $_POST['action'] == 'update_role') {
  * @param string $currentUserRole Role ของคนที่ Login อยู่ (เช่น 'high-admin')
  * @param object $conn Database Connection (ต้องส่งมาเพื่อ Query Role List)
  */
-function renderUserRoleManageComponent($u, $currentUserRole, $conn)
+function renderUserRoleManageComponent($u, $conn)
 {
 
     // 1. ดึงรายการ Role ทั้งหมดจาก DB เพื่อมาทำ Dropdown
     // เรียงตาม ID หรือตามความเหมาะสม
     $role_query = "SELECT id,role_name, description FROM roles ORDER BY id ASC";
     $role_result = mysqli_query($conn, $role_query);
-    
+
     $roles_list = [];
     while ($row = mysqli_fetch_assoc($role_result)) {
         $roles_list[] = $row;
     }
+    $currentUserRole = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+
 ?>
     <div class="flex items-center justify-center">
-        <?php 
+        <?php
         // 2. เช็คสิทธิ์: คนใช้งานต้องเป็น 'high-admin' เท่านั้น ถึงจะแก้ได้
-        if ($currentUserRole == 'high-admin'): 
+        if ($currentUserRole == 'high-admin'):
         ?>
-            
-            <?php 
+
+            <?php
             // 3. ป้องกันไม่ให้แก้ Role ของคนที่เป็น high-admin ด้วยกัน (เดี๋ยวไม่มีใครคุมระบบ)
             // หรือถ้าอยากให้แก้ได้ ก็เอาเงื่อนไขนี้ออก
-            if ($u['role_id'] != '1'): 
+            if ($u['role_id'] != '1'):
             ?>
                 <form method="POST" action="index.php?page=dashboard" class="flex items-center gap-2">
                     <input type="hidden" name="action" value="update_role">
@@ -47,9 +49,9 @@ function renderUserRoleManageComponent($u, $currentUserRole, $conn)
                         data-original="<?php echo $u['role_id']; ?>"
                         onchange="checkRoleChange(this)"
                         class="border border-blue-300 rounded text-xs px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm text-gray-700 min-w-[120px]">
-                        
+
                         <?php foreach ($roles_list as $role): ?>
-                            <option value="<?php echo $role['id']; ?>" 
+                            <option value="<?php echo $role['id']; ?>"
                                 <?php echo ($u['role_id'] == $role['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($role['description']); ?>
                             </option>
@@ -73,38 +75,19 @@ function renderUserRoleManageComponent($u, $currentUserRole, $conn)
 
             <?php else: ?>
                 <span class="bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                    <?php 
-                        // หา description ของ high-admin มาโชว์ (ถ้าหาไม่เจอโชว์ชื่อ role)
-                        $key = array_search('high-admin', array_column($roles_list, 'role_name'));
-                        echo ($key !== false) ? $roles_list[$key]['description'] : 'True Admin';
+                    <?php
+                    // หา description ของ high-admin มาโชว์ (ถ้าหาไม่เจอโชว์ชื่อ role)
+                    $key = array_search('high-admin', array_column($roles_list, 'role_name'));
+                    echo ($key !== false) ? $roles_list[$key]['description'] : 'True Admin';
                     ?>
                 </span>
             <?php endif; ?>
 
         <?php else: ?>
-            <?php 
-                // Map ชื่อ Role เป็น Description เพื่อแสดงผล
-                $key = array_search($u['role_id'], array_column($roles_list, 'role_name'));
-                $display_role = ($key !== false) ? $roles_list[$key]['description'] : ucfirst($u['role_id']);
-                
-                // สี Badge ตาม Role (ตัวอย่าง)
-                if ($u['role_id'] == 1) {
-                    // High Admin: สีแดง
-                    $badge_class = 'bg-red-50 text-red-700 border-red-200';
-                } elseif ($u['role_id'] >= 2 && $u['role_id'] <= 6) {
-                    // Admin ภาควิชาต่างๆ (ID 2-6): สีส้ม
-                    $badge_class = 'bg-orange-50 text-orange-700 border-orange-200';
-                } else {
-                    // User (ID 7) หรืออื่นๆ: สีเทา
-                    $badge_class = 'bg-gray-50 text-gray-600 border-gray-200';
-                }
-            ?>
-            <span class="px-2 py-1 rounded text-xs font-medium border <?php echo $badge_class; ?>">
-                <?php echo $display_role; ?>
-            </span>
+
         <?php endif; ?>
     </div>
-    
+
     <script>
         function checkRoleChange(selectElement) {
             const originalValue = selectElement.getAttribute('data-original');
@@ -118,6 +101,7 @@ function renderUserRoleManageComponent($u, $currentUserRole, $conn)
                 selectElement.classList.remove('border-purple-500', 'bg-purple-50');
             }
         }
+
         function cancelRoleEdit(btnElement) {
             const actionsDiv = btnElement.parentElement;
             const selectElement = actionsDiv.previousElementSibling;
@@ -157,7 +141,7 @@ function submitUpdateRole($conn, $redirect_url = null)
         header("Location: ... msg=invalid_role_id");
         exit();
     }
-    
+
     // ดึงชื่อมาเก็บ Log เฉยๆ
     $role_row = mysqli_fetch_assoc($result_role);
     $role_desc = $role_row['description'];
@@ -169,10 +153,9 @@ function submitUpdateRole($conn, $redirect_url = null)
     if (mysqli_query($conn, $sql_update)) {
         // Log
         logActivity($conn, $actor_id, $target_upid, 'update_role', "เปลี่ยนสิทธิ์เป็น $role_desc (ID: $new_role_id)");
-        
+
         header("Location: ... msg=role_updated");
         exit();
-    
     } else {
         echo "Error: " . mysqli_error($conn);
         exit();

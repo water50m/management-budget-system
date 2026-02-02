@@ -6,14 +6,14 @@ renderUserTableComponent(
     $user_list ?? [],
     $filters ?? [],
     $departments_list ?? [],
-    $_SESSION['role'],
     $conn, // ตัวแปร $conn global จะถูกส่งผ่านมา
+    $roles,
     $pagination
 );
 
 
 // ✅ เพิ่ม $pagination = null เข้าไปใน parameters ตัวสุดท้าย
-function renderUserTableComponent($users, $filters, $departments, $currentUserRole, $conn, $pagination = null)
+function renderUserTableComponent($users, $filters, $departments, $conn, $roles, $pagination = null)
 {
 
     // 1. รวมค่า Filter (เพิ่ม limit เข้ามาด้วย)
@@ -73,16 +73,36 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                     </select>
                 </div>
 
-                <?php if ($_SESSION['role'] == 'high-admin'):  ?>
+                <?php if ($_SESSION['role'] == 'high-admin'): ?>
                     <div class="w-full md:w-40">
                         <label class="block text-xs font-bold text-gray-700 mb-1">สิทธิ์ (Role)</label>
                         <select name="role_user"
                             class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
                             onchange="this.form.requestSubmit()">
+
                             <option value="">-- ทั้งหมด --</option>
-                            <option value="user" <?php echo ($filters['role_user'] == 'user') ? 'selected' : ''; ?>>User</option>
-                            <option value="admin" <?php echo ($filters['role_user'] == 'admin') ? 'selected' : ''; ?>>Admin</option>
-                            <option value="high-admin" <?php echo ($filters['role_user'] == 'high-admin') ? 'selected' : ''; ?>>High Admin</option>
+
+                            <?php
+                            // ตรวจสอบว่ามีข้อมูล $roles ส่งมาไหม
+                            if (isset($roles)) {
+                                // ถ้า $roles เป็น mysqli result object เราสามารถ foreach ได้เลย
+                                foreach ($roles as $role) {
+                                    // ตรวจสอบว่า ID นี้ถูกเลือกอยู่หรือเปล่า (เทียบ ID กับ $filters['role_user'])
+                                    $selected = ($filters['role_user'] == $role['id']) ? 'selected' : '';
+                            ?>
+                                    <option value="<?php echo $role['id']; ?>" <?php echo $selected; ?>>
+                                        <?php echo htmlspecialchars($role['description']); ?>
+                                    </option>
+                            <?php
+                                } // จบ loop
+
+                                // (Optional) รีเซ็ต Pointer เผื่อต้องใช้ตัวแปร $roles ซ้ำข้างล่างอีก
+                                if ($roles instanceof mysqli_result) {
+                                    mysqli_data_seek($roles, 0);
+                                }
+                            }
+                            ?>
+
                         </select>
                     </div>
                 <?php endif; ?>
@@ -186,7 +206,7 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                 <?php if ($_SESSION['role'] == 'high-admin'): ?>
                                     <td class="px-6 py-4">
                                         <?php if (function_exists('renderUserRoleManageComponent') || true) {
-                                            renderUserRoleManageComponent($u, $currentUserRole, $conn);
+                                            renderUserRoleManageComponent($u, $conn);
                                         } else {
                                             echo "<span class='text-xs'>{$u['role_user']}</span>";
                                         } ?>
@@ -214,7 +234,8 @@ function renderUserTableComponent($users, $filters, $departments, $currentUserRo
                                             class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
                                             <i class="fas fa-plus"></i> รับยอด
                                         </button>
-                                        <?php if ($_SESSION['role'] == 'high-admin'): ?>
+                                        <?php if ($_SESSION['role'] == 'high-admin' && $u['role_id'] != 1): ?>
+
                                             <button type="button" onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?>')"
                                                 class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition" title="ลบ">
                                                 <i class="fas fa-trash"></i>

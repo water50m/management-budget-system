@@ -219,6 +219,7 @@ function submitDeleteExpense($conn)
             // ---------------------------------------------------------
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
+
             header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
             exit();
         } else {

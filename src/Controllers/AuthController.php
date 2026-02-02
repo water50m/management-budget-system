@@ -75,8 +75,8 @@ class AuthController
                     echo 'Not found secret key (2)';
                     exit;
                 }
-                $server = getenv('LDAP_SERVER');
-                $local = getenv('LDAP_DOMAIN');
+                $server = 'ldaps://ldap.nu.local:636';
+                $local = "@nu.local";
                 $ad = ldap_connect($server);
                 ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
                 ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);

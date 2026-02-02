@@ -16,7 +16,7 @@ class ProfileController
                      FROM users u
                      LEFT JOIN user_profiles p ON u.id = p.user_id
                      LEFT JOIN departments d ON p.department_id = d.id
-                     LEFT JOIN v_user_budget_summary b ON u.id = b.user_id
+                     LEFT JOIN v_user_budget_summary b ON p.user_id = b.user_id
                      WHERE u.id = $user_id";
         $user_info = mysqli_fetch_assoc(mysqli_query($conn, $sql_user));
         if (!$user_info) {

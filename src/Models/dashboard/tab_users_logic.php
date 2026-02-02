@@ -96,6 +96,12 @@ function showAndSearchUsers($conn)
         $data['user_list'][] = $row;
     }
 
+    // ดึงข้อมูล role ทั้งหมดมาไว้แสดงในตัวเลือก
+    $sql_get_role = "SELECT id, description FROM roles";
+    $result_role = mysqli_query($conn, $sql_get_role);
+
+    $data['roles'] = $result_role;
+
     $data['pagination'] = [
         'current_page' => $page,
         'total_pages'  => $total_pages,

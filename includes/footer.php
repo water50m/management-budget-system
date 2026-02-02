@@ -7,7 +7,7 @@ include_once __DIR__ . '/toast.php';
 
 
 <script>
-    // รอให้หน้าเว็บโหลดเสร็จก่อน
+    รอให้หน้าเว็บโหลดเสร็จก่อน
     document.addEventListener("DOMContentLoaded", function() {
 
         // ตรวจสอบว่าใน URL มี parameter ชื่อ 'status' หรือ 'msg' ไหม

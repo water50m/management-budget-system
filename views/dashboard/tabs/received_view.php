@@ -163,7 +163,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
         <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่อนุมัติ</th>
         <th class="px-6 py-4 font-bold">ผู้ขออนุมัติ</th>
         <th class="px-6 py-4 font-bold">รายละเอียด</th>
-        <th class="px-6 py-4 font-bold text-right">ยอดอนุมัติ (บาท)</th>
+        <th class="px-6 py-4 font-bold">ยอดอนุมัติ (บาท)</th>
         <th class="px-6 py-4 font-bold text-center w-20">จัดการ</th>
     </tr>
 </thead>
