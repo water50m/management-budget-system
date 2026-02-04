@@ -99,7 +99,7 @@ function getExpenseByCategory($conn, $year)
     // **แก้ตรงนี้ให้ตรงกับชื่อฟิลด์ใน DB จริงของคุณ** (เช่น category หรือ category_id)
     $sql = "SELECT ec.name_th, COALESCE(SUM(be.amount), 0) as total_spent
             FROM expense_categories ec
-            JOIN budget_expenses be ON ec.name_en = be.category 
+            JOIN budget_expenses be ON ec.id = be.category_id 
             WHERE be.fiscal_year = '$year' AND be.deleted_at IS NULL
             GROUP BY ec.id, ec.name_th ORDER BY total_spent DESC";
 

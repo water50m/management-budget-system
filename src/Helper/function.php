@@ -1,10 +1,28 @@
 <?php
-function dateToThai($date)
+function dateToThai_old($date)
 {
     if (!$date) return '-';
     $timestamp = strtotime($date);
     $y = date('Y', $timestamp) + 543;
     return date('d/m/', $timestamp) . $y;
+}
+
+function dateToThai($strDate) {
+    if (!$strDate || $strDate == "0000-00-00") return "-";
+
+    $strYear = date("Y", strtotime($strDate)) + 543;
+    $strMonth = date("n", strtotime($strDate));
+    $strDay = date("j", strtotime($strDate));
+    
+    // Array เดือนย่อภาษาไทย
+    $strMonthCut = Array(
+        "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", 
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    );
+    
+    $strMonthThai = $strMonthCut[$strMonth];
+    
+    return "$strDay $strMonthThai $strYear";
 }
 
 function applyPermissionFilter($sql)

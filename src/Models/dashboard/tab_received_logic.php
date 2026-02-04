@@ -150,6 +150,7 @@ function showAndSearchReceived($conn)
     // ---------------------------------------------------------
     $sql = "SELECT a.id, 
                    d.thai_name AS department, 
+                   p.user_id,
                    p.prefix, p.first_name, p.last_name, 
                    a.amount AS amount,      
                    a.remark,                        
@@ -214,6 +215,7 @@ function addReceiveBudget($conn)
     $remark = mysqli_real_escape_string($conn, $_POST['remark']);
     $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
     $submit_page = $_POST['submin_page'];
+    $submit_tab = $_POST['submit_tab'];
 
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
     // 1. แปลงวันที่เป็น Timestamp
@@ -266,11 +268,11 @@ function addReceiveBudget($conn)
         $_SESSION['tragettab'] = 'received';
         $_SESSION['tragetfilters'] = $new_budget_id;
         $_SESSION['show_btn'] = true;
-        $page = $submit_page;
+        $page = $submit_tab;
         if ($page == '') {
-            header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
+            header("Location: index.php?page=$submit_page&status=success&toastMsg=" . urlencode($total_msg));
         } else {
-            header("Location: index.php?page=dashboard&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
+            header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
         }
         exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
 
@@ -279,7 +281,7 @@ function addReceiveBudget($conn)
         mysqli_rollback($conn);
         echo "เกิดข้อผิดพลาด: " . $e->getMessage();
         die;
-        // ใน Production อาจเปลี่ยน echo เป็นการบันทึก error log ลงไฟล์แทน
+        header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=เกิดข้อผิดพลาดในการทำรายการ" );
     }
 }
 
@@ -292,6 +294,7 @@ function submitDeleteAprove($conn)
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
     $submit_page = $_POST['submin_page'];
+    $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
     // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
     if ($id > 0) {
 
@@ -330,12 +333,12 @@ function submitDeleteAprove($conn)
             // 4. Redirect กลับ
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=dashboard&tab=$submit_page&status=success&toastMsg=" . urlencode($toastMsg));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=success&toastMsg=" . urlencode($toastMsg));
             exit();
         } else {
             echo "Error deleting record: " . mysqli_error($conn);
             // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
-            header("Location: index.php?page=dashboard&tab=$submit_page&status=error&toastMsg=เกิดปัญหากับการทำรายการ");
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=เกิดปัญหากับการทำรายการ");
             exit();
         }
     } else {

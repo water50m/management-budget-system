@@ -22,6 +22,11 @@ switch ($page) {
         $controller->fast_login();
         break;
 
+    case 'ldap-test':
+        $controller = new AuthController();
+        $controller->LDAP_login_test();
+        break;
+
     case 'logout':
         $controller = new AuthController();
         $controller->logout();

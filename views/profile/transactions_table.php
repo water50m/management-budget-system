@@ -40,7 +40,7 @@
                                 <?php $index += 1; ?>
                                 <?php echo $index; ?>
                             </td>
-                            <td class="px-6 py-4 text-gray-500 font-mono text-sm"><?php echo date('d/m/Y', strtotime($txn['txn_date'])); ?></td>
+                            <td class="px-6 py-4 text-gray-500 font-mono text-sm"><?php echo $txn['thai_date']; ?></td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-gray-800"><?php echo $txn['description']; ?></div>
 
@@ -70,15 +70,6 @@
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
 
-                                        <button type="button" onclick="openExpenseModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix']  . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>', <?php echo $user_info['remaining_balance']; ?>)"
-                                            class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition" title="ตัดยอด">
-                                            ตัดยอด
-                                        </button>
-
-                                        <button type="button" onclick="openAddBudgetModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix']  . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"
-                                            class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
-                                            รับยอด
-                                        </button>
                                         <?php if ($_SESSION['role'] == 'high-admin'): ?>
 
                                             <button type="button" onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"

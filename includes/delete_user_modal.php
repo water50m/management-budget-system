@@ -8,6 +8,8 @@
             <form action="index.php?page=dashboard&tab=users" method="POST">
                 <input type="hidden" name="action" value="delete_user">
                 <input type="hidden" name="user_id" id="modalDeleteUserId">
+                <input type="hidden" name="submit_page" value="<?= $_GET['page']; ?>">
+                <input type="hidden" name="submit_tab" value="<?= isset($_GET['tab']) ? $_GET['tab'] : '' ; ?>">
 
                 <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">

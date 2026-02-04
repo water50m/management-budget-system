@@ -24,8 +24,10 @@ function renderDeleteModal($actionUrl, $actionValue, $targetInputId, $id, $terge
                     <input type="hidden" name="action" value="<?= $actionValue; ?>">
                     <input type="hidden" name="target_name" id="target_name" value=<?= $tergetName; ?>>
                     <input type="hidden" name="<?= $targetInputId; ?>" id="<?= $targetInputId; ?>" value=<?= $id; ?>>
-                    <?php $this_page = $_GET['tab'] ?>
+                    <?php $this_page = $_GET['page'] ?>
                     <input type="hidden" name="submin_page" value="<?= $this_page ?>">
+                    <?php $this_tab= isset($_GET['tab']) ? $_GET['tab'] : '' ?>
+                    <input type="hidden" name="submin_tab" value="<?= $this_tab ?>">
 
                     <p class="text-sm text-gray-500 mb-2">
                         เพื่อยืนยัน กรุณาพิมพ์คำว่า <br>

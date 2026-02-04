@@ -33,6 +33,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
     $btnBg = "bg-{$theme}-600";
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
+    $border = " border border-{$theme}-200"
 ?>
 
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
@@ -92,9 +93,9 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                 <div class="w-full md:w-[22%] flex-shrink-0 flex flex-col justify-end">
                     <div class="flex items-center gap-2 mb-1.5">
                         <label class="block text-xs font-bold text-gray-700">ช่วงวันที่</label>
-                        <select name="date_type" onchange="this.form.requestSubmit()" class="appearance-none <?php echo $bgLight; ?> <?php echo $textDark; ?> text-[10px] font-bold rounded px-2 py-0.5 cursor-pointer focus:outline-none">
+                        <select name="date_type" onchange="this.form.requestSubmit()" class="appearance-none <?php echo $bgLight; ?> <?php echo $textDark; ?> <?= $border ?> text-[10px] font-bold rounded px-2 py-0.5 cursor-pointer focus:outline-none">
                             <option value="approved" <?php echo ($filters['date_type'] == 'approved') ? 'selected' : ''; ?>>วันที่อนุมัติ</option>
-                            <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>>วันที่คีย์</option>
+                            <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>></option>
                         </select>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] <?php echo $focusRing; ?>">
@@ -162,11 +163,11 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                             </select>
                         </th>
 
-                        <th class="px-6 py-4 font-bold whitespace-nowrap">วันที่อนุมัติ</th>
-                        <th class="px-6 py-4 font-bold">ผู้ขออนุมัติ</th>
+                        <th class="px-6 py-4 font-bold whitespace-nowrap w-[12%]">วันที่อนุมัติ</th>
+                        <th class="px-6 py-4 font-bold  w-[15%]">ผู้ขออนุมัติ</th>
                         <th class="px-6 py-4 font-bold">รายละเอียด</th>
-                        <th class="px-6 py-4 font-bold">ยอดอนุมัติ (บาท)</th>
-                        <th class="px-6 py-4 font-bold text-center w-20">จัดการ</th>
+                        <th class="px-6 py-4 font-bold w-[12%]">ยอดอนุมัติ (บาท)</th>
+                        <th class="px-6 py-4 font-bold text-center w-[15%] min-w-[140px] ">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -201,6 +202,13 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                                 </td>
 
                                 <td class="px-6 py-4 text-center">
+                                    <a hx-get="index.php?page=profile&id=<?php echo $row['user_id']; ?>"
+                                            hx-target="#app-container"
+                                            hx-swap="innerHTML"
+                                            hx-push-url="true"
+                                            class="cursor-pointer bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition items-center gap-1 mx-2">
+                                            <i class="fas fa-user"></i> ดูโปรไฟล์
+                                        </a>
                                     <?php
                                     // เช็คว่ามีการใช้งานไปแล้วหรือยัง?
                                     $isUsed = (isset($row['total_used']) && $row['total_used'] > 0);
@@ -211,19 +219,16 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                                             onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วน หรือทั้งหมดถูกใช้ไปแล้ว')"
                                             onmouseleave="hideGlobalAlert()"
                                             class="text-gray-300 cursor-not-allowed p-2 rounded-full">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     <?php else: ?>
+                                        
                                         <button type="button"
 
                                             onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_received_id')"
-                                            class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition duration-150"
+                                            class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition"
                                             title="ลบรายการนี้">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     <?php endif; ?>
                                 </td>

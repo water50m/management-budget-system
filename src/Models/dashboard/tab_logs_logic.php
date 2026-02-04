@@ -15,9 +15,9 @@ function showAndManageLogs($conn)
     $offset = ($page - 1) * $limit;
 
     // Filter User Permission
-    $safe_seer_id = mysqli_real_escape_string($conn, $_SESSION['user_id']);
+    $safe_seer_role = mysqli_real_escape_string($conn, $_SESSION['role']);
     // ถ้าไม่ใช่ user_id = 1 (Super Admin) ให้เห็นแค่ของตัวเอง (หรือตาม Logic เดิมของคุณ)
-    $where_sql = ($safe_seer_id == 1) ? "WHERE 1=1" : "WHERE l.actor_id = '$safe_seer_id'";
+    $where_sql = ($safe_seer_role == 'high-admin') ? "WHERE 1=1" : "WHERE 1=0";
 
     // ---------------------------------------------------------
     // 2. Query นับจำนวนทั้งหมด (Count Total)
@@ -43,11 +43,11 @@ function showAndManageLogs($conn)
                 -- ข้อมูลคนทำ (Actor)
                 u_actor.username AS actor_username,
                 u_actor.role_id AS actor_role,
-                CONCAT(pa.prefix, pa.first_name, ' ', pa.last_name) AS actor_name,
+                CONCAT(pa.prefix, ' ', pa.first_name, ' ', pa.last_name) AS actor_name,
                 
                 -- ข้อมูลคนโดน (Target)
                 u_target.username AS target_username,
-                CONCAT(pt.prefix, pt.first_name, ' ', pt.last_name) AS target_name,
+                CONCAT(pt.prefix, ' ', pt.first_name, ' ', pt.last_name) AS target_name,
                 l.target_id AS target_id,
                 l.status AS status
 
@@ -75,7 +75,7 @@ function showAndManageLogs($conn)
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
             // แปลงวันที่ให้สวยงาม
-            $row['thai_datetime'] = date('d/m/Y H:i', strtotime($row['created_at']));
+            $row['thai_datetime'] = dateToThai($row['created_at']);
             $data['logs'][] = $row;
         }
     }
@@ -158,6 +158,10 @@ function restoreData($conn)
         // บันทึก Log ว่ามีการกู้คืน
         logActivity($conn, $actor_id, ($data_id > 0 ? $data_id : $target_id), 'restore_data', $log_msg);
 
+
+        $_SESSION['show_btn'] = true;
+        $_SESSION['tragettab'] = $redirect_tab;
+        $_SESSION['tragetfilters']  = $data_id;
         // Redirect กลับไปหน้า Logs หรือหน้าที่เกี่ยวข้อง พร้อม Toast สีฟ้า (restore)
         header("Location: index.php?page=dashboard&tab=logs&status=restore&toastMsg=" . urlencode($log_msg));
         exit();

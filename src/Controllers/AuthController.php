@@ -70,6 +70,95 @@ class AuthController
                 $psw = mysqli_real_escape_string($conn, $psw);
 
                 include_once __DIR__ . '/../../inc/func.php';
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = "@nu.local";
+                $ad = ldap_connect($server);
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit();
+                } else {
+                    $b = @ldap_bind($ad, $user . $local, $psw);
+
+
+                    if (!$b) {
+                        header("Location: index.php?page=login&status=error&msg=invalid_credentials");
+                        exit();
+                    } else {
+                        $raw_username = isset($_POST['username']) ? $_POST['username'] : '';
+                        $username = mysqli_real_escape_string($conn, trim($raw_username));
+
+                        // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
+                        $sql = "SELECT p.id, u.username, p.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+                                FROM users u
+                                LEFT JOIN profiles p ON u.id = p.user_id
+                                LEFT JOIN roles r ON p.role_id = r.id
+                                WHERE u.username = '$username'";
+
+                        $result = mysqli_query($conn, $sql);
+                        if (mysqli_num_rows($result) > 0) {
+                            // ดึงข้อมูลออกมาใส่ตัวแปร $row
+                            $row = mysqli_fetch_assoc($result);
+
+                            // เรียกใช้ได้เลย
+                            $user_id = $row['id'];
+                            $_SESSION['user_id'] = $user_id;
+                            $_SESSION['username'] = $row['username'];
+                            $_SESSION['role'] = $row['role_name'];
+                            $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
+                            $_SESSION['seer'] = $row['role_id'] == 7 ? 7 : $row['role_id']  - 1;
+                            if (isset($_POST['remember'])) {
+                                $this->rememberAuth($conn, $user_id);
+                            }
+                            if ($row['role_id'] != 7) {
+                                header("Location: index.php?page=dashboard");
+                            } else {
+                                header("Location: index.php?page=profile&id=$user_id");
+                            }
+                        } else {
+                            header("Location: index.php?page=login&status=error&msg=unknow_username");
+                        }
+                        exit;
+                    }
+                }
+            } else if (empty($_POST['username']) || empty($_POST['password'])) {
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
+            }
+        }
+
+        $remembered_user = null;
+        if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
+            $remembered_user = $this->checkRememberedAuth($conn);
+            
+        }
+
+        // ส่วน Logout / เปลี่ยนบัญชี
+        if (isset($_GET['action']) && $_GET['action'] == 'switch_account') {
+            $this->deleteRememberedAuth($conn);
+        }
+        require_once __DIR__ . '/../../views/auth/login.php';
+    }
+
+
+
+    public function LDAP_login_test()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+
+                $user = $_POST["username"];
+                $psw = $_POST["password"];
+                $user = stripslashes($user);
+                $psw = stripslashes($psw);
+                $user = mysqli_real_escape_string($conn, $user);
+                $psw = mysqli_real_escape_string($conn, $psw);
+
+                include_once __DIR__ . '/../../inc/func.php';
                 loadEnv(__DIR__ . '/../../.env');
                 if (!getenv('LDAP_SERVER')) {
                     echo 'Not found secret key (2)';
@@ -110,6 +199,7 @@ class AuthController
                     $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
                     $_SESSION['seer'] = 0;
 
+
 ?>
 
                     <div style="font-family: 'Sarabun', sans-serif; max-width: 800px; margin: 30px auto; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
@@ -124,7 +214,7 @@ class AuthController
                                 </p>
                             <?php else: ?>
                                 <p style="margin: 5px 0 0; color: <?php echo $textColor; ?>;">
-                     ฆ               กรุณาตรวจสอบ Username, Password หรือการตั้งค่า Server
+                                    ฆ กรุณาตรวจสอบ Username, Password หรือการตั้งค่า Server
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -209,9 +299,9 @@ class AuthController
                                         ];
 
                                         foreach ($testRoles as $key => $info):
-                      
+
                                         ?>
-                                            <button type="submit" name="test-role-test" value="<?php echo $key;?>"
+                                            <button type="submit" name="test-role-test" value="<?php echo $key; ?>"
                                                 style="display: block; width: 100%; text-align: center; background-color: white; border: 1px solid <?php echo $info['color']; ?>; color: <?php echo $info['color']; ?>; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; transition: all 0.2s;"
                                                 onmouseover="this.style.backgroundColor='<?php echo $info['color']; ?>'; this.style.color='white';"
                                                 onmouseout="this.style.backgroundColor='white'; this.style.color='<?php echo $info['color']; ?>';">
@@ -252,40 +342,50 @@ class AuthController
     }
     public function fast_login()
     {
+        global $conn;
+
         $_SESSION['user_id'] = '1';
-        $_SESSION['username'] = 'high-admin';
+        $_SESSION['username'] = 'test-user';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
 
-        $role = $_POST['test-role-test'];
+        $role = $_GET['mock'] ?? '';
 
         if ($role == 'ad_anatomy') {
             $_SESSION['role'] = 'admin-anatomy';
             $_SESSION['seer'] = 1;
-            header("Location: index.php?page=dashboard&tab=users");
         } else if ($role == 'ad_biochemistr') {
             $_SESSION['role'] = 'admin-biochemistry';
             $_SESSION['seer'] = 2;
-            header("Location: index.php?page=dashboard&tab=users");
         } else if ($role == 'ad_mic_par') {
             $_SESSION['role'] = 'admin-mic-par';
             $_SESSION['seer'] = 3;
-            header("Location: index.php?page=dashboard&tab=users");
         } else if ($role == 'ad_physiology') {
             $_SESSION['role'] = 'admin-physiology ';
             $_SESSION['seer'] = 4;
-            header("Location: index.php?page=dashboard&tab=users");
         } else if ($role == 'ad_office') {
             $_SESSION['role'] = 'admin-office';
             $_SESSION['seer'] = 6;
-            header("Location: index.php?page=dashboard&tab=users");
-        } else {
+        } else if ($role == 'user') {
+            $_SESSION['role'] = 'user';
+            $_SESSION['seer'] = 7;
+        } else if ($role == 'admin') {
             $_SESSION['role'] = 'high-admin';
             $_SESSION['seer'] = 0;
-            header("Location: index.php?page=dashboard&tab=users");
         }
+        // header("Location: index.php?page=dashboard&tab=users");
+        echo $_SESSION['user_id'];
+        echo $_SESSION['username'];
+        echo $_SESSION['fullname'];
+        echo $_SESSION['role'];
+        echo $_SESSION['seer'];
+        $this->rememberAuth($conn,1);
+        header("Location: index.php?page=dashboard&tab=users");
         exit;
     }
-
+    public function new_login()
+    {
+        require_once __DIR__ . '/../../views/auth/new_login.php';
+    }
     // ฟังก์ชัน Logout
     public function logout()
     {
@@ -293,5 +393,68 @@ class AuthController
         session_destroy();
         header("Location: index.php?page=login");
         exit();
+    }
+
+    private function rememberAuth($conn, $user_id)
+    {
+        $selector = bin2hex(random_bytes(8));
+        $validator = bin2hex(random_bytes(32)); // ตัวนี้คือ Password ลับสำหรับ Cookie
+        $token_cookie = $selector . ':' . $validator;
+
+        // Hash ตัว Validator ก่อนเก็บลง DB (เหมือนเก็บ Password)
+        $hashed_validator = hash('sha256', $validator);
+        $expiry = date('Y-m-d H:i:s', time() + (86400 * 7)); // 7 วัน
+
+        // บันทึกลง DB
+        $stmt = $conn->prepare("UPDATE users SET remember_selector = ?, remember_validator = ?, remember_expiry = ? WHERE id = ?");
+        $stmt->bind_param("sssi", $selector, $hashed_validator, $expiry, $user_id);
+        $stmt->execute();
+
+        // ส่ง Cookie (HttpOnly = True, Secure = True)
+        setcookie('remember_me', $token_cookie, time() + (86400 * 7), "/", "", true, true);
+    }
+
+    private function deleteRememberedAuth($conn)
+    {
+        // ลบ Cookie
+        setcookie('remember_me', '', time() - 3600, "/", "", true, true);
+
+        // ✅ ลบ Token ใน DB ทิ้งด้วย เพื่อความปลอดภัย
+        if (isset($_SESSION['user_id'])) {
+            $clear_stmt = $conn->prepare("UPDATE users SET remember_selector = NULL, remember_validator = NULL, remember_expiry = NULL WHERE id = ?");
+            $clear_stmt->bind_param("i", $_SESSION['user_id']);
+            $clear_stmt->execute();
+        }
+
+        session_destroy(); // ล้าง Session เดิม
+        header("Location: index.php?page=login");
+        exit;
+    }
+
+    private function checkRememberedAuth($conn)
+    {
+
+        // แยก selector กับ validator ออกจากกัน
+        list($selector, $validator) = explode(':', $_COOKIE['remember_me']);
+
+        // Query หา selector ใน DB
+        $stmt = $conn->prepare("SELECT * FROM users WHERE remember_selector = ? AND remember_expiry > NOW()");
+        $stmt->bind_param("s", $selector);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $token_row = $result->fetch_assoc();
+        if ($token_row) {
+            // ตรวจสอบ validator ว่าตรงกับ Hash ใน DB ไหม
+            if (hash_equals($token_row['remember_validator'], hash('sha256', $validator))) {
+                // ✅ Token ถูกต้อง! ดึงข้อมูล User มาแสดง
+                $u_stmt = $conn->prepare("SELECT * FROM user_profiles WHERE user_id = ?");
+                $u_stmt->bind_param("i", $token_row['upid']);
+                $u_stmt->execute();
+                $u_res = $u_stmt->get_result();
+                $remembered_user = $u_res->fetch_assoc();
+                return $remembered_user;
+                // (Optional) ตรงนี้ถ้าจะให้ Login เลยก็ได้ แต่โจทย์บอกให้แสดงปุ่ม Login
+            }
+        }
     }
 }

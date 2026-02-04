@@ -36,6 +36,7 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
                 <p class="text-sm text-gray-500 mt-1"><?php echo $user_info['position']; ?></p>
 
                 <div class="mt-2 inline-block bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold text-gray-600">
+                    <?php echo $user_info['department_id'] == 5 ? 'สังกัด' : 'สังกัดภาควิชา' ?>
                     <?php echo $user_info['department_name']; ?>
                 </div>
 
@@ -99,6 +100,38 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <?php 
+                // แบบประหยัด session 
+                $role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+                $user_department  = $user_info['department_eng'];
+                $admin_check  ='admin-'.$user_department;
+
+                ?>
+            <?php if ($role == $admin_check || $role == 'high-admin'):?>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button"
+                        onclick="openExpenseModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>', <?php echo $user_info['remaining_balance']; ?>)"
+                        class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white hover:border-orange-600 hover:shadow-md transition-all duration-200 group">
+
+                        <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
+                            <i class="fas fa-minus"></i>
+                        </div>
+                        <span class="text-sm font-bold">เพิ่มรายการตัดยอด</span>
+                    </button>
+
+                    <button type="button"
+                        onclick="openAddBudgetModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"
+                        class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 hover:shadow-md transition-all duration-200 group">
+
+                        <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <span class="text-sm font-bold">เพิ่มรายการรับยอด</span>
+                    </button>
+                </div>
+            <?php endif; ?>
             </div>
         </div>
 
@@ -221,4 +254,3 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
 
     </div>
 </div>
-

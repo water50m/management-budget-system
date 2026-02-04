@@ -35,6 +35,8 @@ function submitDeleteUser($conn){
     // 1. รับค่า ID
     $target_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
     $actor_id = $_SESSION['user_id'];
+    $submit_page = $_POST['submit_page'];
+    $submit_tab = $_POST['submit_tab'];
 
     if ($target_user_id > 0) {
 
@@ -47,7 +49,7 @@ function submitDeleteUser($conn){
 
         // ถ้าไม่พบข้อมูล
         if (!$old_data) {
-            header("Location: index.php?page=dashboard&tab=users&status=error&msg=" . urlencode("ไม่พบข้อมูลผู้ใช้งาน"));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode("ไม่พบข้อมูลผู้ใช้งาน"));
             exit();
         }
 
@@ -55,7 +57,7 @@ function submitDeleteUser($conn){
         if (trim($old_data['first_name']) === 'Admin') {
             // ส่งกลับไปหน้าเดิมพร้อม Error
             $error_msg = "ไม่สามารถลบผู้ใช้งานระบบ (Admin) ได้";
-            header("Location: index.php?page=dashboard&tab=users&status=error&msg=" . urlencode($error_msg));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode($error_msg));
             exit();
         }
 
@@ -79,16 +81,36 @@ function submitDeleteUser($conn){
             // ✅ Step 4: Redirect สำเร็จ
             // ---------------------------------------------------------
             $msg = "ลบข้อมูลของ $deleted_name เรียบร้อยแล้ว";
-            header("Location: index.php?page=dashboard&tab=users&status=delete&msg=" . urlencode($msg));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=delete&msg=" . urlencode($msg));
             exit();
         } else {
             $error_msg = "เกิดข้อผิดพลาด: " . mysqli_error($conn);
-            header("Location: index.php?page=dashboard&tab=users&status=error&msg=" . urlencode($error_msg));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode($error_msg));
             exit();
         }
     } else {
-        header("Location: index.php?page=dashboard&tab=users&status=error&msg=" . urlencode("ไม่พบรหัสผู้ใช้งาน"));
+        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode("ไม่พบรหัสผู้ใช้งาน"));
         exit();
     }
 }
 
+
+function getDepartmentName($conn, $user_id) {
+    // ป้องกัน SQL Injection ด้วยการรับค่าเป็น Integer
+    $id = intval($user_id);
+    
+    $sql = "SELECT d.name_th 
+            FROM user_profiles p 
+            JOIN departments d ON p.department_id = d.id 
+            WHERE p.id = $id 
+            LIMIT 1";
+            
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        return $row['name_th'];
+    }
+    
+    return "ไม่ระบุสังกัด"; // กรณีไม่พบข้อมูล
+}

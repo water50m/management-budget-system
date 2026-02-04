@@ -187,7 +187,7 @@ function showAndSearchExpense($conn)
     // ---------------------------------------------------------
     // 🟡 3. Query หลัก (Main Query)
     // ---------------------------------------------------------
-    $sql = "SELECT e.*, 
+    $sql = "SELECT e.*, p.user_id,
                    p.prefix, p.first_name, p.last_name, 
                    c.name_th as category_name,
                    d.thai_name as department
@@ -248,12 +248,13 @@ function showAndSearchExpense($conn)
 
 function addExpense($conn)
 {
-    $page = 'users';
     $user_id = mysqli_real_escape_string($conn, $_POST['target_user_id']);
     $amount_needed = floatval($_POST['amount']);
     $category_id = intval($_POST['category_id']);
     $description = mysqli_real_escape_string($conn, $_POST['description']);
     $full_name = mysqli_real_escape_string($conn, $_POST['target_name']);
+    $submit_page = $_POST['submit_page'];
+    $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
     mysqli_begin_transaction($conn);
 
     try {
@@ -354,16 +355,16 @@ function addExpense($conn)
         $_SESSION['tragetfilters'] = $new_expense_id;
         $_SESSION['show_btn'] = true;
         // Redirect
-        if ($page == '') {
-            header("Location: index.php?page=dashboard&status=success&toastMsg=" . urlencode($total_msg));
+        if ($submit_tab == '') {
+            header("Location: index.php?page=$submit_page&status=success&toastMsg=" . urlencode($total_msg));
         } else {
-            header("Location: index.php?page=dashboard&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
+            header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
         exit;
     } catch (Exception $e) {
         mysqli_rollback($conn);
         // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
-        header("Location: index.php?page=dashboard&status=error&toastMsg=ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง");
+        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง");
         exit;
     }
 }

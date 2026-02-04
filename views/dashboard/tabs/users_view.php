@@ -221,7 +221,11 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
-                                        <a href="index.php?page=profile&id=<?php echo $u['id']; ?>" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">
+                                        <a hx-get="index.php?page=profile&id=<?php echo $u['id']; ?>"
+                                            hx-target="#app-container"
+                                            hx-swap="innerHTML"
+                                            hx-push-url="true"
+                                            class="cursor-pointer bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">
                                             <i class="fas fa-user"></i> ดูโปรไฟล์
                                         </a>
 

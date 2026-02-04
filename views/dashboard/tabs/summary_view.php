@@ -26,15 +26,7 @@ while ($r = mysqli_fetch_assoc($res_dept)) {
     $dept_spent[] = $r['total_spent'];       // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
 }
 
-// --- 2. เตรียมข้อมูล Category ---
-$cat_labels = [];
-$cat_values = [];
 
-mysqli_data_seek($res_cat, 0);
-while ($r = mysqli_fetch_assoc($res_cat)) {
-    $cat_labels[] = $r['name_th'];
-    $cat_values[] = $r['total_spent'];
-}
 ?>
 
 
@@ -194,18 +186,7 @@ while ($r = mysqli_fetch_assoc($res_cat)) {
 
 <script>
     {
-        // --- 1. กราฟ Department ---
-        <?php
-        $dept_labels = [];
-        $dept_values = []; // หรือ $dept_received, $dept_spent ตามที่คุณแก้ไปล่าสุด
-        if (isset($res_dept) && $res_dept) {
-            mysqli_data_seek($res_dept, 0);
-            while ($r = mysqli_fetch_assoc($res_dept)) {
-                $dept_labels[] = $r['thai_name'];
-                $dept_values[] = $r['total_spent']; // *ตรวจสอบชื่อตัวแปรให้ตรงกับโค้ดล่าสุดของคุณ
-            }
-        }
-        ?>
+
         const deptCtx = document.getElementById('deptChart');
         if (deptCtx) {
             // 🧹 CLEANUP: เช็คว่ามีกราฟเดิมอยู่ไหม ถ้ามีให้ลบทิ้งก่อนสร้างใหม่
@@ -303,6 +284,7 @@ while ($r = mysqli_fetch_assoc($res_cat)) {
                 $cat_values[] = $r['total_spent'];
             }
         }
+
         ?>
 
         const catCtx = document.getElementById('catChart');

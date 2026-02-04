@@ -1,7 +1,7 @@
 <?php
 class ProfileController
 {
-
+// ถ้ามีเวลาควรแยกฟังชั่นนะ
     public function index()
     {
         global $conn;
@@ -11,7 +11,7 @@ class ProfileController
         $user_id = isset($_GET['id']) ? intval($_GET['id']) : $_SESSION['user_id'];
 
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
-        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, 
+        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng,
                             b.remaining_balance, b.previous_year_budget, b.current_year_budget
                      FROM users u
                      LEFT JOIN user_profiles p ON u.id = p.user_id
@@ -140,6 +140,7 @@ class ProfileController
                 } else {
                     $sum_expense += abs($row['amount']);
                 }
+                $row['thai_date'] = dateToThai($row['txn_date']);
                 $transactions[] = $row;
             }
         }
@@ -203,7 +204,7 @@ class ProfileController
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'add_user') {
 
             $return_page = isset($_POST['current_page']) ? $_POST['current_page'] : 'dashboard';
-            $return_tab  = "users";
+            $return_tab  = isset($_POST['current_tab']) ? $_POST['current_tab'] : 'dashboard';
             // 1. รับค่าจากฟอร์ม
             $prefix = mysqli_real_escape_string($conn, $_POST['prefix']);
             $first_name = mysqli_real_escape_string($conn, $_POST['first_name']);

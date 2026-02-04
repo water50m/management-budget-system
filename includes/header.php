@@ -74,22 +74,10 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 
     <?php
 
-    $seer = $_SESSION['seer'];
-    $department_text = "-";
-    switch ($seer) {
-        case 0:
-            $department_text = 'ภาควิชาจุลชีววิทยาและปรสิตวิทยา';
-        case 1:
-            $department_text = 'ภาควิชากายวิภาคศาสตร์';
-        case 2:
-            $department_text = 'ภาควิชาเคมี';
-        case 3:
-            $department_text = 'ภาควิชาจุลชีววิทยาและปรสิตวิทยา';
-        case 4:
-            $department_text = 'ภาควิชาสรีรวิทยา';
-        case 5:
-            $department_text = 'สำนักงานเลขานุการคณะ';
-    }
+
+    $_user_id = $_SESSION['user_id'];
+    $dmp_name = getDepartmentName($conn, $_user_id);
+    
 
     ?>
     <nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
@@ -109,7 +97,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                         เพื่อการพัฒนาวิชาการและการวิจัย
                     </p>
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-blue-50 text-blue-700 mt-1">
-                        <?= $department_text; ?>
+                        <?= $dmp_name; ?>
                     </span>
                 </div>
             </div>
@@ -174,6 +162,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                     <?php endif; ?>
 
                 </div>
+            <?php endif; ?>
                 <div class="flex items-center gap-4 min-w-fit">
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'):?>
                         <button onclick="openAddUserModal()"
@@ -213,7 +202,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                         <i class="fas fa-sign-out-alt text-lg"></i>
                     </a>
                 </div>
-            <?php endif; ?>
+            
 
         </div>
     </nav>

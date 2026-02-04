@@ -21,6 +21,13 @@ class DashboardController
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?page=login");
             exit();
+        } 
+
+        if($_SESSION['role'] == 'user'){
+            $_id = $_SESSION['user_id'];
+
+            header("Location: index.php?page=profile&id=$_id...");
+            exit();
         }
 
         $page = $_GET['page'] ?? 'dashboard';
@@ -172,7 +179,8 @@ function submitDeleteExpense($conn)
     // 1. รับค่า ID
     $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
     $name = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : '';
-
+    $submit_page = $_POST['submit_page'];
+    $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
     // ดึง User ID คนทำรายการ (Actor)
     $actor_id = $_SESSION['user_id'];
 
@@ -220,7 +228,7 @@ function submitDeleteExpense($conn)
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
 
-            header("Location: index.php?page=dashboard&tab=expense&status=deleted&toastMsg=" . urlencode($toastMsg));
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=deleted&toastMsg=" . urlencode($toastMsg));
             exit();
         } else {
             echo "Error: " . mysqli_error($conn);

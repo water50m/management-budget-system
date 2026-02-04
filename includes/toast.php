@@ -11,6 +11,12 @@ function showToast($type, $message)
     $baseClass = 'bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-200 border-l-4';
     switch ($type) {
         case 'deleted':
+            $statusClass = 'border-l-red-500';
+            $iconBg = 'bg-red-50';
+            $iconColor = 'text-red-500';
+            // ไอคอนรูปถังขยะ (Trash Can)
+            $icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+            break;
         case 'error':
             // สีแดง (Error / Delete)
             // ใช้ text-red-600 สำหรับไอคอน และ bg-red-50 สำหรับพื้นหลังไอคอน

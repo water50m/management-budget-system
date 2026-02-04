@@ -41,6 +41,8 @@
             </div>
 
             <input type="hidden" name="action" value="add_expense">
+            <input type="hidden" name="submit_page" value="<?= $_GET['page'] ?>">
+            <input type="hidden" name="submit_tab" value="<?= isset($_GET['tab']) ? $_GET['tab'] : ''  ?>">
             <input type="hidden" name="target_user_id" id="modalUserId" value="">
             <input type="hidden" name="target_name" id="modalFullName" value="">
 
