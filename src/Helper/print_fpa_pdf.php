@@ -24,19 +24,16 @@ if ($current_dept) {
     foreach ($department_list as $dept) {
         // ถ้าเจอ ID ที่ตรงกัน ให้เอาชื่อไทยมาใช้ แล้วหยุดหาทันที
         if ($dept['id'] == $current_dept) {
-            if ($dept['id'] == 5){
+            if ($dept['id'] == 5) {
                 $dept_label = $dept['thai_name'];
-                break; 
-            } 
-            else if ($dept['id'] == 7){
+                break;
+            } else if ($dept['id'] == 7) {
                 $dept_label = $dept['thai_name'];
-                break; 
-            } 
-            else {
+                break;
+            } else {
                 $dept_label = $dept['thai_name'];
-                break; 
+                break;
             }
-            
         }
     }
 }
@@ -98,106 +95,67 @@ ob_start();
 ?>
 
 <style>
-    /* CSS จำลอง Tailwind สำหรับ mPDF */
-    body {
-        font-family: 'sarabun', sans-serif;
-        font-size: 16pt;
-        color: #333;
+    body { font-family: 'sarabun', sans-serif; font-size: 16pt; }
+    
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin-top: 10px;
     }
 
-    /* ปรับขนาด Font ให้ใหญ่ขึ้นสำหรับเอกสาร */
-
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        margin-top: 20px;
+    /* กำหนดเส้นขอบดำ และพื้นหลังขาว ให้ทุกช่อง */
+    th, td { 
+        border: 1px solid #000000; 
+        background-color: #ffffff;
+        padding: 8px; 
+        vertical-align: middle;
+        color: #000000; /* ค่าเริ่มต้นเป็นสีดำ (สำหรับฝั่งซ้าย) */
     }
 
-    th {
-        border: 1px solid #777;
-        padding: 8px;
-        font-size: 16pt;
-        background-color: #f0f0f0;
-        font-weight: bold;
+    /* ✅ คลาสพิเศษ: สำหรับตัวหนังสือสีแดง (ใช้เฉพาะฝั่งขวา) */
+    .text-red-custom { 
+        color: #d00000; /* สีแดงเข้ม */
     }
-
-    td {
-        border: 1px solid #ccc;
-        padding: 8px;
-        vertical-align: top;
-        font-size: 16pt;
-    }
-
-    .text-center {
-        text-align: center;
-    }
-
-    .text-right {
-        text-align: right;
-    }
-
-    .text-left {
-        text-align: left;
-    }
-
-    .font-bold {
-        font-weight: bold;
-    }
-
-    .text-red {
-        color: #d00;
-    }
-
-    .bg-red-light {
-        background-color: #fff5f5;
-    }
-
-    .bg-gray {
-        background-color: #eaeaea;
-    }
-
-    .header-box {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    .dept-badge {
-        font-size: 14pt;
-        color: #555;
-    }
+    
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .font-bold { font-weight: bold; }
 </style>
 
 <body>
 
-    <div class="header-box">
+    <div class="header-box text-center">
         <h2 style="font-size: 20pt; margin: 0; font-weight: bold;">
-            สรุปงบประมาณ FPA ประจำปีงบประมาณ <?php echo $current_year; ?>
+            สรุปงบประมาณ FPA ของคณะวิทยาศาสตร์การแพทย์
+        </h2>
+        <h2 style="font-size: 20pt; margin: 0; font-weight: bold;">
+            ประจำปีงบประมาณ <?php echo $current_year; ?>
         </h2>
         <div style="margin-top: 5px;">
-            <?=  $dept_label ?>
+            <?= $dept_label ?>
         </div>
-        <div style="font-size: 12pt; color: #888; margin-top: 5px;">
-            พิมพ์เมื่อ: <?php echo dateToThai(date('d/m/Y H:i')); ?>
-        </div>
+        
     </div>
 
     <table>
         <thead>
-            <tr>
-                <th rowspan="2" width="8%" class="bg-gray">ลำดับ</th>
-                <th rowspan="2" class="bg-gray text-left">ชื่อ - นามสกุล</th>
-                <th colspan="5" class="bg-red-light text-red">
-                    ความต้องการใช้เงิน FPA (ในปี <?php echo substr($current_year, -2); ?>)
-                </th>
-            </tr>
-            <tr class="bg-red-light text-red">
-                <th width="12%">ไปราชการ</th>
-                <th width="12%">วัสดุหนังสือ</th>
-                <th width="12%">วัสดุคอมฯ</th>
-                <th width="12%">วัสดุวิทย์</th>
-                <th width="12%">รวม</th>
-            </tr>
-        </thead>
+        <tr>
+            <th rowspan="2" width="8%" class="text-center">ลำดับ</th>
+            <th rowspan="2" class="text-left">ชื่อ - นามสกุล</th>
+
+            <th colspan="5" class="text-red-custom font-bold text-center">
+                ความต้องการใช้เงิน FPA ของคณะฯ (ในปี <?php echo substr($current_year, -2); ?>)
+            </th>
+        </tr>
+        <tr>
+            <th class="text-red-custom text-center">ไปราชการ</th>
+            <th class="text-red-custom text-center">วัสดุ<br>หนังสือ/ตำรา</th>
+            <th class="text-red-custom text-center">วัสดุ<br>คอมพิวเตอร์</th>
+            <th class="text-red-custom text-center">วัสดุ<br>วิทยาศาสตร์<br>หรือการแพทย์</th>
+            <th class="text-red-custom text-center">รวม</th>
+        </tr>
+    </thead>
         <tbody>
             <?php
             $i = 1;
@@ -216,20 +174,20 @@ ob_start();
                         <td class="text-center"><?php echo $i++; ?></td>
                         <td class="text-left font-bold"><?php echo $row['name']; ?></td>
 
-                        <td class="text-right text-red">
+                        <td class="text-right text-red-custom">
                             <?php echo $row['travel'] > 0 ? number_format($row['travel'], 2) : '-'; ?>
                         </td>
-                        <td class="text-right text-red">
+                        <td class="text-right text-red-custom">
                             <?php echo $row['book'] > 0 ? number_format($row['book'], 2) : '-'; ?>
                         </td>
-                        <td class="text-right text-red">
+                        <td class="text-right text-red-custom">
                             <?php echo $row['comp'] > 0 ? number_format($row['comp'], 2) : '-'; ?>
                         </td>
-                        <td class="text-right text-red">
+                        <td class="text-right text-red-custom">
                             <?php echo $row['sci'] > 0 ? number_format($row['sci'], 2) : '-'; ?>
                         </td>
 
-                        <td class="text-right font-bold bg-gray">
+                        <td class="text-right font-bold bg-gray text-red-custom">
                             <?php echo number_format($row_total, 2); ?>
                         </td>
                     </tr>
@@ -247,12 +205,15 @@ ob_start();
                 <td class="text-right"><?php echo number_format($sum_book, 2); ?></td>
                 <td class="text-right"><?php echo number_format($sum_comp, 2); ?></td>
                 <td class="text-right"><?php echo number_format($sum_sci, 2); ?></td>
-                <td class="text-right" style="border-bottom: 3px double black;">
+                <td class="text-right font-bold" >
                     <?php echo number_format($grand_total, 2); ?>
                 </td>
             </tr>
         </tfoot>
     </table>
+    <div class="text-right" style="font-size: 12pt; color: #888; margin-top: 5px;">
+            พิมพ์เมื่อ: <?php echo dateToThai(date('d/m/Y H:i')); ?>
+        </div>
 
 </body>
 

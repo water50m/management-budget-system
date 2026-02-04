@@ -4,30 +4,39 @@
             display: none;
         }
     </style>
-    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm">
-        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <i class="fa-solid fa-table-list text-blue-600"></i>
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4  p-4 rounded-xl shadow-sm">
+        <div>
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-table-list text-blue-600"></i>
 
-            <span>สรุปงบประมาณ FPA ปีงบประมาณ ปี</span>
+                <span>สรุปงบประมาณ FPA ปีงบประมาณ ปี</span>
 
-            <select name="fiscal_year"
-                class="sync-fiscal-year  bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg p-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
-                hx-get=""
-                hx-target="#tab-content"
-                hx-swap="innerHTML"
-                hx-trigger="change"
-                hx-include="[name='department_id']"
-                hx-indicator="#loadingIndicator">
-                <?php foreach ($year_options as $y): ?>
-                    <option value="<?php echo $y; ?>" <?php echo ($y == $current_year) ? 'selected' : ''; ?>><?php echo $y; ?></option>
-                <?php endforeach; ?>
-            </select>
+                <select name="fiscal_year"
+                    class="sync-fiscal-year  bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg p-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
+                    hx-get=""
+                    hx-target="#tab-content"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
+                    hx-include="[name='department_id']"
+                    hx-indicator="#loadingIndicator">
+                    <?php foreach ($year_options as $y): ?>
+                        <option value="<?php echo $y; ?>" <?php echo ($y == $current_year) ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                    <?php endforeach; ?>
+                </select>
 
-            <span id="loadingIndicator" class="htmx-indicator text-sm text-gray-400 ml-2">
-                <i class="fas fa-spinner fa-spin"></i>
-            </span>
-        </h2>
 
+                <span id="loadingIndicator" class="htmx-indicator text-sm text-gray-400 ml-2">
+
+                </span>
+            </h2>
+            <?php if ($current_year == $real_fiscal_year):
+            ?>
+                <p class="text-xs text-red-400 mt-1 font-medium">
+                    <i class="fa-solid fa-info-circle mr-1"></i>
+                    ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ(ปีนี้)ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                </p>
+            <?php endif; ?>
+        </div>
         <div class="flex gap-3">
             <button onclick="exportToExcel()"
                 class="group flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
@@ -41,6 +50,7 @@
                 <span>Export PDF</span>
             </button>
         </div>
+
     </div>
 
     <div class="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-200">
@@ -205,6 +215,6 @@
         const url = `index.php?page=show-pdf&fiscal_year=${selectedYear}&department_id=${selectedDept}`;
 
         // 4. สั่งให้ Browser เปิด URL นี้ (เหมือนการกดลิงก์ดาวน์โหลด)
-        window.location.href = url;
+        window.open(url, '_blank');
     }
 </script>

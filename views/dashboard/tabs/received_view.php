@@ -76,7 +76,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
 
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
                     <div class="w-full md:w-[15%] flex-shrink-0 flex flex-col justify-end">
-                        <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา / สำนักงาน</label>
                         <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $focusRing; ?>">
                             <select name="dept_id" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
                                 <option value="0">--ทุกภาควิชา--</option>
