@@ -133,20 +133,33 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                         <span>เข้าสู่ระบบ</span>
                         <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </button>
-
                 <?php endif; ?>
-
             </form>
 
-            <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
-                <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
-                    ต้องการความช่วยเหลือ?
+            <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
+                <p class="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
+                    --- Developer Access (Temporary) ---
                 </p>
-                <a href="#" class="inline-flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-primary transition-colors">
-                    <i class="fa-solid fa-headset text-gray-400"></i>
-                    <span>ติดต่อฝ่าย IT Support / ลืมรหัสผ่าน</span>
-                </a>
+                <div class="flex gap-3">
+                    <button type="button" onclick="devLogin('user')"
+                        class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-tag text-gray-500"></i> Mock User
+                    </button>
+                    <button type="button" onclick="devLogin('admin')"
+                        class="flex-1 py-2.5 bg-gray-800 text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-shield text-amber-400"></i> Mock Admin
+                    </button>
+                </div>
             </div>
+                        <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
+    <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
+        ต้องการความช่วยเหลือ?
+    </p>
+    <a href="#" class="inline-flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-primary transition-colors">
+        <i class="fa-solid fa-headset text-gray-400"></i>
+        <span>ติดต่อฝ่าย IT Support / ลืมรหัสผ่าน</span>
+    </a>
+</div> -->
 
 
             <div class="mt-8 text-center md:text-left text-xs text-gray-400">

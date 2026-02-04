@@ -47,6 +47,10 @@ switch ($page) {
         $controller = new ProfileController();
         $controller->addProfile($conn);
         break;
+    case 'show-pdf':
+        $controller = new DashboardController();
+        $controller->showPDF();
+        break;
     // --- ส่วน Register (ถ้าแยก Controller ก็ใส่ตรงนี้) ---
     // case 'register': ...
 

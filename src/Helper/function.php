@@ -43,7 +43,7 @@ function applyPermissionFilter($sql)
         } elseif ($seer == 7) {
             // ✅ กรณี 7 (User): เห็นเฉพาะของตัวเอง
             // กรองจากตาราง received (a.user_id) หรือ profiles (p.user_id) ก็ได้
-            $sql .= " AND a.user_id = " . intval($user_id);
+            $sql .= " AND p.user_id = " . intval($user_id);
         } else {
             // ✅ กรณีอื่นๆ (Admin ภาควิชา): เห็นเฉพาะภาควิชาตัวเอง
             // ค่า seer_filter ในเคสนี้คือ Department ID

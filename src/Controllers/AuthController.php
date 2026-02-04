@@ -113,7 +113,7 @@ class AuthController
                                 $this->rememberAuth($conn, $user_id);
                             }
                             if ($row['role_id'] != 7) {
-                                header("Location: index.php?page=dashboard");
+                                header("Location: index.php?page=dashboard&tab=summary");
                             } else {
                                 header("Location: index.php?page=profile&id=$user_id");
                             }

@@ -26,35 +26,110 @@ while ($r = mysqli_fetch_assoc($res_dept)) {
     $dept_spent[] = $r['total_spent'];       // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
 }
 
+$show_dept = '';
+$user_now = isset($_SESSION['role']) ? $_SESSION['role'] : 'user';
+
+if ($user_now == 'high-admin') {
+    $show_dept = 0;
+} else {
+    $show_dept = isset($_SESSION['seer']) ? $_SESSION['seer'] : '';
+}
+
+// รับค่าเริ่มต้น
+$current_year = isset($_GET['fiscal_year']) ? $_GET['fiscal_year'] : (date('Y') + 543);
+$current_dept = isset($_GET['department_id']) ? $_GET['department_id'] : $show_dept;
+
+// ดึงตัวเลือกสำหรับ Dropdown
+$year_options = getFiscalYearOptions($conn);
+$dept_options = getDepartments($conn);
 
 ?>
 
 
 <div class="space-y-6 animate-fade-in-up overflow-y-auto">
 
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <div>
-            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                📊 สรุปภาพรวมงบประมาณ
-                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">ปี <?php echo $selected_year; ?></span>
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">ข้อมูลสถานะการเงินและการเบิกจ่ายประจำปี</p>
-        </div>
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
 
-        <form hx-get="index.php?page=dashboard&tab=overview"
-            hx-target="#tab-content"
-            hx-push-url="true"
-            class="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
-            <label class="text-sm font-bold text-gray-700 whitespace-nowrap">📅 เลือกปีงบประมาณ:</label>
-            <select name="year" onchange="this.form.requestSubmit()"
-                class="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-2 pr-8 cursor-pointer shadow-sm">
-                <?php foreach ($year_list as $y): ?>
-                    <option value="<?php echo $y; ?>" <?php echo ($selected_year == $y) ? 'selected' : ''; ?>>
-                        <?php echo $y; ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+            <div class="flex items-start gap-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <i class="fa-solid fa-chart-pie text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        สรุปภาพรวมงบประมาณ
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                        </span>
+                    </h2>
+
+                    <p class="text-sm text-gray-500 mt-1">
+                        ข้อมูลสถานะการเงินและการเบิกจ่ายประจำปี
+                    </p>
+
+                    <?php
+                    // คำนวณปีงบประมาณปัจจุบัน
+                    $current_month = date('m');
+                    $current_buddhist_year = date('Y') + 543;
+                    $real_fiscal_year = ($current_month >= 10) ? $current_buddhist_year + 1 : $current_buddhist_year;
+
+                    if ($current_year == $real_fiscal_year):
+                    ?>
+                        <p class="text-xs text-red-400 mt-1 font-medium">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ(ปีนี้)ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                        </p>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="w-full md:w-auto bg-gray-50 p-1.5 rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-2">
+
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-xs font-bold">ปี:</span>
+                    </div>
+                    <select name="fiscal_year"
+                        class="sync-fiscal-year appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-8 py-2 cursor-pointer shadow-sm hover:border-gray-300 transition-colors"
+                        hx-get=""
+                        hx-target="#tab-content"
+                        hx-swap="innerHTML"
+                        hx-trigger="change"
+                        hx-include="[name='department_id']"
+                        hx-indicator="#loadingIndicator">
+                        <?php foreach ($year_options as $y): ?>
+                            <option value="<?php echo $y; ?>" <?php echo ($y == $current_year) ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-xs font-bold">ภาควิชา:</span>
+                    </div>
+                    <select name="department_id"
+                        class="sync-depm appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block w-full pl-16 pr-8 py-2 cursor-pointer shadow-sm hover:border-gray-300 transition-colors min-w-[200px]"
+                        hx-get=""
+                        hx-target="#tab-content"
+                        hx-swap="innerHTML"
+                        hx-trigger="change"
+                        hx-include="[name='fiscal_year']"
+                        hx-indicator="#loadingIndicator">
+                        <option value="">-- ทั้งหมด --</option>
+                        <?php foreach ($dept_options as $d): ?>
+                            <option value="<?php echo $d['id']; ?>" <?php echo ($d['id'] == $current_dept) ? 'selected' : ''; ?>><?php echo $d['thai_name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -132,54 +207,9 @@ while ($r = mysqli_fetch_assoc($res_dept)) {
     </div>
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
         <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-            <h4 class="font-bold text-gray-700 flex items-center gap-2">
-                <i class="fas fa-trophy text-yellow-500"></i> 5 อันดับ ผู้เบิกจ่ายสูงสุด
-            </h4>
-            <a href="index.php?page=dashboard&tab=expense" class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition">ดูข้อมูลทั้งหมด →</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-                <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
-                    <tr>
-                        <th class="px-6 py-3 w-16 text-center">#</th>
-                        <th class="px-6 py-3">ชื่อ-นามสกุล</th>
-                        <th class="px-6 py-3">ภาควิชา</th>
-                        <th class="px-6 py-3 text-right">ยอดเบิกจ่าย (บาท)</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php
-                    $rank = 1;
-                    if (mysqli_num_rows($res_top) > 0):
-                        while ($user = mysqli_fetch_assoc($res_top)):
-                    ?>
-                            <tr class="bg-white hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 font-bold text-center text-gray-400"><?php echo $rank++; ?></td>
-                                <td class="px-6 py-4 font-medium text-gray-800">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                                            <?php echo mb_substr($user['first_name'], 0, 1); ?>
-                                        </div>
-                                        <?php echo $user['first_name'] . ' ' . $user['last_name']; ?>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-gray-500 text-xs">
-                                    <span class="bg-gray-100 px-2 py-1 rounded text-gray-600"><?php echo $user['dept_name'] ?: '-'; ?></span>
-                                </td>
-                                <td class="px-6 py-4 text-right font-bold text-red-600">
-                                    <?php echo number_format($user['total_spent'], 2); ?>
-                                </td>
-                            </tr>
-                        <?php endwhile;
-                    else: ?>
-                        <tr>
 
-                            <td colspan="4" class="px-6 py-8 text-center text-gray-400">ยังไม่มีข้อมูลการเบิกจ่ายในปีนี้</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
         </div>
+        <?php include_once __DIR__ . '/../../../src/Helper/sumaries_FTA_year.php'; ?>
     </div>
 </div>
 
@@ -321,19 +351,49 @@ while ($r = mysqli_fetch_assoc($res_dept)) {
                             }
                         },
                         tooltip: {
-                callbacks: {
-                    // 🔧 ส่วนนี้คือการแต่งข้อความตอนเอาเมาส์ชี้
-                    label: function(context) {
-                        let label = ': ';
-                        let value = context.raw;
-                        label = new Intl.NumberFormat('th-TH').format(value) + ' บาท';
-                        return label;
-                    }
-                }
-            }
+                            callbacks: {
+                                // 🔧 ส่วนนี้คือการแต่งข้อความตอนเอาเมาส์ชี้
+                                label: function(context) {
+                                    let label = ': ';
+                                    let value = context.raw;
+                                    label = new Intl.NumberFormat('th-TH').format(value) + ' บาท';
+                                    return label;
+                                }
+                            }
+                        }
                     }
                 }
             });
         }
     }
+
+    // ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่าใน Select ที่มี class "sync-fiscal-year"
+    document.body.addEventListener('change', function(e) {
+        if (e.target.classList.contains('sync-fiscal-year')) {
+            const newValue = e.target.value;
+
+            // วนลูปหา Select ตัวอื่นๆ ที่มี class เดียวกัน แล้วจับเปลี่ยนค่าให้เหมือนกัน
+            document.querySelectorAll('.sync-fiscal-year').forEach(el => {
+                if (el !== e.target) {
+                    el.value = newValue;
+                }
+            });
+        }
+    });
+
+    // ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่าใน Select ที่มี class "sync-fiscal-year"
+    document.body.addEventListener('change', function(e) {
+        if (e.target.classList.contains('sync-depm')) {
+            const newValue_ = e.target.value;
+
+            // วนลูปหา Select ตัวอื่นๆ ที่มี class เดียวกัน แล้วจับเปลี่ยนค่าให้เหมือนกัน
+            document.querySelectorAll('.sync-depm').forEach(el => {
+                if (el !== e.target) {
+                    el.value = newValue_;
+                }
+            });
+        }
+    });
+
+    // ดักจับของ Department ด้วย (ถ้าต้องการ) ให้ทำเหมือนกันแต่เปลี่ยนชื่อ class เป็น sync-dept
 </script>

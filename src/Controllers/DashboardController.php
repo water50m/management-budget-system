@@ -21,9 +21,9 @@ class DashboardController
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?page=login");
             exit();
-        } 
+        }
 
-        if($_SESSION['role'] == 'user'){
+        if ($_SESSION['role'] == 'user') {
             $_id = $_SESSION['user_id'];
 
             header("Location: index.php?page=profile&id=$_id...");
@@ -135,7 +135,7 @@ class DashboardController
                     $data = array_merge($data, showAndSearchUsers($conn));
                 } elseif ($tab == 'logs' && $session_role == 'high-admin') {
                     $data = array_merge($data, showAndManageLogs($conn));
-                } elseif ($tab == 'summary') {
+                } elseif ($tab == 'summary' && !isset($_GET['query_over_all'])) {
                     $data = array_merge($data, showAndSearchOverview($conn));
                 }
             }
@@ -160,7 +160,10 @@ class DashboardController
                 // 🟢 กรณีที่ 3: กด Tab ย่อย (เปลี่ยนแค่ไส้ใน)
                 // (Logic เดิมของคุณ)
                 extract($data);
-                include __DIR__ . '/../../views/dashboard/tabs/' . $tab . '_view.php';
+                include_once __DIR__ . '/../../views/dashboard/tabs/' . $tab . '_view.php';
+                exit;
+            } elseif ($hx_target == 'fpaTableBody') {
+                require_once __DIR__ . '/../Helper/table_summary_FPA.php';
                 exit;
             }
         }
@@ -172,7 +175,15 @@ class DashboardController
         // 🛑 สำคัญมาก! สั่งหยุดทันที เพื่อไม่ให้โหลด Header/Footer ซ้ำ
         exit();
     }
+
+    public function showPDF()
+    {
+        global $conn;
+        require_once __DIR__ . '/../Helper/print_fpa_pdf.php';
+    }
 }
+
+
 
 function submitDeleteExpense($conn)
 {

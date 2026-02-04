@@ -1,0 +1,52 @@
+=== START OF OUTPUT ===
+        <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition-colors">
+            <td class="px-4 py-3 text-center border-r border-gray-200 font-medium text-gray-500">1</td>
+            <td class="px-4 py-3 font-semibold text-gray-800 border-r border-gray-200">นายAdmin System</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">5,150.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right font-bold text-gray-900 bg-gray-50">5,150.00</td>
+        </tr>
+        <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition-colors">
+            <td class="px-4 py-3 text-center border-r border-gray-200 font-medium text-gray-500">2</td>
+            <td class="px-4 py-3 font-semibold text-gray-800 border-r border-gray-200">ผศ.ดร.สมชาย รักเรียน</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">15,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">25,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right font-bold text-gray-900 bg-gray-50">40,000.00</td>
+        </tr>
+        <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition-colors">
+            <td class="px-4 py-3 text-center border-r border-gray-200 font-medium text-gray-500">3</td>
+            <td class="px-4 py-3 font-semibold text-gray-800 border-r border-gray-200">รศ.ดร.มานี มีตา</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">21,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">30,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">5,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">40,000.00</td>
+            <td class="px-2 py-3 text-right font-bold text-gray-900 bg-gray-50">96,000.00</td>
+        </tr>
+        <tr class="hover:bg-blue-50/30 border-b border-gray-200 transition-colors">
+            <td class="px-4 py-3 text-center border-r border-gray-200 font-medium text-gray-500">4</td>
+            <td class="px-4 py-3 font-semibold text-gray-800 border-r border-gray-200">อ.ปิติ ใจดี</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">1,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">-</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">10,000.00</td>
+            <td class="px-2 py-3 text-right text-red-600 font-medium border-r border-red-100 bg-red-50/10">15,000.00</td>
+            <td class="px-2 py-3 text-right font-bold text-gray-900 bg-gray-50">26,000.00</td>
+        </tr>
+
+<tr style="display:none">
+    <td>
+        <span id="grandTotalCell" hx-swap-oob="true">167,150.00</span>
+        <span id="headerYearText" hx-swap-oob="true">2569</span>
+        <span id="headerYearTextLastTwo" hx-swap-oob="true">69</span>
+        <span id="totalTravel" hx-swap-oob="true">42,150.00</span>
+        <span id="totalBook" hx-swap-oob="true">55,000.00</span>
+        <span id="totalComp" hx-swap-oob="true">15,000.00</span>
+        <span id="totalSci" hx-swap-oob="true">55,000.00</span>
+    </td>
+</tr>
+
+
+=== END OF OUTPUT ===

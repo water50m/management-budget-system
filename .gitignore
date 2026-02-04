@@ -12,8 +12,8 @@ Desktop.ini
 *.sublime-workspace
 
 # --- PHP & Dependencies ---
-/vendor/
-composer.lock
+
+
 error_log
 php_error.log
 
