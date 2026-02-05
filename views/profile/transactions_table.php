@@ -1,5 +1,5 @@
-<div id="txn-table-container" class="flex-1 bg-white rounded-xl shadow-lg border flex flex-col min-h-0 overflow-hidden h-screen mb-5">
-    <div class="flex-1 overflow-x-auto overflow-y-auto flex flex-col min-h-0">
+<div id="txn-table-container" class="flex flex-col h-auto max-h-[calc(78vh-100px)] bg-white rounded-xl shadow-lg border min-h-0 overflow-hidden mb-5">
+    <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
         <table class="w-full text-sm text-left">
             <thead class="bg-white border-b border-gray-200 text-gray-500 font-semibold text-sm sticky top-0 shadow-sm z-10">
                 <tr>

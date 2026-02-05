@@ -367,9 +367,11 @@ class AuthController
             $_SESSION['role'] = 'admin-office';
             $_SESSION['seer'] = 6;
         } else if ($role == 'user') {
+            $_SESSION['user_id'] = '2';
             $_SESSION['role'] = 'user';
             $_SESSION['seer'] = 7;
         } else if ($role == 'admin') {
+            
             $_SESSION['role'] = 'high-admin';
             $_SESSION['seer'] = 0;
         }

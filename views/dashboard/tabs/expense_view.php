@@ -92,7 +92,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
                                         <?php echo $dept['thai_name']; ?>
-                                </option>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -110,9 +110,21 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         </div>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                        <input type="date" name="start_date" value="<?php echo $filters['start_date']; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent" onchange="this.form.requestSubmit()">
+                        <input type="text" name="start_date"
+                            value="<?php echo $filters['start_date']; ?>"
+                            class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
+                            placeholder="วันเริ่มต้น"
+                            onchange="/*this.form.requestSubmit() ลบออกก่อน เดี๋ยวใช้ event ของ flatpickr แทน*/"
+                            >
+
                         <div class="bg-gray-100 border-l border-r border-gray-200 px-2 h-full flex items-center text-[10px] text-gray-500 font-medium">ถึง</div>
-                        <input type="date" name="end_date" value="<?php echo $filters['end_date']; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent" onchange="this.form.requestSubmit()">
+
+                        <input type="text" name="end_date"
+                            value="<?php echo $filters['end_date']; ?>"
+                            class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
+                            placeholder="วันสิ้นสุด"
+                            onchange="/*this.form.requestSubmit()*/"
+                            >
                     </div>
                 </div>
 
@@ -309,3 +321,4 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
     ?>
 <?php
 }
+?>

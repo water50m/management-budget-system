@@ -99,9 +99,9 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                         </select>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] <?php echo $focusRing; ?>">
-                        <input type="date" name="start_date" value="<?php echo $filters['start_date']; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" onchange="this.form.requestSubmit()">
+                        <input type="text" name="start_date" value="<?php echo $filters['start_date']; ?>" class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่เริ่มต้น">
                         <div class="bg-gray-100 px-2 h-full flex items-center text-[10px] text-gray-500 border-l border-r border-gray-200">ถึง</div>
-                        <input type="date" name="end_date" value="<?php echo $filters['end_date']; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" onchange="this.form.requestSubmit()">
+                        <input type="text" name="end_date" value="<?php echo $filters['end_date']; ?>" class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่สิ้นสุด">
                     </div>
                 </div>
 

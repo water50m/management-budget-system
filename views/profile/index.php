@@ -135,7 +135,7 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
             </div>
         </div>
 
-        <div class="lg:col-span-4 rounded-xl flex flex-col h-[calc(97vh-5rem)]">
+        <div class="lg:col-span-4 rounded-xl flex flex-col ">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-100 mb-6 ">
                 <form hx-get="index.php?page=profile"
                     hx-target="#txn-table-container"

@@ -48,26 +48,23 @@
 
             <div class="space-y-3">
                 <div class="mb-4">
+                    <div class="flex justify-between items-end mb-2">
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">
                         วันที่อนุมัติ (ตามเอกสาร)
                     </label>
-
-                    <input type="date"
+                    <button type="button" data-target="expense_date"
+                        class="btn-use-today text-xs font-medium text-green-600 hover:text-green-800 hover:underline cursor-pointer flex items-center gap-1 transition-colors">
+                        <i class="fa-regular fa-calendar-check"></i> คลิกเพื่อใช้วันที่ปัจจุบัน
+                    </button>
+                    </div>
+                    <input type="text"
                         id="expense_date"
                         name="expense_date"
-                        oninput="checkManualDate(this, 'use_today')"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        required>
+                        class="flatpickr-thai shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                         placeholder="เลือกวันที่..."
+                        required readonly>
 
-                    <div class="mt-2 flex items-center">
-                        <input type="checkbox"
-                            id="use_today"
-                            onclick="toggleTodayDate(this, 'expense_date')"
-                            class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
-                        <label for="use_today" class="ml-2 text-sm text-gray-600 cursor-pointer select-none">
-                            ใช้วันที่ปัจจุบัน (วันนี้)
-                        </label>
-                    </div>
+
                 </div>
 
                 <div>
