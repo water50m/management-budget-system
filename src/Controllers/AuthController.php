@@ -16,7 +16,6 @@ class AuthController
         // 2. ถ้ามีการกด Submit (POST)
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'] = '1';
-            $_SESSION['username'] = 'high-admin';
             $_SESSION['role'] = 'high-admin';
             $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
             $_SESSION['seer'] = 0;
@@ -39,7 +38,6 @@ class AuthController
             if ($user && password_verify($password, $user['password'])) {
                 // Login สำเร็จ: เก็บ Session
                 $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['fullname'] = $user['first_name'] . ' ' . $user['last_name'];
                 $_SESSION['seer'] = 0;
@@ -93,7 +91,7 @@ class AuthController
                         // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
                         $sql = "SELECT p.id, u.username, p.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
                                 FROM users u
-                                LEFT JOIN profiles p ON u.id = p.user_id
+                                LEFT JOIN user_profiles p ON u.id = p.user_id
                                 LEFT JOIN roles r ON p.role_id = r.id
                                 WHERE u.username = '$username'";
 
@@ -105,7 +103,6 @@ class AuthController
                             // เรียกใช้ได้เลย
                             $user_id = $row['id'];
                             $_SESSION['user_id'] = $user_id;
-                            $_SESSION['username'] = $row['username'];
                             $_SESSION['role'] = $row['role_name'];
                             $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
                             $_SESSION['seer'] = $row['role_id'] == 7 ? 7 : $row['role_id']  - 1;
@@ -123,7 +120,15 @@ class AuthController
                         exit;
                     }
                 }
-            } else if (empty($_POST['username']) || empty($_POST['password'])) {
+            } else if (!empty($_POST['login_via_remember'])){
+                $user_id = intval($_POST['login_via_remember']);
+                if(!$this->autometicLogin($conn, $user_id)){
+                    header("Location: index.php?page=login&status=error&msg=empty_fields");
+                    exit();
+                }
+                $this->deleteRememberedAuth($conn);
+            }
+            else if (empty($_POST['username']) || empty($_POST['password'])) {
                 header("Location: index.php?page=login&status=error&msg=empty_fields");
                 exit();
             }
@@ -132,7 +137,6 @@ class AuthController
         $remembered_user = null;
         if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
             $remembered_user = $this->checkRememberedAuth($conn);
-            
         }
 
         // ส่วน Logout / เปลี่ยนบัญชี
@@ -194,7 +198,6 @@ class AuthController
                     $textColor = $b ? '#166534' : '#991b1b'; // เขียวตัวหนังสือ / แดงตัวหนังสือ
                     $statusTitle = $b ? '✅ LOGIN SUCCESS (เชื่อมต่อสำเร็จ)' : '❌ LOGIN FAILED (เชื่อมต่อล้มเหลว)';
                     $_SESSION['user_id'] = '1';
-                    $_SESSION['username'] = 'high-admin';
                     $_SESSION['role'] = 'high-admin';
                     $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
                     $_SESSION['seer'] = 0;
@@ -326,7 +329,6 @@ class AuthController
                         exit();
                     } else {
                         $_SESSION['user_id'] = '1';
-                        $_SESSION['username'] = 'high-admin';
                         $_SESSION['role'] = 'high-admin';
                         $_SESSION['fullname'] = 'login' . ' ' . 'success';
                         $_SESSION['seer'] = 0;
@@ -345,7 +347,6 @@ class AuthController
         global $conn;
 
         $_SESSION['user_id'] = '1';
-        $_SESSION['username'] = 'test-user';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
 
         $role = $_GET['mock'] ?? '';
@@ -374,12 +375,11 @@ class AuthController
         }
         // header("Location: index.php?page=dashboard&tab=users");
         echo $_SESSION['user_id'];
-        echo $_SESSION['username'];
         echo $_SESSION['fullname'];
         echo $_SESSION['role'];
         echo $_SESSION['seer'];
-        $this->rememberAuth($conn,1);
-        header("Location: index.php?page=dashboard&tab=users");
+        $this->rememberAuth($conn, 1);
+        header("Location: index.php?page=dashboard&tab=summary");
         exit;
     }
     public function new_login()
@@ -438,6 +438,7 @@ class AuthController
         list($selector, $validator) = explode(':', $_COOKIE['remember_me']);
 
         // Query หา selector ใน DB
+
         $stmt = $conn->prepare("SELECT * FROM users WHERE remember_selector = ? AND remember_expiry > NOW()");
         $stmt->bind_param("s", $selector);
         $stmt->execute();
@@ -456,5 +457,37 @@ class AuthController
                 // (Optional) ตรงนี้ถ้าจะให้ Login เลยก็ได้ แต่โจทย์บอกให้แสดงปุ่ม Login
             }
         }
+    }
+
+    private function autometicLogin($conn, $user_id)
+    {   
+        if ($this->checkRememberedAuth($conn)) {
+
+            $stmt = $conn->prepare("SELECT p.user_id, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+                                FROM users u
+                                LEFT JOIN user_profiles p ON u.id = p.user_id
+                                LEFT JOIN roles r ON u.role_id = r.id
+                                WHERE u.id = ? AND u.remember_expiry > NOW()");
+            
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $token_row = $result->fetch_assoc();
+
+            $user_id = $token_row['user_id'];
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['role'] = $token_row['role_name'];
+            $_SESSION['fullname'] = $token_row['prefix'] . ' ' . $token_row['first_name'] . ' ' . $token_row['last_name'];
+            $_SESSION['seer'] = $token_row['role_id'] == 7 ? 7 : $token_row['role_id']  - 1;
+            if ($token_row['role_id'] != 7) {
+                header("Location: index.php?page=dashboard&tab=summary");
+            } else {
+                header("Location: index.php?page=profile&id=$user_id");
+            }
+            exit;
+        }
+        $this->deleteRememberedAuth($conn);
+        header("Location: index.php?page=login");
+        exit;
     }
 }

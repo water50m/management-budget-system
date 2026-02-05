@@ -79,15 +79,15 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                         </div>
 
                         <div>
-                            <p class="text-gray-500 text-sm">ยินดีต้อนรับกลับ,</p>
+                            <p class="text-gray-500 text-sm">ยินดีต้อนรับ,</p>
                             <h3 class="text-xl font-bold text-gray-800 mt-1">
-                                <?php echo htmlspecialchars($remembered_user['first_name'] . ' ' . $remembered_user['last_name']); ?>
+                                <?php echo htmlspecialchars($remembered_user['prefix'] . ' ' . $remembered_user['first_name'] . ' ' . $remembered_user['last_name']); ?>
                             </h3>
                         </div>
 
-                        <input type="hidden" name="auto_login_id" value="<?php echo $remembered_user['user_id']; ?>">
+                        <input type="hidden" name="login_via_remember" value="<?php echo $remembered_user['user_id']; ?>">
                         <div class="space-y-3 pt-2">
-                            <button type="submit" name="login_via_remember" value="1"
+                            <button type="submit" 
                                 class="w-full bg-primary hover:bg-primaryDark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-amber-500/20 transform active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-2 group">
                                 <span>ดำเนินการต่อ</span>
                                 <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>

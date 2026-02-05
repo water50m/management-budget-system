@@ -19,6 +19,7 @@ $res_top       = $overview['res_top'] ?? false;
 $dept_labels = [];
 $dept_received = [];
 $dept_spent = [];
+
 mysqli_data_seek($res_dept, 0);
 while ($r = mysqli_fetch_assoc($res_dept)) {
     $dept_labels[] = $r['thai_name'];

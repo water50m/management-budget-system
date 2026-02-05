@@ -92,7 +92,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
                                         <?php echo $dept['thai_name']; ?>
-                                    </option>
+                                </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
