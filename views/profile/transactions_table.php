@@ -54,34 +54,99 @@
                             </td>
                             <td class="px-6 py-4 text-right font-mono font-medium">
                                 <?php if ($txn['type'] == 'income'): ?>
-                                    <span class="text-green-600 text-lg">+<?php echo number_format($txn['amount'], 2); ?></span>
+                                    <span class="text-green-600 text-lg"><?php echo number_format($txn['amount'], 2); ?></span>
                                 <?php else: ?>
                                     <span class="text-red-500 text-lg"><?php echo number_format($txn['amount'], 2); ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <?php if ($txn['type'] == 'income'): ?>
-                                    <div class="w-8 h-8 mx-auto rounded-full bg-green-100 text-green-600 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-down"></i></div>
+                                    <div class="w-8 h-8 mx-auto rounded-full bg-green-100 text-green-500 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-up"></i></div>
+
                                 <?php else: ?>
-                                    <div class="w-8 h-8 mx-auto rounded-full bg-red-100 text-red-500 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-up"></i></div>
+                                    <div class="w-8 h-8 mx-auto rounded-full bg-red-100 text-red-600 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-down"></i></div>
+
                                 <?php endif; ?>
                             </td>
+                            <?php $isUsed = (isset($txn['total_used']) && $txn['total_used'] > 0); ?>
                             <?php if ($_SESSION['role'] == 'high-admin' || $_SESSION['seer'] == $user_info['department_id']): ?>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
 
                                         <?php if ($_SESSION['role'] == 'high-admin'): ?>
+                                            <?php
 
-                                            <button type="button" onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"
-                                                class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition" title="ลบ">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            if ($txn['type'] == 'income') { ?>
+                                                <input type="hidden" id="delete_received_id" name="id_to_delete" value="<?= $txn['id'] ?>">
+
+                                                <button type="button"
+                                                    onclick="openEditBudgetReceivedModal(
+                                                        '<?php echo $txn['id']; ?>', 
+                                                        '<?php echo $user_info['id']; ?>', 
+                                                        '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>',
+                                                        '<?php echo $txn['amount']; ?>', 
+                                                        '<?php echo $txn['txn_date']; ?>', 
+                                                        '<?php echo addslashes($txn['description']); ?>',
+                                                        '<?php echo $isUsed ?>'
+                                                    )"
+                                                    class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition flex items-center gap-1">
+                                                    <i class="fas fa-edit"></i> แก้ไข
+                                                </button>
+                                                <?php if ($isUsed): ?>
+                                                    <button type="button" disabled
+                                                        onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วน หรือทั้งหมดของรายการนี้ถูกใช้ไปแล้ว')"
+                                                        onmouseleave="hideGlobalAlert()"
+                                                        class="text-gray-300 cursor-not-allowed p-2 rounded-full">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button"
+                                                        onclick="openDeleteModal(
+                                                        '<?php echo $txn['id']; ?>', 
+                                                        'delete_budget'
+                                                    )"
+                                                        class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition"
+                                                        title="ลบรายการนี้">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                            <?php
+                                            } else {
+                                            ?>
+                                                <input type="hidden" id="delete_target_id" name="id_to_delete" value="<?= $txn['id'] ?>">
+                                                <button type="button"
+                                                    onclick="openEditExpenseModal(
+                                                                '<?= $txn['id'] ?>', 
+                                                                '<?= $user_info['id'] ?>', 
+                                                                '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name']; ?><br><?php echo $user_info['last_name']; ?>', 
+                                                                '<?= $txn['amount'] ?>', 
+                                                                '<?= $txn['txn_date'] ?>', 
+                                                                '<?= isset($txn['category_id']) ? $txn['category_id'] : '' ?>', 
+                                                                '<?= addslashes($txn['description']) ?>'
+                                                            )"
+                                                    class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition flex items-center gap-1">
+                                                    <i class="fas fa-edit"></i> แก้ไข
+                                                </button>
+                                                <button type="button"
+                                                    onclick="openDeleteModal(
+                                                        '<?php echo $txn['id']; ?>', 
+                                                        'delete_expense', 
+                                                        '<?php echo addslashes($txn['description']); ?>'
+                                                    )"
+                                                    class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            <?php
+                                            }
+                                            ?>
+
                                         <?php endif; ?>
                                     </div>
                                 </td>
                             <?php endif; ?>
 
                         </tr>
+
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
@@ -131,4 +196,5 @@
             </tfoot>
         </table>
     </div>
+    <?php include_once __DIR__ . '/../../includes/confirm_delete.php'; ?>
 </div>

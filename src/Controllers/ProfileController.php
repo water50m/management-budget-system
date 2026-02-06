@@ -1,7 +1,7 @@
 <?php
 class ProfileController
 {
-// ถ้ามีเวลาควรแยกฟังชั่นนะ
+    // ถ้ามีเวลาควรแยกฟังชั่นนะ
     public function index()
     {
         global $conn;
@@ -81,27 +81,27 @@ class ProfileController
 
         // Apply Filters
         if (!empty($f_search)) {
-            $where_inc .= " AND (remark LIKE '%$f_search%') ";
+            $where_inc .= " AND (br.remark LIKE '%$f_search%') ";
             $where_exp .= " AND (e.description LIKE '%$f_search%') ";
         }
         if ($f_year > 0) {
-            $fy_logic = "(IF(MONTH(approved_date)>=10, YEAR(approved_date)+1, YEAR(approved_date))+543)";
-            $where_inc .= " AND $fy_logic = $f_year ";
-            $where_exp .= " AND $fy_logic = $f_year ";
+            // $fy_logic = "(IF(MONTH(approved_date)>=10, YEAR(approved_date)+1, YEAR(approved_date))+543)";
+            $where_inc .= " AND br.fiscal_year = $f_year ";
+            $where_exp .= " AND e.fiscal_year = $f_year ";
         }
         if ($f_cat > 0) {
             $where_inc .= " AND 1=0 ";
             $where_exp .= " AND e.category_id = $f_cat ";
         }
         if ($f_min !== '' && $f_min > 0) {
-            $where_inc .= " AND amount >= $f_min ";
+            $where_inc .= " AND br.amount >= $f_min ";
             $where_exp .= " AND e.amount >= $f_min ";
         }
         if ($f_max !== '' && $f_max > 0) {
-            $where_inc .= " AND amount <= $f_max ";
+            $where_inc .= " AND br.amount <= $f_max ";
             $where_exp .= " AND e.amount <= $f_max ";
         }
-        
+
 
         // Combine Query based on Type
         $sql_parts = [];
@@ -109,18 +109,28 @@ class ProfileController
         // ส่วนรายรับ (Income)
         if ($f_type == 'all' || $f_type == 'income') {
             $sql_parts[] = "(SELECT 
-                                id, approved_date as txn_date, remark as description, amount as amount,
-                                'income' as type, NULL as category_name,
-                                IF(MONTH(approved_date) >= 10, YEAR(approved_date) + 1, YEAR(approved_date)) + 543 as fiscal_year_num
-                             FROM budget_received $where_inc)";
+                                br.id, 
+                                br.approved_date as txn_date, 
+                                br.remark as description, 
+                                br.amount as amount,
+                                'income' as type, 
+                                NULL as category_name, 
+                                NULL as category_id,
+                                COALESCE((SELECT SUM(amount_used) 
+                                        FROM budget_usage_logs 
+                                        WHERE approval_id = br.id), 0) as total_used, 
+                                br.fiscal_year as fiscal_year_num
+                            FROM budget_received br 
+                            $where_inc)";
         }
 
         // ส่วนรายจ่าย (Expense)
         if ($f_type == 'all' || $f_type == 'expense') {
             $sql_parts[] = "(SELECT 
-                                e.id, e.approved_date as txn_date, e.description, -e.amount as amount,
-                                'expense' as type, c.name_th as category_name,
-                                IF(MONTH(e.approved_date) >= 10, YEAR(e.approved_date) + 1, YEAR(e.approved_date)) + 543 as fiscal_year_num
+                                e.id, e.approved_date as txn_date, e.description, e.amount as amount,
+                                'expense' as type, c.name_th as category_name, c.id AS category_id,
+                                NULL AS total_used,
+                                fiscal_year as fiscal_year_num
                              FROM budget_expenses e
                              LEFT JOIN expense_categories c ON e.category_id = c.id
                              $where_exp)";
@@ -205,6 +215,8 @@ class ProfileController
 
             $return_page = isset($_POST['current_page']) ? $_POST['current_page'] : 'dashboard';
             $return_tab  = isset($_POST['current_tab']) ? $_POST['current_tab'] : 'dashboard';
+
+
             // 1. รับค่าจากฟอร์ม
             $prefix = mysqli_real_escape_string($conn, $_POST['prefix']);
             $first_name = mysqli_real_escape_string($conn, $_POST['first_name']);

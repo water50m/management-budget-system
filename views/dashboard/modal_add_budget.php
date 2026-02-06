@@ -11,10 +11,13 @@
         <form method="POST" action="index.php?page=dashboard">
             <input type="hidden" name="action" value="add_budget">
             <input type="hidden" name="user_id" id="add_budget_user_id">
+
             <?php $this_page = $_GET['page'] ?>
             <?php $this_tab = isset($_GET['tab']) ? $_GET['tab'] : ''; ?>
-            <input type="hidden" name="submin_page" value="<?= $this_page ?>">
-            <input type="hidden" name="submin_tab" value="<?= $this_tab ?>">
+            <input type="hidden" name="submit_page" value="<?= $this_page ?>">
+            <input type="hidden" name="submit_tab" value="<?= $this_tab ?>">
+            <input type="hidden" name="profile_id" value="<?= isset($_GET['id']) ? $_GET['id'] : 0  ?>">
+
             <div class="mb-4 bg-green-50 p-3 rounded border border-green-200">
                 <p class="text-sm text-gray-600">กำลังเพิ่มงบให้:</p>
                 <p class="font-bold text-lg text-green-800" id="add_budget_user_name">-</p>

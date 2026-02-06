@@ -1,5 +1,4 @@
 <?php
-include_once __DIR__ . '/../../../src/Helper/FE_function.php';
 
 // เรียกใช้ฟังก์ชันแสดงตาราง received
 renderReceivedTableComponent(
@@ -39,16 +38,22 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
 
         <form hx-get="index.php?page=dashboard&tab=received"
-            hx-target="#tab-content"
+            hx-target="#table-received"
             hx-push-url="true"
-            class="w-full">
-
+            hx-indicator="#loading-indicator"
+            class="w-full"
+            id="form-received">
             <div class="flex flex-wrap md:flex-nowrap gap-3 items-end">
 
                 <div class="w-full md:w-[10%] flex-shrink-0 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ปีงบประมาณ</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $focusRing; ?>">
-                        <select name="year" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
+                        <select name="year"
+                            hx-get="index.php?page=dashboard&tab=received"
+                            hx-trigger="change"
+                            hx-target="#table-received"
+                            hx-include="#form-received"
+                            class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
                             <option value="0">ทุกปีงบฯ</option>
                             <?php foreach ($years as $y): ?>
                                 <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
@@ -70,7 +75,11 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                         <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>"
                             class="w-full h-[38px] border-none text-xs text-gray-700 focus:ring-0 placeholder-gray-400"
                             placeholder="ชื่อผู้ขอ / รายละเอียด"
-                            hx-trigger="keyup changed delay:500ms search">
+
+                            hx-get="index.php?page=dashboard&tab=received"
+                            hx-trigger="keyup changed delay:500ms, search"
+                            hx-target="#table-received"
+                            hx-include="#form-received">
                     </div>
                 </div>
 
@@ -78,7 +87,12 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                     <div class="w-full md:w-[15%] flex-shrink-0 flex flex-col justify-end">
                         <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา / สำนักงาน</label>
                         <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $focusRing; ?>">
-                            <select name="dept_id" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
+                            <select name="dept_id"
+                                hx-get="index.php?page=dashboard&tab=received"
+                                hx-trigger="change"
+                                hx-target="#table-received"
+                                hx-include="#form-received"
+                                class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
                                 <option value="0">--ทุกภาควิชา--</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
@@ -93,15 +107,28 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                 <div class="w-full md:w-[22%] flex-shrink-0 flex flex-col justify-end">
                     <div class="flex items-center gap-2 mb-1.5">
                         <label class="block text-xs font-bold text-gray-700">ช่วงวันที่</label>
-                        <select name="date_type" onchange="this.form.requestSubmit()" class="appearance-none <?php echo $bgLight; ?> <?php echo $textDark; ?> <?= $border ?> text-[10px] font-bold rounded px-2 py-0.5 cursor-pointer focus:outline-none">
+                        <select name="date_type"
+                            hx-get="index.php?page=dashboard&tab=received"
+                            hx-trigger="change"
+                            hx-target="#table-received"
+                            hx-include="#form-received"
+                            class="appearance-none <?php echo $bgLight; ?> <?php echo $textDark; ?> <?= $border ?> text-[10px] font-bold rounded px-2 py-0.5 cursor-pointer focus:outline-none">
                             <option value="approved" <?php echo ($filters['date_type'] == 'approved') ? 'selected' : ''; ?>>วันที่อนุมัติ</option>
-                            <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>></option>
+                            <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>>วันที่สร้าง</option>
                         </select>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] <?php echo $focusRing; ?>">
-                        <input type="text" name="start_date" value="<?php echo $filters['start_date']; ?>" class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่เริ่มต้น">
+                        <input type="text" name="start_date" value="<?php echo $filters['start_date']; ?>"
+                            hx-get="index.php?page=dashboard&tab=received" hx-trigger="change"
+                            hx-target="#table-received" hx-include="#form-received"
+                            class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่เริ่มต้น">
+
                         <div class="bg-gray-100 px-2 h-full flex items-center text-[10px] text-gray-500 border-l border-r border-gray-200">ถึง</div>
-                        <input type="text" name="end_date" value="<?php echo $filters['end_date']; ?>" class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่สิ้นสุด">
+
+                        <input type="text" name="end_date" value="<?php echo $filters['end_date']; ?>"
+                            hx-get="index.php?page=dashboard&tab=received" hx-trigger="change"
+                            hx-target="#table-received" hx-include="#form-received"
+                            class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0" placeholder="วันที่สิ้นสุด">
                     </div>
                 </div>
 
@@ -109,15 +136,31 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ยอดเงิน (บาท)</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] focus-within:ring-1 <?php echo $focusRing; ?>">
                         <input type="hidden" name="min_amount" id="min_amount_hidden" value="<?php echo $filters['min_amount']; ?>">
-                        <input type="text" inputmode="decimal" placeholder="Min" value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent" oninput="formatCurrency(this, 'min_amount_hidden')">
+
+                        <input type="text" inputmode="decimal" placeholder="Min"
+                            value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
+                            class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
+                            oninput="formatCurrency(this, 'min_amount_hidden')"
+                            hx-get="index.php?page=dashboard&tab=received" hx-trigger="change"
+                            hx-target="#table-received" hx-include="#form-received">
+
                         <div class="bg-gray-100 px-2 h-full flex items-center text-gray-400 border-l border-r border-gray-200">-</div>
+
                         <input type="hidden" name="max_amount" id="max_amount_hidden" value="<?php echo $filters['max_amount']; ?>">
-                        <input type="text" inputmode="decimal" placeholder="Max" value="<?php echo ($filters['max_amount'] !== '') ? number_format((float)$filters['max_amount']) : ''; ?>" class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent" oninput="formatCurrency(this, 'max_amount_hidden')">
+                        <input type="text" inputmode="decimal" placeholder="Max"
+                            value="<?php echo ($filters['max_amount'] !== '') ? number_format((float)$filters['max_amount']) : ''; ?>"
+                            class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
+                            oninput="formatCurrency(this, 'max_amount_hidden')"
+                            hx-get="index.php?page=dashboard&tab=received" hx-trigger="change"
+                            hx-target="#table-received" hx-include="#form-received">
                     </div>
                 </div>
 
                 <div class="w-full md:w-auto flex-shrink-0 flex items-center gap-2">
-                    <button type="submit" class="w-full md:w-[40px] <?php echo "$btnBg $btnHover"; ?> text-white rounded-md h-[38px] flex items-center justify-center shadow-sm transition">
+                    <button type="submit" class="w-full md:w-[40px] <?php echo "$btnBg $btnHover"; ?> text-white rounded-md h-[38px] flex items-center justify-center shadow-sm transition"
+                        hx-get="index.php?page=dashboard&tab=received"
+                        hx-target="#table-received"
+                        hx-include="#form-received">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -140,130 +183,8 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
 
         </form>
     </div>
+    <?php include_once __DIR__ . "/../tables/received_table.php"; ?>
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?> flex flex-col min-h-0 overflow-hidden">
-        <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
-            <table class="w-full text-sm text-left">
-                <thead class="sticky top-0 z-10 <?php echo $bgLight; ?> <?php echo $textDark; ?> border-b <?php echo $borderBase; ?>">
-                    <tr>
-                        <th class="px-6 py-4 font-bold text-center w-16">
-                            <select name="limit"
-                                hx-get="index.php?page=dashboard&tab=received"
-                                hx-target="#tab-content"
-                                hx-include="[name='search'], [name='dept_id'], [name='date_type'], [name='start_date'], [name='end_date'], [name='min_amount'], [name='max_amount'], [name='year']"
-                                class="border-gray-300 rounded shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500 py-1 cursor-pointer">
-                                <?php
-                                $limits = [10 => '10', 25 => '25', 50 => '50', 100 => '100', 1000000 => 'ทั้งหมด'];
-                                foreach ($limits as $val => $text):
-                                ?>
-                                    <option value="<?php echo $val; ?>" <?php echo ($pagination['limit'] == $val) ? 'selected' : ''; ?>>
-                                        <?php echo $text; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </th>
-
-                        <th class="px-6 py-4 font-bold whitespace-nowrap w-[12%]">วันที่อนุมัติ</th>
-                        <th class="px-6 py-4 font-bold  w-[15%]">ผู้ขออนุมัติ</th>
-                        <th class="px-6 py-4 font-bold">รายละเอียด</th>
-                        <th class="px-6 py-4 font-bold w-[12%]">ยอดอนุมัติ (บาท)</th>
-                        <th class="px-6 py-4 font-bold text-center w-[15%] min-w-[140px] ">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php if (empty($received)): ?>
-                        <tr>
-                            <td colspan="6" class="p-10 text-center text-gray-400">ไม่พบรายการที่ค้นหา</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($received as $index => $row): ?>
-                            <tr class="hover:bg-gray-50 transition border-b border-gray-100">
-                                <td class="px-6 py-4 text-center text-gray-400"><?php echo $index + 1; ?></td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-600">
-                                    <?php echo $row['thai_date']; ?>
-                                    <div class="text-[10px] text-gray-400">เวลา: <?php echo date('H:i', strtotime($row['record_date'])); ?> น.</div>
-                                </td>
-
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-gray-800">
-                                        <?php echo $row['prefix'] . $row['first_name'] . ' ' . $row['last_name']; ?>
-                                    </div>
-                                    <div class="text-xs text-gray-500"><?php echo $row['department']; ?></div>
-                                </td>
-
-                                <td class="px-6 py-4 text-gray-600">
-                                    <?php echo $row['remark']; ?>
-
-                                </td>
-
-                                <td class="px-6 py-4 font-mono font-bold <?php echo $textAmount; ?> text-lg whitespace-nowrap">
-                                    + <?php echo number_format($row['amount'], 2); ?>
-                                </td>
-
-                                <td class="px-6 py-4 text-center">
-                                    <a hx-get="index.php?page=profile&id=<?php echo $row['user_id']; ?>"
-                                            hx-target="#app-container"
-                                            hx-swap="innerHTML"
-                                            hx-push-url="true"
-                                            class="cursor-pointer bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition items-center gap-1 mx-2">
-                                            <i class="fas fa-user"></i> ดูโปรไฟล์
-                                        </a>
-                                    <?php
-                                    // เช็คว่ามีการใช้งานไปแล้วหรือยัง?
-                                    $isUsed = (isset($row['total_used']) && $row['total_used'] > 0);
-                                    ?>
-
-                                    <?php if ($isUsed): ?>
-                                        <button type="button" disabled
-                                            onmouseenter="showGlobalAlert('⚠️ ไม่สามารถลบได้: งบประมาณบางส่วน หรือทั้งหมดถูกใช้ไปแล้ว')"
-                                            onmouseleave="hideGlobalAlert()"
-                                            class="text-gray-300 cursor-not-allowed p-2 rounded-full">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    <?php else: ?>
-                                        
-                                        <button type="button"
-
-                                            onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_received_id')"
-                                            class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition"
-                                            title="ลบรายการนี้">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-
-                        <?php
-                        if (function_exists('renderDeleteModal')) {
-                            renderDeleteModal(
-                                "index.php?page=dashboard",
-                                "delete_budget",
-                                "delete_received_id",
-                                $row['id'],
-                                $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name']
-                            );
-                        }
-                        ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php
-        $hx_selectors = "[name='search'], [name='dept_id'], [name='date_type'], [name='start_date'], [name='end_date'], [name='min_amount'], [name='max_amount'], [name='year']";
-
-
-        if (function_exists('renderPaginationBar')) {
-            renderPaginationBar(
-                $pagination,       // ข้อมูล Pagination
-                'received',         // ชื่อ Tab (tab=expense)
-                $hx_selectors,     // ตัวกรองที่จะส่งไปด้วย (hx-include)
-                $theme              // ธีมสี (purple)
-            );
-        }
-        ?>
-    </div>
 <?php
 }
 ?>

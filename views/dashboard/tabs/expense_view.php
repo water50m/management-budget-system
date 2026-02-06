@@ -38,25 +38,29 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
 
     // 🟢 2. สร้าง String สำหรับ hx-include (รวมทุกตัวกรองเพื่อให้ส่งค่าไปด้วยตอนเปลี่ยนหน้า)
     // จำเป็นมากสำหรับหน้านี้เพราะตัวกรองเยอะ
-    $hx_selectors = "[name='search'], [name='dept_id'], [name='cat_id'], [name='date_type'], [name='start_date'], [name='end_date'], [name='min_amount'], [name='max_amount'], [name='year']";
 ?>
     <div class="bg-white p-5 rounded-xl shadow-sm border border-<?= $color ?>-100 mb-6 animate-fade-in">
         <form hx-get="index.php?page=dashboard&tab=expense"
-            hx-target="#tab-content"
+            hx-target="#table-expense"
             hx-push-url="true"
-            class="w-full">
-
-            <?php
-            // เช็คสิทธิ์ Admin
-            $isHighAdmin = (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin');
-            ?>
+            hx-indicator="#loading-indicator"
+            class="w-full"
+            id="form-expense"> <?php
+                                // เช็คสิทธิ์ Admin
+                                $isHighAdmin = (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin');
+                                ?>
 
             <div class="flex flex-wrap md:flex-nowrap gap-3 items-end">
 
                 <div class="w-full md:w-[10%] flex-shrink-0 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">ปีงบประมาณ</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $color; ?>">
-                        <select name="year" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
+                        <select name="year"
+                            hx-get="index.php?page=dashboard&tab=expense"
+                            hx-trigger="change"
+                            hx-target="#table-expense"
+                            hx-include="#form-expense"
+                            class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
                             <option value="0">ทุกปีงบฯ</option>
                             <?php foreach ($years as $y): ?>
                                 <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
@@ -77,8 +81,10 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                             value="<?php echo htmlspecialchars($filters['search']); ?>"
                             class="w-full h-[38px] border-none text-xs text-gray-700 focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
                             placeholder="ชื่อ/รายละเอียด"
+
                             hx-get="index.php?page=dashboard&tab=expense"
-                            hx-target="#tab-content"
+                            hx-target="#table-expense"
+                            hx-include="#form-expense"
                             hx-trigger="keyup changed delay:500ms search">
                     </div>
                 </div>
@@ -87,7 +93,12 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                     <div class="w-full md:w-[15%] flex-shrink-0 flex flex-col justify-end">
                         <label class="block text-xs font-bold text-gray-700 mb-1.5">ภาควิชา / สำนักงาน</label>
                         <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                            <select name="dept_id" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
+                            <select name="dept_id"
+                                hx-get="index.php?page=dashboard&tab=expense"
+                                hx-trigger="change"
+                                hx-target="#table-expense"
+                                hx-include="#form-expense"
+                                class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
                                 <option value="0">--ทุกภาควิชา--</option>
                                 <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_id'] == $dept['id']) ? 'selected' : ''; ?>>
@@ -103,35 +114,45 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                     <div class="flex items-center gap-2 mb-1.5">
                         <label class="block text-xs font-bold text-gray-700">ช่วงวันที่</label>
                         <div class="relative">
-                            <select name="date_type" onchange="this.form.requestSubmit()" class="appearance-none bg-<?= $color ?>-50 hover:bg-<?= $color ?>-100 border border-<?= $color ?>-200 text-<?= $color ?>-700 text-[10px] font-bold rounded px-2 py-0.5 pr-2 cursor-pointer focus:outline-none transition">
+                            <select name="date_type"
+                                hx-get="index.php?page=dashboard&tab=expense"
+                                hx-trigger="change"
+                                hx-target="#table-expense"
+                                hx-include="#form-expense"
+                                class="appearance-none bg-<?= $color ?>-50 hover:bg-<?= $color ?>-100 border border-<?= $color ?>-200 text-<?= $color ?>-700 text-[10px] font-bold rounded px-2 py-0.5 pr-2 cursor-pointer focus:outline-none transition">
                                 <option value="approved" <?php echo ($filters['date_type'] == 'approved') ? 'selected' : ''; ?>>วันที่อนุมัติ</option>
-                                <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>></option>
+                                <option value="created" <?php echo ($filters['date_type'] == 'created') ? 'selected' : ''; ?>>วันที่สร้าง</option>
                             </select>
                         </div>
                     </div>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm h-[38px] focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
                         <input type="text" name="start_date"
                             value="<?php echo $filters['start_date']; ?>"
+                            hx-get="index.php?page=dashboard&tab=expense" hx-trigger="change"
+                            hx-target="#table-expense" hx-include="#form-expense"
                             class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
-                            placeholder="วันเริ่มต้น"
-                            onchange="/*this.form.requestSubmit() ลบออกก่อน เดี๋ยวใช้ event ของ flatpickr แทน*/"
-                            >
+                            placeholder="วันเริ่มต้น">
 
                         <div class="bg-gray-100 border-l border-r border-gray-200 px-2 h-full flex items-center text-[10px] text-gray-500 font-medium">ถึง</div>
 
                         <input type="text" name="end_date"
                             value="<?php echo $filters['end_date']; ?>"
+                            hx-get="index.php?page=dashboard&tab=expense" hx-trigger="change"
+                            hx-target="#table-expense" hx-include="#form-expense"
                             class="flatpickr-thai w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
-                            placeholder="วันสิ้นสุด"
-                            onchange="/*this.form.requestSubmit()*/"
-                            >
+                            placeholder="วันสิ้นสุด">
                     </div>
                 </div>
 
                 <div class="w-full md:w-[12%] flex-shrink-0 flex flex-col justify-end">
                     <label class="block text-xs font-bold text-gray-700 mb-1.5">หมวดหมู่การใช้เงิน</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm focus-within:ring-1 focus-within:ring-<?= $color ?>-500">
-                        <select name="cat_id" onchange="this.form.requestSubmit()" class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
+                        <select name="cat_id"
+                            hx-get="index.php?page=dashboard&tab=expense"
+                            hx-trigger="change"
+                            hx-target="#table-expense"
+                            hx-include="#form-expense"
+                            class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 pr-4 focus:ring-0 bg-transparent cursor-pointer">
                             <option value="0">--ทุกหมวด--</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo $cat['id']; ?>" <?php echo ($filters['cat_id'] == $cat['id']) ? 'selected' : ''; ?>>
@@ -150,7 +171,9 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <input type="text" inputmode="decimal" placeholder="Min"
                             value="<?php echo ($filters['min_amount'] !== '') ? number_format((float)$filters['min_amount']) : ''; ?>"
                             class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="formatCurrency(this, 'min_amount_hidden')">
+                            oninput="formatCurrency(this, 'min_amount_hidden')"
+                            hx-get="index.php?page=dashboard&tab=expense" hx-trigger="change"
+                            hx-target="#table-expense" hx-include="#form-expense">
 
                         <div class="bg-gray-100 border-l border-r border-gray-200 px-2 h-full flex items-center text-gray-400 text-xs">-</div>
 
@@ -159,12 +182,18 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <input type="text" inputmode="decimal" placeholder="Max"
                             value="<?php echo ($filters['max_amount'] !== '') ? number_format((float)$filters['max_amount']) : ''; ?>"
                             class="w-1/2 h-full border-none text-xs text-gray-600 px-1 text-center focus:ring-0 bg-transparent"
-                            oninput="formatCurrency(this, 'max_amount_hidden')">
+                            oninput="formatCurrency(this, 'max_amount_hidden')"
+                            hx-get="index.php?page=dashboard&tab=expense" hx-trigger="change"
+                            hx-target="#table-expense" hx-include="#form-expense">
                     </div>
                 </div>
 
                 <div class="w-full md:w-auto flex-shrink-0 flex items-center gap-2">
-                    <button type="submit" class="w-full md:w-[40px] bg-<?= $color ?>-600 hover:bg-<?= $color ?>-700 text-white rounded-lg text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
+                    <button type="submit"
+                        hx-get="index.php?page=dashboard&tab=expense"
+                        hx-target="#table-expense"
+                        hx-include="#form-expense"
+                        class="w-full md:w-[40px] bg-<?= $color ?>-600 hover:bg-<?= $color ?>-700 text-white rounded-lg text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
                         <i class="fas fa-search"></i>
                     </button>
 
@@ -185,140 +214,8 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg border border-<?= $color ?>-200 flex flex-col min-h-0 overflow-hidden">
-        <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
-            <table class="w-full text-sm text-left">
-                <thead class="sticky top-0 z-10 bg-<?= $color ?>-50 text-<?= $color ?>-900 border-b border-<?= $color ?>-100 shadow-sm">
-                    <tr>
-                        <th class="px-6 py-4 font-bold text-center w-16">
-                            <select name="limit"
-                                hx-get="index.php?page=dashboard&tab=expense"
-                                hx-target="#tab-content"
-                                hx-include="[name='search_text'], [name='dept_user'], [name='role_user']"
-                                class="border-gray-300 rounded shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500 py-1  cursor-pointer">
-                                <?php
-                                $limits = [
-                                    10 => '10',
-                                    25 => '25',
-                                    50 => '50',
-                                    100 => '100',
-                                    1000000 => 'ทั้งหมด'
-                                ];
 
-                                foreach ($limits as $val => $text):
-                                ?>
-                                    <option value="<?php echo $val; ?>" <?php echo ($pagination['limit'] == $val) ? 'selected' : ''; ?>>
-                                        <?php echo $text; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-
-                        </th>
-                        <th class="px-6 py-2 font-bold whitespace-nowrap w-[12%]">วันที่อนุมัติ</th>
-
-                        <th class="px-6 py-2 font-bold w-[15%]">ผู้เบิกจ่าย</th>
-
-                        <th class="px-6 py-2 font-bold whitespace-nowrap text-center w-[12%]">หมวดหมู่</th>
-
-                        <th class="px-6 py-2 font-bold">รายละเอียด</th>
-
-                        <th class="px-6 py-2 font-bold text-right whitespace-nowrap w-[12%]">จำนวนเงิน (บาท)</th>
-
-                        <th class="px-6 py-2 font-bold text-center w-[15%] min-w-[140px] whitespace-nowrap">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php if (empty($expenses)): ?>
-                        <tr>
-                            <td colspan="7" class="p-12 text-center text-gray-400">
-                                <div class="flex flex-col items-center">
-                                    <i class="fas fa-file-invoice-dollar text-4xl mb-3 text-gray-300"></i>
-                                    ไม่พบรายการที่ค้นหา
-                                </div>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($expenses as $index => $row): ?>
-                            <tr class="odd:bg-white even:bg-gray-50 hover:bg-<?= $color ?>-100 transition group border-b border-gray-100">
-                                <td class="px-6 py-4 text-center text-gray-400">
-                                    <?php
-                                    // คำนวณลำดับที่ (เพื่อให้เลขรันต่อกันเมื่อเปลี่ยนหน้า)
-                                    if ($pagination) {
-                                        echo number_format(($pagination['current_page'] - 1) * $pagination['limit'] + ($index + 1));
-                                    } else {
-                                        echo $index + 1;
-                                    }
-                                    ?>
-                                </td>
-                                <td class="px-6 py-2 text-gray-600 whitespace-nowrap">
-                                    <?php echo $row['thai_date']; ?>
-                                    <div class="text-[10px] text-gray-400">เวลา: <?php echo date('H:i', strtotime($row['created_at'])); ?> น.</div>
-                                </td>
-                                <td class="px-6 py-2">
-                                    <div class="font-bold text-gray-800"><?php echo $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name']; ?></div>
-                                    <div class="text-xs text-gray-500"><?php echo $row['department']; ?></div>
-                                </td>
-                                <td class="px-6 py-2 whitespace-nowrap text-center">
-                                    <span class="inline-block px-2.5 py-1 rounded-md text-xs font-semibold bg-<?= $color ?>-100 text-<?= $color ?>-700 border border-<?= $color ?>-200">
-                                        <?php echo $row['category_name'] ? $row['category_name'] : '-'; ?>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-2 text-gray-600">
-                                    <?php echo $row['description']; ?>
-                                </td>
-                                <td class="px-6 py-2 font-mono font-bold text-red-600 text-lg whitespace-nowrap text-right">
-                                    <?php echo number_format($row['amount'], 2); ?>
-                                </td>
-                                <td class="px-6 py-2 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-
-                                        <a hx-get="index.php?page=profile&id=<?php echo $row['user_id']; ?>"
-                                            hx-target="#app-container"
-                                            hx-swap="innerHTML"
-                                            hx-push-url="true"
-                                            class="cursor-pointer bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">
-                                            <i class="fas fa-user"></i> ดูโปรไฟล์
-                                        </a>
-
-                                        <button type="button"
-                                            onclick="openDeleteModal(<?php echo $row['id']; ?>, 'delete_target_id')"
-                                            class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition"
-                                            title="ลบรายการนี้">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-
-
-        <?php
-        if (function_exists('renderPaginationBar')) {
-            renderPaginationBar(
-                $pagination,       // ข้อมูล Pagination
-                'expense',         // ชื่อ Tab (tab=expense)
-                $hx_selectors,     // ตัวกรองที่จะส่งไปด้วย (hx-include)
-                $color             // ธีมสี (purple)
-            );
-        }
-        ?>
-    </div>
-    <?php
-    if (function_exists('renderDeleteModal')) {
-        renderDeleteModal(
-            "index.php?page=dashboard",
-            "delete_expense",
-            "delete_target_id",
-            0,
-            ""
-        );
-    }
-    ?>
 <?php
+    include_once __DIR__ . "/../tables/expense_table.php";
 }
 ?>

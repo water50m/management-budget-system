@@ -242,6 +242,10 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                 if (modal) modal.classList.remove('hidden');
             }
 
+
+
+
+
             function initThaiFlatpickr(content) {
 
                 // ฟังก์ชันช่วยจัดปี พ.ศ.
@@ -252,13 +256,9 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                 const thaiFlatpickrConfig = {
                     locale: flatpickr.l10ns.th,
                     dateFormat: "Y-m-d",
-
                     altInput: true,
-                    altFormat: "j M", // แค่วัน+เดือน
-
+                    altFormat: "j M",
                     disableMobile: true,
-
-
 
                     onReady: function(selectedDates, dateStr, instance) {
                         renderBuddhistDate(instance);
@@ -275,19 +275,31 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
                             bubbles: true
                         }));
                     },
-                    
-                    onOpen: (selectedDates, dateStr, instance) => patchBuddhistYear(instance),
-                    onYearChange: (selectedDates, dateStr, instance) => patchBuddhistYear(instance),
-                    onMonthChange: (selectedDates, dateStr, instance) => patchBuddhistYear(instance),
+
+                    // ✅ แก้ไข 3 บรรทัดข้างล่างนี้ (ใส่ setTimeout)
+                    onOpen: (selectedDates, dateStr, instance) => {
+                        setTimeout(() => patchBuddhistYear(instance), 1);
+                    },
+                    onYearChange: (selectedDates, dateStr, instance) => {
+                        setTimeout(() => patchBuddhistYear(instance), 1);
+                    },
+                    onMonthChange: (selectedDates, dateStr, instance) => {
+                        setTimeout(() => patchBuddhistYear(instance), 1);
+                    },
                 };
 
                 function patchBuddhistYear(instance) {
-                    if (!instance.currentYearElement) return;
+                    // ตรวจสอบว่ามี element ปีแสดงอยู่หรือไม่
+                    if (!instance.currentYearElement) {
+                        return;
+                    }
 
-                    const adYear = instance.currentYear;
-                    const beYear = adYear + 543;
+                    // คำนวณปี พ.ศ. (ค.ศ. + 543)
+                    const currentYear = instance.currentYear;
+                    const buddhistYear = currentYear + 543;
 
-                    instance.currentYearElement.value = beYear;
+                    // แก้ไขค่าใน Input ของปี
+                    instance.currentYearElement.value = buddhistYear;
                 }
 
                 function renderBuddhistDate(instance) {

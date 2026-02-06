@@ -19,6 +19,7 @@ include_once __DIR__ . '/../../../src/Helper/FE_function.php';
 
                         <td class="px-6 py-4 text-gray-500 text-xs font-mono">
                             <?php echo $log['thai_datetime']; ?>
+                            <div class="text-[10px] text-gray-400">เวลา: <?php echo date('H:i', strtotime($log['created_at'])); ?> น.</div>
                         </td>
 
                         <td class="px-6 py-4">
@@ -67,7 +68,7 @@ include_once __DIR__ . '/../../../src/Helper/FE_function.php';
 
                                     <?php if ($is_delete && $log['status'] != 'restored'): ?>
                                         <button type="button"
-                                            onclick="confirmRestore('<?php echo $log['id']; ?>', '<?php echo $action; ?>', '<?php echo $log['target_id']; ?>')"
+                                            onclick="confirmRestore('<?php echo $log['id']; ?>', '<?php echo $action; ?>')"
                                             class="group flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-gray-500 bg-white border border-gray-300 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition shadow-sm"
                                             title="กู้คืนข้อมูลรายการนี้">
                                             <i class="fas fa-undo-alt text-gray-400 group-hover:text-blue-500"></i>

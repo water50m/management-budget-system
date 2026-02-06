@@ -50,10 +50,12 @@ function showToast($type, $message)
     $showbtn = $_SESSION['show_btn']  ?? false;
     $targetTab = $_SESSION['tragettab'] ?? '';
     $targetFilters = $_SESSION['tragetfilters'] ?? 0;
-    $redirectUrl = "index.php?page=dashboard&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters);
+    $fiscal_year = $_SESSION['fiscal_year'] ? $_SESSION['fiscal_year'] : 0;
+    $redirectUrl = "index.php?page=dashboard&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters) . "&year=" .urlencode($fiscal_year);
     unset($_SESSION['show_btn']);
     unset($_SESSION['tragettab']);
     unset($_SESSION['tragetfilters']);
+    unset($_SESSION['fiscal_year']);
 ?>
 
     <div id='toast-container'
@@ -127,12 +129,7 @@ function showToast($type, $message)
     </script>
 <?php
 }
-// if ($success) {
-//     header("Location: index.php?status=success&toastMsg=ลบข้อมูลสำเร็จ");
-// } else {
-//     header("Location: index.php?status=error&toastMsg=ลบไม่สำเร็จ");
-// }
-// exit();
+
 if (isset($_GET['status']) && isset($_GET['toastMsg'])) {
 
     $status = $_GET['status']; // success หรือ error

@@ -63,6 +63,12 @@ class DashboardController
             if (isset($_POST['action']) && $_POST['action'] == 'restore_data') {
                 restoreData($conn);
             }
+            if (isset($_POST['action']) && $_POST['action'] == 'edit_budget_received') {
+                handleEditReceived($conn);
+            }
+            if (isset($_POST['action']) && $_POST['action'] == 'edit_budget_expense') {
+                handleEditExpense($conn);
+            }
         }
 
         // ==================================================================================
@@ -155,15 +161,23 @@ class DashboardController
                 ($data);
                 require_once __DIR__ . '/../../views/dashboard/index.php';
                 exit;
-            } elseif ($hx_target == 'tab-content') {
+            } else if ($hx_target == 'tab-content') {
 
                 // 🟢 กรณีที่ 3: กด Tab ย่อย (เปลี่ยนแค่ไส้ใน)
                 // (Logic เดิมของคุณ)
                 extract($data);
                 include_once __DIR__ . '/../../views/dashboard/tabs/' . $tab . '_view.php';
                 exit;
-            } elseif ($hx_target == 'fpaTableBody') {
+            } else if ($hx_target == 'fpaTableBody') {
                 require_once __DIR__ . '/../Helper/table_summary_FPA.php';
+                exit;
+            } else if ($hx_target == 'table-received'){
+                extract($data);
+                require_once __DIR__ . '/../../views/dashboard/tables/received_table.php';
+                exit;
+            } else if ($hx_target == 'table-expense'){
+                extract($data);
+                require_once __DIR__ . '/../../views/dashboard/tables/expense_table.php';
                 exit;
             }
         }
@@ -188,10 +202,10 @@ class DashboardController
 function submitDeleteExpense($conn)
 {
     // 1. รับค่า ID
-    $expense_id = isset($_POST['delete_target_id']) ? intval($_POST['delete_target_id']) : 0;
-    $name = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : '';
+    $expense_id = isset($_POST['id_to_delete']) ? intval($_POST['id_to_delete']) : 0;
     $submit_page = $_POST['submit_page'];
-    $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
+    $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
+    $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
     // ดึง User ID คนทำรายการ (Actor)
     $actor_id = $_SESSION['user_id'];
 
@@ -201,7 +215,11 @@ function submitDeleteExpense($conn)
         // ---------------------------------------------------------
         // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
         // ---------------------------------------------------------
-        $sql_check = "SELECT description, amount FROM budget_expenses WHERE id = $expense_id";
+        $sql_check = "SELECT b.description, b.amount, b.user_id,
+                            up.prefix, up.first_name, up.last_name 
+                        FROM budget_expenses b 
+                        JOIN user_profiles up 
+                        WHERE b.id = $expense_id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
 
@@ -229,17 +247,22 @@ function submitDeleteExpense($conn)
             // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
             // ---------------------------------------------------------
             // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
-            // saveActivityLog($conn, $actor_id, $action_type, $description, $target_id);
 
-            logActivity($conn, $actor_id, $expense_id, 'delete_expense', $log_desc, $expense_id);
+            logActivity($conn, $actor_id, $old_data['user_id'], 'delete_expense', $log_desc, $expense_id);
 
             // ---------------------------------------------------------
             // ✅ Step 4: Redirect กลับ
             // ---------------------------------------------------------
+            $name = $old_data['prefix'] . " " . $old_data['first_name'] . " " . $old_data['last_name'];
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
 
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=deleted&toastMsg=" . urlencode($toastMsg));
+            if ($profile_id > 0) {
+                header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($toastMsg));
+            } else {
+                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
+            }
+
             exit();
         } else {
             echo "Error: " . mysqli_error($conn);

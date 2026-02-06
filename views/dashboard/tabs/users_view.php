@@ -55,7 +55,8 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                             placeholder="พิมพ์ชื่ออาจารย์ หรือ username..."
                             hx-trigger="keyup changed delay:500ms search"
                             hx-get="index.php?page=dashboard&tab=users"
-                            hx-target="#tab-content">
+                            hx-target="#user-results"
+                            hx-select="#user-results">
                     </div>
                 </div>
 
@@ -130,7 +131,7 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?> flex flex-col min-h-0 overflow-hidden">
+    <div id="user-results" class="bg-white rounded-xl shadow-lg overflow-hidden border <?php echo $borderBase; ?> flex flex-col min-h-0 overflow-hidden">
         <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
             <table class="w-full text-sm text-left">
                 <thead class="sticky top-0 z-10 <?php echo $bgHeader; ?> <?php echo $textHeader; ?> border-b <?php echo $borderBase; ?>">
@@ -196,7 +197,7 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                                     ?>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="font-bold text-gray-800"><?php echo $u['prefix'] . $u['first_name'] . ' ' . $u['last_name']; ?></div>
+                                    <div class="font-bold text-gray-800"><?php echo $u['prefix'].' ' . $u['first_name'] . ' ' . $u['last_name']; ?></div>
                                     <div class="text-xs text-gray-400"><?php echo $u['position']; ?></div>
                                 </td>
                                 <td class="px-6 py-4">

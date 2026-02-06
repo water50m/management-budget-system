@@ -256,12 +256,13 @@ function addExpense($conn)
     $submit_page = $_POST['submit_page'];
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
     mysqli_begin_transaction($conn);
+    $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
     try {
         // ---------------------------------------------------------
         // A. บันทึกรายจ่ายลงตารางหลัก (budget_expenses)
         // ---------------------------------------------------------
-        $approved_date = mysqli_real_escape_string($conn, $_POST['expense_date']);
+        $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
         $timestamp = strtotime($approved_date);
 
         // 2. หามร พ.ศ. ปกติก่อน (User เดิม)
@@ -354,17 +355,144 @@ function addExpense($conn)
         $_SESSION['tragettab'] = 'expense';
         $_SESSION['tragetfilters'] = $new_expense_id;
         $_SESSION['show_btn'] = true;
+        $_SESSION['fiscal_year'] = $fiscal_year;
         // Redirect
-        if ($submit_tab == '') {
-            header("Location: index.php?page=$submit_page&status=success&toastMsg=" . urlencode($total_msg));
+        if ($profile_id > 0){
+             header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($total_msg));
         } else {
-            header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
+             header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
-        exit;
+       exit;
     } catch (Exception $e) {
         mysqli_rollback($conn);
         // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
         header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=ไม่สามารถทำรายการได้ กรุณาลองใหม่อีกครั้ง");
         exit;
     }
+}
+
+function handleEditExpense($conn) {
+    // 1. รับค่าจาก Form
+    $page = $_POST['submit_page'] ?? 'dashboard';
+    $tab = $_POST['submit_tab'] ?? 'expense';
+    $profile_id = $_POST['profile_id'] ?? 0;
+    
+    // ข้อมูลสำหรับ Update
+    $id = $_POST['expense_id'];
+    $amount = $_POST['amount']; // ค่าใหม่
+    $category_id = $_POST['category_id'];
+    $description = $_POST['description'];
+    
+    // ข้อมูลสำหรับ Log
+    $target_user_id = $_POST['target_user_id'] ?? 0; 
+    $actor_id = $_SESSION['user_id'] ?? 0;
+
+    // ---------------------------------------------------------
+    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบว่าอะไรเปลี่ยน)
+    // ---------------------------------------------------------
+    $sql_old = "SELECT amount, approved_date FROM budget_expenses WHERE id = ?";
+    $stmt_old = $conn->prepare($sql_old);
+    $stmt_old->bind_param("i", $id);
+    $stmt_old->execute();
+    $res_old = $stmt_old->get_result();
+    $old_data = $res_old->fetch_assoc();
+    $stmt_old->close();
+
+    // ถ้าไม่เจอข้อมูล (กรณีผิดพลาด) ให้กำหนดค่าเริ่มต้นเป็นว่าง
+    $old_amount = $old_data['amount'] ?? 0;
+    $old_date = $old_data['approved_date'] ?? '';
+
+    // ---------------------------------------------------------
+    // 📅 STEP 2: จัดการวันที่และปีงบประมาณ (ค่าใหม่)
+    // ---------------------------------------------------------
+    $raw_date = isset($_POST['expense_date']) ? $_POST['expense_date'] : (isset($_POST['approved_date']) ? $_POST['approved_date'] : '');
+
+    if (empty($raw_date)) {
+        $approved_date = date('Y-m-d');
+        $timestamp = time();
+    } else {
+        $timestamp = strtotime($raw_date);
+        if ($timestamp === false) $timestamp = time();
+        $approved_date = date('Y-m-d', $timestamp);
+    }
+
+    // คำนวณ Fiscal Year
+    $month = (int)date('n', $timestamp);
+    $year_ad = (int)date('Y', $timestamp);
+    $fiscal_year_ad = ($month >= 10) ? $year_ad + 1 : $year_ad;
+    $fiscal_year_thai = $fiscal_year_ad + 543;
+
+    // ---------------------------------------------------------
+    // 📝 STEP 3: สร้างข้อความเปรียบเทียบ (Change Log)
+    // ---------------------------------------------------------
+    $change_details = [];
+
+    // เทียบยอดเงิน (ถ้ายอดไม่เท่าเดิม)
+    if (floatval($old_amount) != floatval($amount)) {
+        $change_details[] = "ยอดเงิน(บาท): " . number_format($old_amount, 2) . " ➝ " . number_format($amount, 2);
+    }
+
+    // เทียบวันที่
+    if ($old_date != $approved_date) {
+        // แปลงวันที่เป็นรูปแบบไทยสั้นๆ เพื่อให้อ่านง่าย
+        $old_date_th = date('d/m/', strtotime($old_date)) . (date('Y', strtotime($old_date)) + 543);
+        $new_date_th = date('d/m/', strtotime($approved_date)) . (date('Y', strtotime($approved_date)) + 543);
+        $change_details[] = "วันที่: " . $old_date_th . " ➝ " . $new_date_th;
+    }
+
+    // สร้างข้อความสรุปสุดท้าย
+    if (empty($change_details)) {
+        // กรณีไม่ได้แก้ตัวเลขหรือวันที่ (อาจจะแก้แค่ รายละเอียด หรือ หมวดหมู่)
+        $msg_text = "แก้ไขรายละเอียดรายการ (ID: $id)";
+    } else {
+        $msg_text = "แก้ไข (ID: $id): " . implode(", ", $change_details);
+    }
+
+    // ---------------------------------------------------------
+    // 💾 STEP 4: อัปเดตข้อมูลลง Database
+    // ---------------------------------------------------------
+    $sql = "UPDATE budget_expenses 
+            SET amount = ?, category_id = ?, approved_date = ?, description = ?, fiscal_year = ? 
+            WHERE id = ?";
+    
+    $stmt = $conn->prepare($sql);
+    
+    if (!$stmt) {
+        // Error Redirect
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error&msg=prepare_fail");
+        exit;
+    }
+
+    $stmt->bind_param("sissii", $amount, $category_id, $approved_date, $description, $fiscal_year_thai, $id);
+
+    if ($stmt->execute()) {
+        
+        // ✅ บันทึก Log (ใช้ข้อความ msg_text ที่เราสร้างไว้)
+        if (function_exists('logActivity')) {
+            logActivity($conn, $actor_id, $target_user_id, 'edit_expense', $msg_text, $id);
+        }
+
+        // ✅ ตั้งค่า Session สำหรับ UX
+        $_SESSION['tragettab'] = 'expense';
+        $_SESSION['tragetfilters'] = $id;
+        $_SESSION['show_btn'] = true;
+        $_SESSION['fiscal_year'] = $fiscal_year_thai;
+
+        // ✅ Redirect พร้อมข้อความแจ้งเตือน (Toast)
+        // ใช้ urlencode($msg_text) ส่งข้อความที่เราสร้างไปแสดงหน้าเว็บ
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($msg_text));
+        } else {
+            header("Location: index.php?page=$page&status=success&tab=" . $tab . "&toastMsg=" . urlencode($msg_text));
+        }
+
+    } else {
+        // ❌ Error
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error");
+    }
+    
+    $stmt->close();
+    exit;
 }

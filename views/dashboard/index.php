@@ -4,12 +4,14 @@ include_once __DIR__ . "/modal_add_budget.php";
 include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
 include_once __DIR__ . "/../../includes/saveLogFunction.php";
 
-include_once __DIR__ . '/../../includes/confirm_delete.php';
 include_once __DIR__ . '/../../includes/text_box_alert.php';
 include_once __DIR__ . '/../../includes/db.php';
 include_once __DIR__ . '/../../includes/add_new_profile.php';
 include_once __DIR__ . '/../../includes/delete_user_modal.php';
 include_once __DIR__ . '/../../includes/add_expense_modal.php';
+
+include_once __DIR__ . '/../../includes/modal_edit_expense.php';
+include_once __DIR__ . '/../../includes/modal_edit_received.php';
 
 ?>
 
@@ -52,7 +54,7 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
 </div>
 
 <script>
-    function confirmRestore(logId, actionType, relatedId) {
+    function confirmRestore(logId, actionType) {
         // relatedId คือ data_id หรือ target_id แล้วแต่กรณี
 
         if (!confirm('คุณต้องการกู้คืนข้อมูลจากรายการนี้ใช่หรือไม่?')) return;
@@ -81,22 +83,6 @@ include_once __DIR__ . '/../../includes/add_expense_modal.php';
         getLogId.name = 'logId';
         getLogId.value = logId;
         form.appendChild(getLogId)
-
-        // ตรวจสอบว่าจะส่ง data_id หรือ target_id
-        if (actionType === 'delete_user') {
-            const inputTarget = document.createElement('input');
-            inputTarget.type = 'hidden';
-            inputTarget.name = 'target_id'; // ตามโจทย์
-            inputTarget.value = relatedId;
-            form.appendChild(inputTarget);
-        } else {
-            const inputData = document.createElement('input');
-            inputData.type = 'hidden';
-            inputData.name = 'data_id';
-            inputData.value = relatedId;
-            form.appendChild(inputData);
-        }
-
 
         // ส่ง Form
         document.body.appendChild(form);

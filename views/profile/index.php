@@ -5,13 +5,15 @@ include_once __DIR__ . '/language.php';
 include_once __DIR__ . "/../../includes/userRoleManageFunction.php";
 include_once __DIR__ . "/../../includes/saveLogFunction.php";
 
-include_once __DIR__ . '/../../includes/confirm_delete.php';
 include_once __DIR__ . '/../../includes/text_box_alert.php';
 include_once __DIR__ . '/../../includes/db.php';
 include_once __DIR__ . '/../../includes/add_new_profile.php';
 include_once __DIR__ . '/../../includes/delete_user_modal.php';
 include_once __DIR__ . '/../../includes/add_expense_modal.php';
 include_once __DIR__ . "/../dashboard/modal_add_budget.php";
+
+include_once __DIR__ . '/../../includes/modal_edit_expense.php';
+include_once __DIR__ . '/../../includes/modal_edit_received.php';
 
 $role = $_SESSION['role'];
 $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
@@ -36,7 +38,6 @@ $title = $user_info['prefix'] . ' ' . $user_info['first_name'];
                 <p class="text-sm text-gray-500 mt-1"><?php echo $user_info['position']; ?></p>
 
                 <div class="mt-2 inline-block bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold text-gray-600">
-                    <?php echo $user_info['department_id'] == 5 ? 'สังกัด' : 'สังกัดภาควิชา' ?>
                     <?php echo $user_info['department_name']; ?>
                 </div>
 

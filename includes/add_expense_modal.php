@@ -45,6 +45,7 @@
             <input type="hidden" name="submit_tab" value="<?= isset($_GET['tab']) ? $_GET['tab'] : ''  ?>">
             <input type="hidden" name="target_user_id" id="modalUserId" value="">
             <input type="hidden" name="target_name" id="modalFullName" value="">
+            <input type="hidden" name="profile_id" value="<?= isset($_GET['id']) ? $_GET['id'] : 0  ?>">
 
             <div class="space-y-3">
                 <div class="mb-4">
@@ -52,14 +53,14 @@
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">
                         วันที่อนุมัติ (ตามเอกสาร)
                     </label>
-                    <button type="button" data-target="expense_date"
+                    <button type="button" data-target="approved_date"
                         class="btn-use-today text-xs font-medium text-green-600 hover:text-green-800 hover:underline cursor-pointer flex items-center gap-1 transition-colors">
                         <i class="fa-regular fa-calendar-check"></i> คลิกเพื่อใช้วันที่ปัจจุบัน
                     </button>
                     </div>
                     <input type="text"
-                        id="expense_date"
-                        name="expense_date"
+                        id="approved_date"
+                        name="approved_date"
                         class="flatpickr-thai shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                          placeholder="เลือกวันที่..."
                         required readonly>

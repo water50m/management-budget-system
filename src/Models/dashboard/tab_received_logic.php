@@ -27,9 +27,8 @@ function showAndSearchReceived($conn)
     $end_date   = isset($_GET['end_date'])   ? mysqli_real_escape_string($conn, $_GET['end_date'])   : '';
     $min_amount = isset($_GET['min_amount']) ? floatval(str_replace(',', '', $_GET['min_amount'])) : 0;
     $max_amount = isset($_GET['max_amount']) ? floatval(str_replace(',', '', $_GET['max_amount'])) : 0;
-    $year_filter = (isset($_GET['year']) && intval($_GET['year']) > 0) ? intval($_GET['year']) : current_fiscal_year();
+    $year_filter = isset($_GET['year']) ? intval($_GET['year']) : current_fiscal_year();
     $select_id = isset($_GET['show_id']) ? intval($_GET['show_id']) : 0;
-
     // ... (Logic จับคู่ข้อมูล Date/Amount เหมือนเดิม) ...
     if ($start_date !== '' && $end_date === '') {
         $end_date = $start_date;
@@ -105,7 +104,7 @@ function showAndSearchReceived($conn)
         $where_sql .= " AND (p.first_name LIKE '%$search%' OR p.last_name LIKE '%$search%' OR a.remark LIKE '%$search%') ";
     }
     if ($year_filter > 0) {
-        $where_sql .= " AND (YEAR(a.approved_date) + IF(MONTH(a.approved_date) >= 10, 1, 0) + 543) = $year_filter ";
+        $where_sql .= " AND a.fiscal_year = $year_filter ";
     }
     if ($dept_id > 0) {
         $where_sql .= " AND d.id = $dept_id ";
@@ -120,10 +119,10 @@ function showAndSearchReceived($conn)
     if ($max_amount > 0) {
         $where_sql .= " AND a.amount <= $max_amount ";
     }
-    if ($select_id > 0){
+    if ($select_id > 0) {
         $where_sql .= " AND a.id = $select_id";
     }
-    
+
 
     // ---------------------------------------------------------
     // 🟡 4. Query นับจำนวนทั้งหมด (Count Total)
@@ -134,11 +133,14 @@ function showAndSearchReceived($conn)
     // (ถ้า function applyPermissionFilter จำเป็นต้องใช้ ให้เรียกตรงนี้ด้วยกับ count_sql)
     $count_sql = applyPermissionFilter($count_sql);
 
+
+
     $res_count = mysqli_query($conn, $count_sql);
     $total_rows = ($res_count) ? mysqli_fetch_assoc($res_count)['total'] : 0;
 
     // คำนวณจำนวนหน้า
-    if ($limit > 0) {
+
+    if ($limit > 0 ) {
         $total_pages = ceil($total_rows / $limit);
     } else {
         $total_pages = 1;
@@ -163,12 +165,12 @@ function showAndSearchReceived($conn)
     $sql = applyPermissionFilter($sql);
 
     $sql .= " ORDER BY a.approved_date DESC";
-
+    
     // ✅ ใส่ LIMIT / OFFSET (เฉพาะเมื่อ limit > 0)
     if ($limit > 0) {
+
         $sql .= " LIMIT $limit OFFSET $offset";
     }
-
     // ---------------------------------------------------------
     // 6. ประมวลผลและส่งค่า
     // ---------------------------------------------------------
@@ -214,8 +216,9 @@ function addReceiveBudget($conn)
     $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
     $remark = mysqli_real_escape_string($conn, $_POST['remark']);
     $full_name = mysqli_real_escape_string($conn, $_POST['target_full_name']);
-    $submit_page = $_POST['submin_page'];
+    $submit_page = $_POST['submit_page'];
     $submit_tab = $_POST['submit_tab'];
+    $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
     // 1. แปลงวันที่เป็น Timestamp
@@ -254,25 +257,29 @@ function addReceiveBudget($conn)
         $new_budget_id = mysqli_insert_id($conn);
 
         // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
+        $word_remark = $remark ? $remark : 'ไม่มี';
         $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
-        $log_desc = "เพิ่มงบประมาณปี .$year_th. จำนวน " . number_format($amount, 2) . " บาท  \n(หมายเหตุ: $remark)";
+        $log_desc = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท \n(หมายเหตุ: $word_remark )";
 
         // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
         logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc,);
 
         // ยืนยันข้อมูลทั้งหมด (Commit)
         mysqli_commit($conn);
-        $target_name_phrase = "เพิ่มข้อมูลให้กับ $full_name \nรายการ: ";
-        $total_msg = $target_name_phrase . $log_desc;
+        $target_name_phrase = "ให้กับ $full_name \n ";
+        $total_msg = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท  $target_name_phrase \n(หมายเหตุ: $word_remark )";
+
         // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
         $_SESSION['tragettab'] = 'received';
         $_SESSION['tragetfilters'] = $new_budget_id;
         $_SESSION['show_btn'] = true;
+        $_SESSION['fiscal_year'] = $fiscal_year;
         $page = $submit_tab;
-        if ($page == '') {
-            header("Location: index.php?page=$submit_page&status=success&toastMsg=" . urlencode($total_msg));
+
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($total_msg));
         } else {
-            header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=" . urlencode($total_msg));
+            header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
         exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
 
@@ -281,7 +288,7 @@ function addReceiveBudget($conn)
         mysqli_rollback($conn);
         echo "เกิดข้อผิดพลาด: " . $e->getMessage();
         die;
-        header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=เกิดข้อผิดพลาดในการทำรายการ" );
+        header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=เกิดข้อผิดพลาดในการทำรายการ");
     }
 }
 
@@ -289,12 +296,12 @@ function submitDeleteAprove($conn)
 {
 
     // 1. รับค่า ID และแปลงเป็นตัวเลข
-    $id = isset($_POST['delete_received_id']) ? intval($_POST['delete_received_id']) : 0;
-    $name = isset($_POST['target_name']) ? intval($_POST['target_name']) : '';
+    $id = isset($_POST['id_to_delete']) ? intval($_POST['id_to_delete']) : 0;
     // ดึง ID คนทำรายการจาก Session
     $actor_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-    $submit_page = $_POST['submin_page'];
-    $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
+    $submit_page = $_POST['submit_page'];
+    $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
+    $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
     // 2. ตรวจสอบว่า ID ถูกต้องหรือไม่
     if ($id > 0) {
 
@@ -302,7 +309,11 @@ function submitDeleteAprove($conn)
         // ✅ Step 1: ดึงข้อมูลเก่าออกมาสร้าง Description ให้ Log
         // ---------------------------------------------------------
         // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_received หรือ budget_years)*
-        $sql_check = "SELECT * FROM budget_received WHERE id = $id";
+        $sql_check = "SELECT b.remark, b.amount, b.user_id,
+                    up.prefix, up.first_name, up.last_name 
+                FROM budget_received b 
+                JOIN user_profiles up 
+                WHERE b.id = $id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
 
@@ -328,21 +339,163 @@ function submitDeleteAprove($conn)
             // ✅ Step 3: บันทึก Log เมื่อลบสำเร็จ
             // ---------------------------------------------------------
             // logActivity($conn, $actor_id, $target_id, $action, $desc)
-            logActivity($conn, $actor_id, $id, 'delete_received', $log_desc, $id);
+            logActivity($conn, $actor_id, $old_data['user_id'], 'delete_received', $log_desc, $id);
 
             // 4. Redirect กลับ
+            $name = $old_data['prefix'] . " " . $old_data['first_name'] . " " . $old_data['last_name'];
+
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=success&toastMsg=" . urlencode($toastMsg));
+            if ($profile_id > 0) {
+                header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($toastMsg));
+            } else {
+                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
+            }
+
             exit();
         } else {
             echo "Error deleting record: " . mysqli_error($conn);
             // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=เกิดปัญหากับการทำรายการ");
+            if ($profile_id > 0) {
+                header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=เกิดปัญหากับการทำรายการ");
+            } else {
+                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=เกิดปัญหากับการทำรายการ");
+            }
             exit();
         }
     } else {
         echo "Invalid ID.";
         exit();
     }
+}
+
+function handleEditReceived($conn)
+{
+    // 1. รับค่าจาก Form
+    $page = $_POST['submit_page'] ?? 'dashboard';
+    $tab = $_POST['submit_tab'] ?? 'received';
+    $profile_id = $_POST['profile_id'] ?? 0;
+
+    // ข้อมูลสำหรับ Update
+    $id = $_POST['received_id'];
+    $amount = $_POST['amount'];
+    $remark = $_POST['remark'];
+
+    // ข้อมูลสำหรับ Log
+    $target_user_id = $_POST['user_id'] ?? 0;
+    $actor_id = $_SESSION['user_id'] ?? 0;
+
+    // ---------------------------------------------------------
+    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบ Change Log)
+    // ---------------------------------------------------------
+    $sql_old = "SELECT amount, approved_date, remark FROM budget_received WHERE id = ?";
+    $stmt_old = $conn->prepare($sql_old);
+    $stmt_old->bind_param("i", $id);
+    $stmt_old->execute();
+    $res_old = $stmt_old->get_result();
+    $old_data = $res_old->fetch_assoc();
+    $stmt_old->close();
+
+    $old_amount = $old_data['amount'] ?? 0;
+    $old_date = $old_data['approved_date'] ?? '';
+    $old_remark = $old_data['remark'] ?? '';
+
+    // ---------------------------------------------------------
+    // 📅 STEP 2: จัดการวันที่ และ คำนวณปีงบประมาณ (Fiscal Year)
+    // ---------------------------------------------------------
+    $raw_date = $_POST['approved_date'] ?? date('Y-m-d');
+
+    if (empty($raw_date)) {
+        $approved_date = date('Y-m-d');
+        $timestamp = time();
+    } else {
+        $timestamp = strtotime($raw_date);
+        if ($timestamp === false) $timestamp = time();
+        $approved_date = date('Y-m-d', $timestamp);
+    }
+
+    // ✅ คำนวณ Fiscal Year: ถ้าเดือน >= 10 (ตุลาคม) ให้นับเป็นปีหน้า + 543
+    $month = (int)date('n', $timestamp);
+    $year_ad = (int)date('Y', $timestamp);
+    $fiscal_year_ad = ($month >= 10) ? $year_ad + 1 : $year_ad;
+    $fiscal_year_thai = $fiscal_year_ad + 543;
+
+    // ---------------------------------------------------------
+    // 📝 STEP 3: สร้างข้อความเปรียบเทียบ (Toast Msg)
+    // ---------------------------------------------------------
+    $change_details = [];
+
+    // เทียบยอดเงิน (เปลี่ยนจาก " -> " เป็น " เป็น ")
+    if (floatval($old_amount) != floatval($amount)) {
+        $change_details[] = "ยอดเงิน(บาท): " . number_format($old_amount, 2) . " ➝ " . number_format($amount, 2);
+    }
+
+    // เทียบวันที่ (เปลี่ยนจาก " -> " เป็น " เป็น ")
+    if ($old_date != $approved_date) {
+        $old_date_th = date('d/m/', strtotime($old_date)) . (date('Y', strtotime($old_date)) + 543);
+        $new_date_th = date('d/m/', strtotime($approved_date)) . (date('Y', strtotime($approved_date)) + 543);
+        $change_details[] = "วันที่: " . $old_date_th . " ➝ " . $new_date_th;
+    }
+
+    // เทียบหมายเหตุ
+    if (trim($old_remark) != trim($remark)) {
+        $change_details[] = "มีการแก้ไขหมายเหตุ";
+    }
+
+    if (empty($change_details)) {
+        $msg_text = "แก้ไขงบประมาณ (ID: $id)";
+    } else {
+        $msg_text = "แก้ไข (ID: $id): " . implode(", ", $change_details);
+    }
+    // ---------------------------------------------------------
+    // 💾 STEP 4: อัปเดตข้อมูลลง Database (รวม fiscal_year)
+    // ---------------------------------------------------------
+
+    // ✅ เพิ่ม fiscal_year = ? ใน SQL
+    $sql = "UPDATE budget_received 
+            SET amount = ?, approved_date = ?, remark = ?, fiscal_year = ? 
+            WHERE id = ?";
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error&msg=prepare_fail");
+        exit;
+    }
+
+    // ✅ Bind Params: เพิ่ม i (integer) สำหรับ fiscal_year
+    // s(amount), s(date), s(remark), i(fiscal_year), i(id)
+    $stmt->bind_param("sssii", $amount, $approved_date, $remark, $fiscal_year_thai, $id);
+
+    // 3. Execute
+    if ($stmt->execute()) {
+
+        // ✅ บันทึก Log Activity (ใช้ข้อความ plain text)
+        if (function_exists('logActivity')) {
+            logActivity($conn, $actor_id, $target_user_id, 'edit_budget_received', $msg_text, $id);
+        }
+
+        // ✅ ตั้งค่า Session สำหรับ UX
+        $_SESSION['tragettab'] = 'received';
+        $_SESSION['tragetfilters'] = $id;
+        $_SESSION['show_btn'] = true;
+
+        // ✅ อัปเดตปีงบประมาณใน Session (เพื่อให้ Filter หน้าเว็บไม่งงเวลาวันที่เปลี่ยนปีงบ)
+        $_SESSION['fiscal_year'] = $fiscal_year_thai;
+
+        // ✅ Redirect พร้อม Toast Message (Plain Text)
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($msg_text));
+        } else {
+            header("Location: index.php?page=$page&status=success&tab=" . $tab . "&toastMsg=" . urlencode($msg_text));
+        }
+    } else {
+        // ❌ Error
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error");
+    }
+
+    $stmt->close();
+    exit;
 }
