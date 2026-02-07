@@ -50,8 +50,8 @@ function showToast($type, $message)
     $showbtn = $_SESSION['show_btn']  ?? false;
     $targetTab = $_SESSION['tragettab'] ?? '';
     $targetFilters = $_SESSION['tragetfilters'] ?? 0;
-    $fiscal_year = $_SESSION['fiscal_year'] ? $_SESSION['fiscal_year'] : 0;
-    $redirectUrl = "index.php?page=dashboard&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters) . "&year=" .urlencode($fiscal_year);
+    $fiscal_year = isset($_SESSION['fiscal_year']) ? $_SESSION['fiscal_year'] : 0;
+    $redirectUrl = "index.php?page=profile&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters) . "&year=" . urlencode($fiscal_year);
     unset($_SESSION['show_btn']);
     unset($_SESSION['tragettab']);
     unset($_SESSION['tragetfilters']);
@@ -74,7 +74,7 @@ function showToast($type, $message)
                     <?= htmlspecialchars($message) ?>
                 </p>
 
-                <?php if (isset($showbtn) && $showbtn == true): ?>
+                <?php if (isset($showbtn) && $showbtn == true): die; ?>
                     <div class="mt-2">
                         <a href="<?= $redirectUrl ?>"
                             class="inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">
@@ -91,42 +91,6 @@ function showToast($type, $message)
             </button>
         </div>
     </div>
-
-    <script>
-        (function() {
-            let toastTimer;
-            const duration = 5000; // 5 วินาที
-
-            window.closeToast = function() {
-                const toast = document.getElementById('toast-container');
-                if (toast) {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(20px)';
-                    setTimeout(() => toast.remove(), 500);
-                }
-                clearInterval(toastTimer);
-            };
-
-            window.pauseToastTimer = function() {
-                clearInterval(toastTimer);
-                // (Optional) เพิ่มเอฟเฟกต์ตอน hover ให้ดูชัดเจนขึ้น
-                document.getElementById('toast-container').style.transform = 'scale(1.02)';
-            };
-
-            window.resumeToastTimer = function() {
-                document.getElementById('toast-container').style.transform = 'scale(1)';
-                startToastTimer();
-            };
-
-            function startToastTimer() {
-                clearInterval(toastTimer);
-                toastTimer = setInterval(window.closeToast, duration);
-            }
-
-            // เริ่มนับครั้งแรก
-            startToastTimer();
-        })();
-    </script>
 <?php
 }
 

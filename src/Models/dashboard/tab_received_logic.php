@@ -79,9 +79,9 @@ function showAndSearchReceived($conn)
 
     // Base Table Joins (ใช้เหมือนกันทั้ง Count และ Select)
     $base_joins = " FROM budget_received a
-                    JOIN users u ON a.user_id = u.id 
-                    JOIN user_profiles p ON u.id = p.user_id 
-                    LEFT JOIN departments d ON p.department_id = d.id ";
+        JOIN users u ON a.user_id = u.id 
+        JOIN user_profiles p ON u.id = p.user_id 
+        LEFT JOIN departments d ON p.department_id = d.id";
 
     // Base Condition
     $where_sql = " WHERE 1=1 AND a.deleted_at IS NULL AND p.deleted_at IS NULL ";
@@ -101,7 +101,12 @@ function showAndSearchReceived($conn)
 
     // --- Filter Logic ---
     if (!empty($search)) {
-        $where_sql .= " AND (p.first_name LIKE '%$search%' OR p.last_name LIKE '%$search%' OR a.remark LIKE '%$search%') ";
+        // Escape ค่าพิเศษของ SQL (')
+
+        // Escape ค่าพิเศษของ LIKE (% และ _) เพื่อไม่ให้ User พิมพ์ % แล้วดึงข้อมูลทั้งหมด
+        $search_safe = addcslashes($search, "%_");
+
+        $where_sql .= " AND (p.first_name LIKE '%$search_safe%' OR p.last_name LIKE '%$search_safe%' OR a.remark LIKE '%$search_safe%') ";
     }
     if ($year_filter > 0) {
         $where_sql .= " AND a.fiscal_year = $year_filter ";
@@ -140,7 +145,7 @@ function showAndSearchReceived($conn)
 
     // คำนวณจำนวนหน้า
 
-    if ($limit > 0 ) {
+    if ($limit > 0) {
         $total_pages = ceil($total_rows / $limit);
     } else {
         $total_pages = 1;
@@ -151,21 +156,36 @@ function showAndSearchReceived($conn)
     // 🟡 5. Query ดึงข้อมูลจริง (Main Select)
     // ---------------------------------------------------------
     $sql = "SELECT a.id, 
-                   d.thai_name AS department, 
-                   p.user_id,
-                   p.prefix, p.first_name, p.last_name, 
-                   a.amount AS amount,      
-                   a.remark,                        
-                   a.approved_date,                 
-                   a.record_date,
-                   COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as total_used
-            " . $base_joins . $where_sql;
+               d.thai_name AS department, 
+               p.user_id,
+               p.prefix, p.first_name, p.last_name, 
+               a.amount AS amount,      
+               a.remark,                        
+               a.approved_date,                 
+               a.record_date,
+               
+               -- 1. ยอดที่ใช้ไปทั้งหมด (ใช้ COALESCE เพื่อให้เป็น 0 ถ้าไม่มีการใช้)
+               COALESCE((SELECT SUM(amount_used) 
+                         FROM budget_usage_logs 
+                         WHERE approval_id = a.id
+                         AND deleted_at IS NULL), 0) as total_used,
+
+               -- 2. ยอดคงเหลือ (received_left) ✅ เพิ่มส่วนนี้
+               -- ถ้ายังไม่มีการใช้ (NULL) ค่าจะเป็น NULL
+               -- ถ้าใช้แล้ว จะคำนวณยอดคงเหลือ (ห้ามติดลบ)
+               GREATEST(
+                   a.amount - (SELECT SUM(amount_used) 
+                               FROM budget_usage_logs 
+                               WHERE approval_id = a.id
+                               AND deleted_at IS NULL), 
+                   0
+               ) as received_left " . $base_joins . $where_sql;
 
     // ใส่ Permission Filter ให้ Query หลัก
     $sql = applyPermissionFilter($sql);
 
     $sql .= " ORDER BY a.approved_date DESC";
-    
+
     // ✅ ใส่ LIMIT / OFFSET (เฉพาะเมื่อ limit > 0)
     if ($limit > 0) {
 
@@ -219,6 +239,8 @@ function addReceiveBudget($conn)
     $submit_page = $_POST['submit_page'];
     $submit_tab = $_POST['submit_tab'];
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
+
+
 
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
     // 1. แปลงวันที่เป็น Timestamp
@@ -349,7 +371,7 @@ function submitDeleteAprove($conn)
             if ($profile_id > 0) {
                 header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($toastMsg));
             } else {
-                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
+                header("Location: index.php?page=dashboard&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
             }
 
             exit();
@@ -359,7 +381,7 @@ function submitDeleteAprove($conn)
             if ($profile_id > 0) {
                 header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=เกิดปัญหากับการทำรายการ");
             } else {
-                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=เกิดปัญหากับการทำรายการ");
+                header("Location: index.php?page=dashboard&status=success&tab=" . $submit_tab . "&toastMsg=เกิดปัญหากับการทำรายการ");
             }
             exit();
         }
@@ -378,7 +400,7 @@ function handleEditReceived($conn)
 
     // ข้อมูลสำหรับ Update
     $id = $_POST['received_id'];
-    $amount = $_POST['amount'];
+    $amount = $_POST['amount_real'];
     $remark = $_POST['remark'];
 
     // ข้อมูลสำหรับ Log
@@ -466,6 +488,9 @@ function handleEditReceived($conn)
 
     // ✅ Bind Params: เพิ่ม i (integer) สำหรับ fiscal_year
     // s(amount), s(date), s(remark), i(fiscal_year), i(id)
+    // สร้างไฟล์ชื่อ debug_log.txt ไว้ที่เดียวกับ index.php
+    // FILE_APPEND คือให้เขียนต่อท้ายไปเรื่อยๆ ไม่ทับของเดิม
+    file_put_contents('debug_log.txt', print_r($amount, true) . "\n------------------\n", FILE_APPEND);
     $stmt->bind_param("sssii", $amount, $approved_date, $remark, $fiscal_year_thai, $id);
 
     // 3. Execute

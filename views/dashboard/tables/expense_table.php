@@ -146,6 +146,7 @@
         );
     }
     include_once __DIR__ . "/../../../includes/confirm_delete.php";
+    include_once __DIR__ . '/../../../includes/modal_edit_expense.php';
 
     ?>
 </div>

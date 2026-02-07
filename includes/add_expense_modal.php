@@ -1,3 +1,9 @@
+<?php 
+if (!isset($cats_list)){
+$cats_list = $data['categories_list'];
+}
+
+?>
 <div id="expenseModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all scale-100">
 
@@ -50,19 +56,19 @@
             <div class="space-y-3">
                 <div class="mb-4">
                     <div class="flex justify-between items-end mb-2">
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        วันที่อนุมัติ (ตามเอกสาร)
-                    </label>
-                    <button type="button" data-target="approved_date"
-                        class="btn-use-today text-xs font-medium text-green-600 hover:text-green-800 hover:underline cursor-pointer flex items-center gap-1 transition-colors">
-                        <i class="fa-regular fa-calendar-check"></i> คลิกเพื่อใช้วันที่ปัจจุบัน
-                    </button>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">
+                            วันที่อนุมัติ (ตามเอกสาร)
+                        </label>
+                        <button type="button" data-target="approved_date"
+                            class="btn-use-today text-xs font-medium text-green-600 hover:text-green-800 hover:underline cursor-pointer flex items-center gap-1 transition-colors">
+                            <i class="fa-regular fa-calendar-check"></i> คลิกเพื่อใช้วันที่ปัจจุบัน
+                        </button>
                     </div>
                     <input type="text"
                         id="approved_date"
                         name="approved_date"
                         class="flatpickr-thai shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                         placeholder="เลือกวันที่..."
+                        placeholder="เลือกวันที่..."
                         required readonly>
 
 
@@ -71,7 +77,7 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ประเภทการใช้เงิน</label>
                     <select name="category_id" required class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-green-500 outline-none">
-                        <?php foreach ($data['categories_list'] as $cat): ?>
+                        <?php foreach ($cats_list as $cat): ?>
                             <option value="<?php echo $cat['id']; ?>"><?php echo $cat['name_th']; ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -107,7 +113,7 @@
         // [ใหม่] จุดแสดงยอดเงิน
         const balanceDisplay = document.getElementById('modalBalanceDisplay');
         currentOriginalBalance = balance;
-
+        calculateRealtimeBalance(0); 
         if (idInput) idInput.value = userId;
         if (nameSpan) nameSpan.innerText = '👤 สำหรับ: ' + userName;
 
@@ -120,9 +126,11 @@
             }).format(balance);
 
             balanceDisplay.innerText = formattedBalance + ' บาท';
+            
         }
-
+                           
         document.getElementById('modalFullName').value = userName;
+        
         // 2. แสดง Modal
         const modal = document.getElementById('expenseModal');
         if (modal) modal.classList.remove('hidden');
@@ -140,4 +148,78 @@
             closeExpenseModal();
         }
     }
+
+    function handleAmountInput(input) {
+    // 1. ล้างค่าที่ไม่ใช่ตัวเลขและจุดทศนิยมออก (ป้องกันคนพิมพ์ตัวอักษร)
+    let value = input.value.replace(/[^0-9.]/g, '');
+    
+    // ป้องกันจุดทศนิยมซ้ำ
+    const parts = value.split('.');
+    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+
+    // 2. เก็บค่าตัวเลขจริงลงใน Hidden Input เพื่อส่งไป PHP
+    const realValue = parseFloat(value) || 0;
+    document.getElementById('inputAmountReal').value = realValue;
+
+    // 3. ทำ Format สำหรับแสดงผลในช่อง Input (เฉพาะตอนที่ไม่ได้พิมพ์จุดค้างไว้)
+    if (value !== "" && !value.endsWith('.')) {
+        input.value = new Intl.NumberFormat('th-TH', {
+            minimumFractionDigits: 0, // ไม่บังคับ .00 ขณะพิมพ์เพื่อให้พิมพ์ถนัด
+            maximumFractionDigits: 2
+        }).format(realValue);
+        
+        // ถ้ามีทศนิยม ให้เติมทศนิยมกลับเข้าไป (เพราะ Intl.NumberFormat อาจจะตัดออกขณะกำลังพิมพ์)
+        if (value.includes('.')) {
+            const decimalPart = value.split('.')[1];
+            if (decimalPart !== undefined) {
+                // ถ้ามีเลขหลังจุดแล้ว ไม่ต้องทำอะไรเพิ่ม แต่ถ้าเพิ่งพิมพ์จุด Intl จะจัดการให้
+            }
+        }
+    } else {
+        input.value = value; // แสดงค่าดิบถ้ากำลังพิมพ์จุด หรือค่าว่าง
+    }
+
+    // 4. คำนวณยอดคงเหลือใหม่
+    calculateRealtimeBalance(realValue);
+}
+
+
+// ฟังก์ชันคำนวณสด (Real-time)
+function calculateRealtimeBalance(realValue) {
+    const inputVal = realValue;
+    const amountToCut = parseFloat(inputVal) || 0;
+    
+        
+    // คำนวณยอดใหม่ โดยใช้ตัวแปรกลางที่จำค่า 18,000 ไว้
+    const newBalance = currentOriginalBalance - amountToCut;
+
+    // ส่งค่าไปอัปเดต โดยฝั่งซ้ายต้องเป็น currentOriginalBalance เสมอ!
+    updateBalanceUI(currentOriginalBalance, newBalance);
+}
+
+// ฟังก์ชันช่วยจัดการตัวเลขและสีสัน
+function updateBalanceUI(originalBal, nextBal) {
+    const formatter = new Intl.NumberFormat('th-TH', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    });
+
+    const oldDisplay = document.getElementById('modalBalanceDisplay');
+    const newDisplay = document.getElementById('modalNewBalanceDisplay');
+
+    // จุดสำคัญ: ฝั่งซ้ายต้องโชว์ยอดเดิม (originalBal) ห้ามเปลี่ยนเป็น 0
+    if (oldDisplay) oldDisplay.innerText = formatter.format(originalBal) + ' บาท';
+    
+    if (newDisplay) {
+        newDisplay.innerText = formatter.format(nextBal) + ' บาท';
+        
+        // เช็คสีเตือน
+        if (nextBal < 0) {
+            newDisplay.classList.replace('text-blue-700', 'text-red-600');
+        } else {
+            newDisplay.classList.replace('text-red-600', 'text-blue-700');
+        }
+    }
+}
+
 </script>

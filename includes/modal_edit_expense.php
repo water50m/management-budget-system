@@ -1,3 +1,8 @@
+<?php 
+if (!isset($cats_list)){
+$cats_list = $data['categories_list'] ;
+}
+?>
 <div id="editExpenseModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all scale-100 border-t-4 border-orange-500">
 
@@ -29,7 +34,7 @@
                     id="editInputAmountDisplay"
                     placeholder="0.00"
                     required
-                    oninput="handleAmountInput(this, 'editInputAmountReal')"
+                    oninput="handleAmountInputExp(this, 'editInputAmountReal')"
                     inputmode="decimal"
                     class="w-full border border-gray-300 rounded-lg p-2.5 text-right font-mono text-lg font-bold text-orange-700 focus:ring-2 focus:ring-orange-500 outline-none">
                 <input type="hidden" name="amount" id="editInputAmountReal">
@@ -49,7 +54,7 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ประเภทการใช้เงิน</label>
                     <select id="edit_category_id" name="category_id" required class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-orange-500 outline-none">
-                        <?php foreach ($data['categories_list'] as $cat): ?>
+                        <?php foreach ($cats_list  as $cat): ?>
                             <option value="<?php echo $cat['id']; ?>"><?php echo $cat['name_th']; ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -141,8 +146,8 @@
         // 2. คืนค่า Amount
         document.getElementById('editInputAmountReal').value = defAmount;
         document.getElementById('editInputAmountDisplay').value = Number(defAmount).toLocaleString('th-TH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         });
 
         // 3. คืนค่า Date
@@ -162,9 +167,44 @@
     }
 
     // Utility สำหรับ Input เงิน
-    function handleAmountInput(el, hiddenId) {
-        let value = el.value.replace(/[^0-9.]/g, '');
-        document.getElementById(hiddenId).value = value;
+    function handleAmountInputExp(el, hiddenId) {
+        // 1. ลบ Commas เดิมออกก่อน เพื่อให้ได้ค่าดิบ (เช่น "1,234" -> "1234")
+        let rawValue = el.value.replace(/,/g, '');
+
+        // 2. กรองให้เหลือแค่ตัวเลข (0-9) และจุด (.) เท่านั้น
+        // ป้องกันกรณี User พิมพ์ตัวหนังสือเข้ามา
+        rawValue = rawValue.replace(/[^0-9.]/g, '');
+
+        // 3. ป้องกันกรณีมีจุดหลายจุด (เช่น 10.5.5 -> 10.55)
+        // โดยการแยกส่วนด้วยจุด แล้วเอาเฉพาะส่วนแรกกับส่วนที่สองมาต่อกัน
+        let parts = rawValue.split('.');
+        if (parts.length > 2) {
+            // เชื่อมส่วนแรกกับส่วนที่เหลือที่ไม่มีจุด
+            rawValue = parts[0] + '.' + parts.slice(1).join('');
+            parts = rawValue.split('.'); // split ใหม่เพื่อให้ parts ถูกต้อง
+        }
+
+        // 4. อัปเดตค่าลง Hidden Input (ค่าดิบสำหรับส่งเข้า DB)
+        document.getElementById(hiddenId).value = rawValue;
+
+        // 5. แปลงค่าเพื่อแสดงผล (ใส่ Comma)
+        // ถ้าไม่มีค่า ให้จบเลย
+        if (rawValue === '') {
+            el.value = '';
+            return;
+        }
+
+        // แยกส่วนจำนวนเต็ม (Integer)
+        let integerPart = parts[0];
+
+        // แยกส่วนทศนิยม (Decimal) - ถ้ามีจุด ให้เก็บจุดและตัวเลขหลังจุดไว้
+        let decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+
+        // ใส่ Comma ให้ส่วนจำนวนเต็ม (ใช้ Regex มาตรฐาน)
+        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+        // 6. นำค่ากลับไปใส่ Input ที่แสดงผล
+        el.value = integerPart + decimalPart;
     }
 
     // Initialize Flatpickr (ใช้ ID ให้ตรงกัน)

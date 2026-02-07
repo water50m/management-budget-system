@@ -41,6 +41,7 @@ function showAndSearchUsers($conn)
     $count_sql = applyPermissionFilter($count_sql);
     // Filter Logic (เหมือนเดิม)
     if (!empty($search_text)) {
+        $search_text = addcslashes($search_text, "%_");
         $count_sql .= " AND (p.first_name LIKE '%$search_text%' OR p.last_name LIKE '%$search_text%' OR u.username LIKE '%$search_text%') ";
     }
     if ($dept_user > 0) $count_sql .= " AND d.id = $dept_user ";
@@ -75,6 +76,7 @@ function showAndSearchUsers($conn)
     $sql = applyPermissionFilter($sql);
 
     if (!empty($search_text)) {
+        $search_text = addcslashes($search_text, "%_");
         $sql .= " AND (p.first_name LIKE '%$search_text%' OR p.last_name LIKE '%$search_text%' OR u.username LIKE '%$search_text%') ";
     }
     if ($dept_user > 0) {

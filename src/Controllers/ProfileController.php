@@ -61,6 +61,8 @@ class ProfileController
         $f_cat    = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
         $f_min    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
         $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
+        $f_prev_year = isset($_GET['prevYear']) && $_GET['prevYear'] != 0 ? intval($_GET['prevYear']) : 0;
+        $f_total_balance_show = isset($_GET['total_balance'])  && $_GET['prevYear'] > 0 ? intval($conn, $_GET['total_balance']) : 0;
         // ---------------------------------------------------------
         // 🔄 Logic จับคู่ข้อมูล (ถ้ามาแค่อย่างเดียว ให้เป็นค่าเดียวกัน)
         // ---------------------------------------------------------
@@ -81,25 +83,37 @@ class ProfileController
 
         // Apply Filters
         if (!empty($f_search)) {
-            $where_inc .= " AND (br.remark LIKE '%$f_search%') ";
-            $where_exp .= " AND (e.description LIKE '%$f_search%') ";
+            $f_search_safe = addcslashes($f_search, "%_");
+            $where_inc .= " AND (br.remark LIKE '%$f_search_safe%') ";
+            $where_exp .= " AND (e.description LIKE '%$f_search_safe%') ";
         }
         if ($f_year > 0) {
-            // $fy_logic = "(IF(MONTH(approved_date)>=10, YEAR(approved_date)+1, YEAR(approved_date))+543)";
-            $where_inc .= " AND br.fiscal_year = $f_year ";
-            $where_exp .= " AND e.fiscal_year = $f_year ";
+            // กรณีมีปีก่อนหน้า (ดึงข้อมูลช่วง 2 ปี: ปีปัจจุบัน + ปีก่อนหน้า)
+            if (isset($f_prev_year) && $f_prev_year > 0) {
+                $where_inc .= " AND br.fiscal_year IN ('$f_prev_year', '$f_year') ";
+                $where_exp .= " AND e.fiscal_year IN ('$f_prev_year','$f_year') ";
+            }
+            // กรณีไม่มีปีก่อนหน้า (ดึงแค่ปีปัจจุบันปีเดียว)
+            else {
+                $where_inc .= " AND br.fiscal_year = '$f_year' ";
+                $where_exp .= " AND e.fiscal_year = '$f_year' ";
+            }
         }
         if ($f_cat > 0) {
             $where_inc .= " AND 1=0 ";
-            $where_exp .= " AND e.category_id = $f_cat ";
+            $where_exp .= " AND e.category_id = '$f_cat' ";
         }
         if ($f_min !== '' && $f_min > 0) {
-            $where_inc .= " AND br.amount >= $f_min ";
-            $where_exp .= " AND e.amount >= $f_min ";
+            $where_inc .= " AND br.amount >= '$f_min' ";
+            $where_exp .= " AND e.amount >= '$f_min' ";
         }
         if ($f_max !== '' && $f_max > 0) {
-            $where_inc .= " AND br.amount <= $f_max ";
-            $where_exp .= " AND e.amount <= $f_max ";
+            $where_inc .= " AND br.amount <= '$f_max' ";
+            $where_exp .= " AND e.amount <= '$f_max' ";
+        }
+        if ($f_total_balance_show > 0) {
+            $where_inc = " WHERE br.fiscal_year IN ('$f_total_balance_show', '$f_total_balance_show' - 1) ";
+            $where_exp = " WHERE e.fiscal_year = '$f_total_balance_show' ";
         }
 
 
@@ -116,9 +130,21 @@ class ProfileController
                                 'income' as type, 
                                 NULL as category_name, 
                                 NULL as category_id,
+                                
+                                
                                 COALESCE((SELECT SUM(amount_used) 
                                         FROM budget_usage_logs 
-                                        WHERE approval_id = br.id), 0) as total_used, 
+                                        WHERE approval_id = br.id 
+                                        AND deleted_at IS NULL), 0) as total_used, 
+
+                                GREATEST(
+                                    br.amount - (SELECT SUM(amount_used) 
+                                                FROM budget_usage_logs 
+                                                WHERE approval_id = br.id 
+                                                AND deleted_at IS NULL), 
+                                    0
+                                ) as received_left,
+
                                 br.fiscal_year as fiscal_year_num
                             FROM budget_received br 
                             $where_inc)";
@@ -129,7 +155,7 @@ class ProfileController
             $sql_parts[] = "(SELECT 
                                 e.id, e.approved_date as txn_date, e.description, e.amount as amount,
                                 'expense' as type, c.name_th as category_name, c.id AS category_id,
-                                NULL AS total_used,
+                                NULL AS total_used, NULL AS received_left,
                                 fiscal_year as fiscal_year_num
                              FROM budget_expenses e
                              LEFT JOIN expense_categories c ON e.category_id = c.id
@@ -155,6 +181,11 @@ class ProfileController
             }
         }
 
+        $department_list = getAllDepartment($conn);
+        $data['department_list'] =  $department_list;
+
+
+
 
         $filters = [
             'search' => $f_search,
@@ -174,7 +205,8 @@ class ProfileController
             'filters'      => $filters,      // ส่ง filters ไปด้วย
             'sum_income'   => $sum_income,
             'sum_expense'  => $sum_expense,
-            'current_fiscal_year' => $current_fiscal_year
+            'current_fiscal_year' => $current_fiscal_year,
+            'department_list' => $department_list
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
@@ -289,5 +321,53 @@ class ProfileController
                 exit();
             }
         }
+    }
+
+    private function editDepartment($conn)
+    {
+        // 1. รับค่าจาก Form (ที่ส่งมาแบบ POST)
+        $id = $_POST['user_id'] ?? 0;               // ID ของ User ที่เรากำลังแก้ไข
+        $new_dept_id = $_POST['new_department_id'] ?? 0; // ID ภาควิชาใหม่ที่เลือกมา
+        $submt_page = $_POST['submit_page'] ?? "";
+        $submt_tab = $_POST['submit_tab'] ?? "";
+        // 2. ตรวจสอบข้อมูลเบื้องต้น
+        if (empty($id) || empty($new_dept_id)) {
+            header("Location: index.php?page=$submt_page&tab=$submt_tab&id=$id&status=error&msg=missing_data");
+            exit;
+        }
+
+        // 3. เตรียมคำสั่ง SQL (Update)
+        // หมายเหตุ: ตรง WHERE id = ? คือการอ้างอิง Primary Key ของตาราง user_profiles
+        $sql = "UPDATE user_profiles SET department_id = ? WHERE id = ?";
+
+        $stmt = $conn->prepare($sql);
+
+        if ($stmt) {
+            // 4. ผูกตัวแปร (Bind Params) -> "ii" หมายถึง Integer ทั้งคู่
+            $stmt->bind_param("ii", $new_dept_id, $id);
+
+            // 5. รันคำสั่ง (Execute)
+            if ($stmt->execute()) {
+
+                // (Optional) บันทึก Log การกระทำ ถ้ามีฟังก์ชัน logActivity
+                if (function_exists('logActivity')) {
+                    $actor_id = $_SESSION['user_id'] ?? 0;
+                    logActivity($conn, $actor_id, $id, 'change_department', "เปลี่ยนภาควิชาเป็น ID: $new_dept_id", $id);
+                }
+
+                // ส่งกลับหน้าเดิมพร้อมแจ้งเตือนสำเร็จ
+                header("Location: index.php?page=$submt_page&tab=$submt_tab&id=$id&status=success&msg=dept_updated");
+            } else {
+                // แจ้งเตือนถ้า Update ไม่สำเร็จ
+                header("Location: index.php?page=$submt_page&tab=$submt_tab&id=$id&status=error&msg=update_failed");
+            }
+
+            $stmt->close();
+        } else {
+            // แจ้งเตือนถ้า SQL ผิดพลาด
+            header("Location: index.php?page=$submt_page&id=$id&status=error&msg=sql_error");
+        }
+
+        exit;
     }
 }

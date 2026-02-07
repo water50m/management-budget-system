@@ -61,11 +61,11 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                 </div>
 
                 <div class="w-full md:w-56">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">ภาควิชา</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">ภาควิชา / สำนักงาน</label>
                     <select name="dept_user"
                         class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> px-3 py-2 border text-sm"
                         onchange="this.form.requestSubmit()">
-                        <option value="0">-- ทุกภาควิชา --</option>
+                        <option value="0">-- ทุกภาควิชา / สำนักงาน --</option>
                         <?php foreach ($departments as $dept): ?>
                             <option value="<?php echo $dept['id']; ?>" <?php echo ($filters['dept_user'] == $dept['id']) ? 'selected' : ''; ?>>
                                 <?php echo $dept['thai_name']; ?>
@@ -162,7 +162,7 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
 
                         </th>
                         <th class="px-6 py-4 font-bold">ชื่อ - นามสกุล</th>
-                        <th class="px-6 py-4 font-bold">ภาควิชา</th>
+                        <th class="px-6 py-4 font-bold">ภาควิชา / สำนักงาน</th>
                         <th class="px-6 py-4 font-bold">Username</th>
                         <?php if ($_SESSION['role'] == 'high-admin'):
 

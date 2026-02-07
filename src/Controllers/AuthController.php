@@ -137,6 +137,7 @@ class AuthController
         $remembered_user = null;
         if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
             $remembered_user = $this->checkRememberedAuth($conn);
+            
         }
 
         // ส่วน Logout / เปลี่ยนบัญชี
@@ -346,7 +347,7 @@ class AuthController
     {
         global $conn;
 
-        $_SESSION['user_id'] = '1';
+        $_SESSION['user_id'] = '4';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
 
         $role = $_GET['mock'] ?? '';
@@ -367,7 +368,7 @@ class AuthController
             $_SESSION['role'] = 'admin-office';
             $_SESSION['seer'] = 6;
         } else if ($role == 'user') {
-            $_SESSION['user_id'] = '2';
+            $_SESSION['user_id'] = '4';
             $_SESSION['role'] = 'user';
             $_SESSION['seer'] = 7;
         } else if ($role == 'admin') {
@@ -380,7 +381,7 @@ class AuthController
         echo $_SESSION['fullname'];
         echo $_SESSION['role'];
         echo $_SESSION['seer'];
-        $this->rememberAuth($conn, 1);
+        $this->rememberAuth($conn, $_SESSION['user_id']);
         header("Location: index.php?page=dashboard&tab=summary");
         exit;
     }

@@ -35,7 +35,6 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 ?>
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <title>ระบบบริหารงานวิจัย</title>
@@ -352,4 +351,42 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 
                 input._flatpickr.setDate(new Date(), true);
             });
+        </script>
+
+
+        <!-- toast -->
+        <script>
+            (function() {
+                let toastTimer;
+                const duration = 5000; // 5 วินาที
+
+                window.closeToast = function() {
+                    const toast = document.getElementById('toast-container');
+                    if (toast) {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(20px)';
+                        setTimeout(() => toast.remove(), 500);
+                    }
+                    clearInterval(toastTimer);
+                };
+
+                window.pauseToastTimer = function() {
+                    clearInterval(toastTimer);
+                    // (Optional) เพิ่มเอฟเฟกต์ตอน hover ให้ดูชัดเจนขึ้น
+                    document.getElementById('toast-container').style.transform = 'scale(1.02)';
+                };
+
+                window.resumeToastTimer = function() {
+                    document.getElementById('toast-container').style.transform = 'scale(1)';
+                    startToastTimer();
+                };
+
+                function startToastTimer() {
+                    clearInterval(toastTimer);
+                    toastTimer = setInterval(window.closeToast, duration);
+                }
+
+                // เริ่มนับครั้งแรก
+                startToastTimer();
+            })();
         </script>

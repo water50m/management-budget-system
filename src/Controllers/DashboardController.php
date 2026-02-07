@@ -179,6 +179,8 @@ class DashboardController
                 extract($data);
                 require_once __DIR__ . '/../../views/dashboard/tables/expense_table.php';
                 exit;
+            } else if ($page != 'dashboard'){
+                require_once __DIR__ . '/../../views/profile/idex.php';
             }
         }
 
@@ -203,69 +205,87 @@ function submitDeleteExpense($conn)
 {
     // 1. รับค่า ID
     $expense_id = isset($_POST['id_to_delete']) ? intval($_POST['id_to_delete']) : 0;
-    $submit_page = $_POST['submit_page'];
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
+    
     // ดึง User ID คนทำรายการ (Actor)
-    $actor_id = $_SESSION['user_id'];
+    $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
     if ($expense_id > 0) {
-
-
-        // ---------------------------------------------------------
-        // ✅ Step 1: ดึงข้อมูลเก่ามาก่อน (เพื่อเอาไปเขียน Description ใน Log)
-        // ---------------------------------------------------------
+        
+        // ดึงข้อมูลเก่า (เอาไว้ทำ Log)
         $sql_check = "SELECT b.description, b.amount, b.user_id,
-                            up.prefix, up.first_name, up.last_name 
-                        FROM budget_expenses b 
-                        JOIN user_profiles up 
-                        WHERE b.id = $expense_id";
+                             up.prefix, up.first_name, up.last_name 
+                      FROM budget_expenses b 
+                      JOIN user_profiles up ON b.user_id = up.user_id 
+                      WHERE b.id = $expense_id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
 
-
-        $log_desc = "ลบรายการรายจ่าย ID: $expense_id"; // default description
+        $log_desc = "ลบรายการรายจ่าย ID: $expense_id";
         if ($old_data) {
-            // ถ้าเจอข้อมูล ให้ระบุรายละเอียดให้ชัดเจน
             $log_desc = "ลบรายการ: " . $old_data['description'] . " (จำนวน " . number_format($old_data['amount']) . " บาท)";
         }
 
-        // ---------------------------------------------------------
-        // ✅ Step 2: ทำการลบ (แนะนำเป็น Soft Delete)
-        // ---------------------------------------------------------
-        // เปลี่ยนจาก DELETE เป็น UPDATE deleted_at
-        $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
+        // =========================================================
+        // 🔴 เริ่มต้น TRANSACTION (จุดสำคัญ)
+        // =========================================================
+        mysqli_begin_transaction($conn);
 
+        try {
+            // ---------------------------------------------------------
+            // ✅ Step 1: ลบ (Soft Delete) ตารางแม่ (budget_expenses)
+            // ---------------------------------------------------------
+            $sql = "UPDATE budget_expenses SET deleted_at = NOW() WHERE id = $expense_id";
+            $result1 = mysqli_query($conn, $sql);
 
-        // *หมายเหตุ: ถ้าคุณยังอยากใช้ Hard Delete (ลบถาวร) ให้ใช้บรรทัดล่างนี้แทนครับ
-        // $sql = "DELETE FROM budget_expenses WHERE id = $expense_id";
-
-        if (mysqli_query($conn, $sql)) {
-
+            if (!$result1) {
+                throw new Exception("Error Delete Expense: " . mysqli_error($conn));
+            }
 
             // ---------------------------------------------------------
-            // ✅ Step 3: บันทึก Log (เมื่อลบสำเร็จแล้ว)
+            // ✅ Step 2: ลบ (Soft Delete) ตารางลูก (budget_usage_logs)
             // ---------------------------------------------------------
-            // เรียกใช้ฟังก์ชัน saveActivityLog (หรือชื่อที่คุณตั้งไว้)
+            $sql_delete_expense_log = "UPDATE budget_usage_logs SET deleted_at = NOW() WHERE expense_id = $expense_id";
+            $result2 = mysqli_query($conn, $sql_delete_expense_log);
 
-            logActivity($conn, $actor_id, $old_data['user_id'], 'delete_expense', $log_desc, $expense_id);
+            if (!$result2) {
+                throw new Exception("Error Delete Logs: " . mysqli_error($conn));
+            }
 
             // ---------------------------------------------------------
-            // ✅ Step 4: Redirect กลับ
+            // ✅ Step 3: ถ้ามาถึงตรงนี้แปลว่าสำเร็จทั้งคู่ -> ยืนยันข้อมูล (COMMIT)
             // ---------------------------------------------------------
-            $name = $old_data['prefix'] . " " . $old_data['first_name'] . " " . $old_data['last_name'];
+            mysqli_commit($conn);
+
+            // --- ส่วนบันทึก Log และ Redirect ทำหลังจาก Commit สำเร็จแล้ว ---
+            
+            // บันทึก Activity Log
+            if (function_exists('logActivity')) {
+                 logActivity($conn, $actor_id, $old_data['user_id'] ?? 0, 'delete_expense', $log_desc, $expense_id);
+            }
+
+            // เตรียมข้อความแจ้งเตือน
+            $name = ($old_data['prefix'] ?? '') . " " . ($old_data['first_name'] ?? '') . " " . ($old_data['last_name'] ?? '');
             $more_details = "ลบข้อมูลของ $name \n";
             $toastMsg = $more_details . 'รายละเอียด: ' . $log_desc;
 
+            // Redirect
             if ($profile_id > 0) {
                 header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($toastMsg));
             } else {
-                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
+                header("Location: index.php?page=dashboard&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
             }
-
             exit();
-        } else {
-            echo "Error: " . mysqli_error($conn);
+
+        } catch (Exception $e) {
+            // =========================================================
+            // ⚫ เกิดข้อผิดพลาด -> ยกเลิกทั้งหมด (ROLLBACK)
+            // =========================================================
+            mysqli_rollback($conn);
+            
+            // แสดง Error หรือ Redirect ไปหน้า Error
+            echo "Transaction Failed: " . $e->getMessage();
             exit();
         }
     }

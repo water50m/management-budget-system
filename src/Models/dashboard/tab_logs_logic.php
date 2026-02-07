@@ -100,99 +100,128 @@ function restoreData($conn)
     $log_id  = isset($_POST['logId']) ? intval($_POST['logId']) : 0;
     $actor_id    = $_SESSION['user_id']; // ID คนกดกู้คืน
 
-    $data_id     = '';
-    $target_id   = '';
+    // 1. ดึงข้อมูลจาก Log เก่าก่อน
+    $data_id     = 0;
+    $target_id   = 0;
     $sql_log = "SELECT target_id, data_id FROM activity_logs WHERE id= $log_id";
-    if (!empty($sql_log) ) {
-        $result = mysqli_query($conn, $sql_log);
-        $row = mysqli_fetch_assoc($result);
+    $result = mysqli_query($conn, $sql_log);
+    if ($row = mysqli_fetch_assoc($result)) {
         $data_id = $row['data_id'];
         $target_id = $row['target_id'];
     }
 
-    // ตัวแปรสำหรับ Query
-    $sql_restore = "";
+    // ตัวแปรสำหรับ Redirect และ UX
     $log_msg = "";
-    $redirect_tab = "logs"; // Default tab
-    $sql_get_fiscal_year = "";
+    $redirect_tab = "logs";
     $fiscal_year = 0;
 
-    // 2. เลือกคำสั่ง SQL ตาม action_type
-    switch ($action_type) {
+    // =========================================================
+    // 🔴 เริ่มต้น TRANSACTION
+    // =========================================================
+    mysqli_begin_transaction($conn);
 
-        case 'delete_expense':
-            // กู้คืนรายจ่าย (budget_expense)
-            if ($data_id > 0) {
-                $sql_restore = "UPDATE budget_expenses SET deleted_at = NULL WHERE id = '$data_id'";
-                $log_msg = "กู้คืนข้อมูลรายจ่าย (Expense ID: $data_id)";
-                $redirect_tab = "expense"; // กู้เสร็จอาจจะอยากกลับไปดูหน้า Expense
+    try {
+        // 2. เลือกคำสั่ง SQL ตาม action_type
+        switch ($action_type) {
 
-                $sql_get_fiscal_year = "SELECT fiscal_year FROM budget_expenses WHERE id = '$data_id'";
-            }
-            break;
+            case 'delete_expense':
+                // =================================================
+                // ✅ กู้คืนรายจ่าย (แบบ Full Restore)
+                // =================================================
+                if ($data_id > 0) {
+                    // 2.1 กู้คืนตารางแม่ (budget_expenses)
+                    $sql_restore_exp = "UPDATE budget_expenses SET deleted_at = NULL WHERE id = '$data_id'";
+                    if (!mysqli_query($conn, $sql_restore_exp)) {
+                        throw new Exception("กู้คืน Expense ไม่สำเร็จ: " . mysqli_error($conn));
+                    }
 
-        case 'delete_received':
-            // กู้คืนรายรับ (budget_received)
-            if ($data_id > 0) {
-                $sql_restore = "UPDATE budget_received SET deleted_at = NULL WHERE id = '$data_id'";
-                $log_msg = "กู้คืนข้อมูลรายรับ (Received ID: $data_id) ";
-                $redirect_tab = "received";
+                    // 2.2 กู้คืนตารางลูก (budget_usage_logs) ⭐ เพิ่มส่วนนี้
+                    $sql_restore_logs = "UPDATE budget_usage_logs SET deleted_at = NULL WHERE expense_id = '$data_id'";
+                    if (!mysqli_query($conn, $sql_restore_logs)) {
+                        throw new Exception("กู้คืน Usage Logs ไม่สำเร็จ: " . mysqli_error($conn));
+                    }
 
-                $sql_get_fiscal_year = "SELECT fiscal_year FROM budget_received WHERE id = '$data_id'";
-            }
-            break;
+                    // 2.3 ดึง Fiscal Year (เพื่อ UX)
+                    $res_fy = mysqli_query($conn, "SELECT fiscal_year FROM budget_expenses WHERE id = '$data_id'");
+                    if ($row_fy = mysqli_fetch_assoc($res_fy)) {
+                        $fiscal_year = $row_fy['fiscal_year'];
+                    }
 
-        case 'delete_user':
-            // กู้คืนผู้ใช้งาน (user_profiles)
-            if ($target_id > 0) {
-                // เช็คดีๆ ว่าใน DB ชื่อตาราง user_profile หรือ user_profiles (ปกติมักมี s)
-                // ตามโจทย์ให้ใช้ user_profiles.id = target_id
-                $sql_restore = "UPDATE user_profiles SET deleted_at = NULL WHERE user_id = '$target_id'";
+                    $log_msg = "กู้คืนข้อมูลรายจ่าย (Expense ID: $data_id)";
+                    $redirect_tab = "expense";
+                }
+                break;
 
-                // *เพิ่มเติม: ถ้ามีตาราง users ที่ใช้ login อาจต้องกู้คืนด้วย
-                // mysqli_query($conn, "UPDATE users SET deleted_at = NULL WHERE upid = '$target_id'");
+            case 'delete_received':
+                // กู้คืนรายรับ
+                if ($data_id > 0) {
+                    $sql_restore = "UPDATE budget_received SET deleted_at = NULL WHERE id = '$data_id'";
+                    if (!mysqli_query($conn, $sql_restore)) {
+                        throw new Exception("กู้คืน Received ไม่สำเร็จ");
+                    }
 
-                $log_msg = "กู้คืนข้อมูลผู้ใช้งาน (User Profile ID: $target_id) ";
-                $redirect_tab = "users";
-            }
-            break;
+                    $res_fy = mysqli_query($conn, "SELECT fiscal_year FROM budget_received WHERE id = '$data_id'");
+                    if ($row_fy = mysqli_fetch_assoc($res_fy)) {
+                        $fiscal_year = $row_fy['fiscal_year'];
+                    }
 
-        default:
-            // กรณี Action type ไม่ถูกต้อง
-            header("Location: index.php?page=dashboard&tab=logs&status=error&msg=" . urlencode("ไม่พบประเภทข้อมูลที่ต้องการกู้คืน"));
-            exit();
-    }
+                    $log_msg = "กู้คืนข้อมูลรายรับ (Received ID: $data_id)";
+                    $redirect_tab = "received";
+                }
+                break;
 
-    // 3. รันคำสั่ง SQL
-    if (!empty($sql_restore) && mysqli_query($conn, $sql_restore)) {
+            case 'delete_user':
+                // กู้คืนผู้ใช้งาน
+                if ($target_id > 0) {
+                    $sql_restore = "UPDATE user_profiles SET deleted_at = NULL WHERE user_id = '$target_id'";
+                    if (!mysqli_query($conn, $sql_restore)) {
+                        throw new Exception("กู้คืน User ไม่สำเร็จ");
+                    }
+                    // *ถ้าต้องกู้ตาราง Users หลักด้วย ให้ใส่เพิ่มตรงนี้
 
+                    $log_msg = "กู้คืนข้อมูลผู้ใช้งาน (User Profile ID: $target_id)";
+                    $redirect_tab = "users";
+                }
+                break;
+
+            default:
+                throw new Exception("ไม่พบประเภทข้อมูลที่ต้องการกู้คืน");
+        }
+
+        // 3. อัปเดตสถานะใน Log เดิมว่า "restored" (กู้คืนแล้ว)
         if ($log_id > 0) {
             $sql_update_log = "UPDATE activity_logs SET status = 'restored' WHERE id = '$log_id'";
             mysqli_query($conn, $sql_update_log);
         }
-        // บันทึก Log ว่ามีการกู้คืน
-        logActivity($conn, $actor_id, $target_id, 'restore_data', $log_msg);
 
-        if (!empty($sql_get_fiscal_year) ) {
-            $result = mysqli_query($conn, $sql_get_fiscal_year);
-            $row = mysqli_fetch_assoc($result);
-            $fiscal_year = $row['fiscal_year'];
-
+        // 4. บันทึก Log ใหม่ ว่ามีการกู้คืนเกิดขึ้น
+        if (function_exists('logActivity')) {
+            logActivity($conn, $actor_id, $target_id, 'restore_data', $log_msg);
         }
-        
 
+        // =========================================================
+        // ✅ COMMIT TRANSACTION (บันทึกข้อมูลจริง)
+        // =========================================================
+        mysqli_commit($conn);
+
+        // ตั้งค่า Session สำหรับ UX
         $_SESSION['show_btn'] = true;
         $_SESSION['tragettab'] = $redirect_tab;
         $_SESSION['tragetfilters']  = $data_id;
         $_SESSION['fiscal_year'] = $fiscal_year;
-        // Redirect กลับไปหน้า Logs หรือหน้าที่เกี่ยวข้อง พร้อม Toast สีฟ้า (restore)
+
+        // Redirect Success
         header("Location: index.php?page=dashboard&tab=logs&status=restore&toastMsg=" . urlencode($log_msg));
         exit();
-    } else {
-        $error = "กู้คืนไม่สำเร็จ: " . mysqli_error($conn);
+
+    } catch (Exception $e) {
+        // =========================================================
+        // ⚫ ROLLBACK TRANSACTION (ยกเลิกทั้งหมดถ้ามี error)
+        // =========================================================
+        mysqli_rollback($conn);
+
+        $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
         header("Location: index.php?page=dashboard&tab=logs&status=error&toastMsg=" . urlencode($error));
         exit();
     }
-    require_once __DIR__ . '/../../views/dashboard/index.php';
 }
-

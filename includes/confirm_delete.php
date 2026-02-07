@@ -24,6 +24,7 @@
             
             <input type="hidden" name="submit_page" value="<?php echo $_GET['page'] ?? 'dashboard'; ?>">
             <input type="hidden" name="submit_tab" value="<?php echo $_GET['tab'] ?? ''; ?>">
+            <input type="hidden" name="profile_id" value="<?php echo $_GET['id'] ?? ''; ?>">
 
             <div class="mt-2">
                 <label class="block text-sm text-gray-600 mb-2 text-center">

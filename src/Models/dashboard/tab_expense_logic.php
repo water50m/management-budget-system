@@ -127,7 +127,10 @@ function showAndSearchExpense($conn)
     }
     // Search Text
     if (!empty($search_text)) {
-        $where_sql .= " AND (p.first_name LIKE '%$search_text%' OR p.last_name LIKE '%$search_text%' OR e.description LIKE '%$search_text%') ";
+        $search_safe = addcslashes($search_text, "%_");
+
+        // 3. นำไปใช้ใน Query
+        $where_sql .= " AND (p.first_name LIKE '%$search_safe%' OR p.last_name LIKE '%$search_safe%' OR e.description LIKE '%$search_safe%') ";
     }
     // Date Range
     if (!empty($start_date) && !empty($end_date)) {
@@ -255,8 +258,9 @@ function addExpense($conn)
     $full_name = mysqli_real_escape_string($conn, $_POST['target_name']);
     $submit_page = $_POST['submit_page'];
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['sbmit_tab'] : '';
-    mysqli_begin_transaction($conn);
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
+    mysqli_begin_transaction($conn);
+
 
     try {
         // ---------------------------------------------------------
@@ -302,7 +306,7 @@ function addExpense($conn)
         // ✅ Query เดียว ดึงหมดทุกใบที่มีเงินเหลือ เรียงตามวันที่อนุมัติ (เก่าสุดขึ้นก่อน)
         // ตัดเงื่อนไข Fiscal Year ออก เพื่อให้มันมองเห็นงบทุกก้อน
         $sql_app = "SELECT a.id, a.amount, a.approved_date, 
-                                COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id), 0) as used_so_far
+                                COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id AND deleted_at IS NULL), 0) as used_so_far
                                 FROM budget_received a
                                 WHERE a.user_id = '$user_id'
                                 AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) -- (Optional) กรองใบที่เก่าเกิน 2 ปีทิ้ง ถ้าไม่ใช้ก็ลบบรรทัดนี้ได้
@@ -357,12 +361,12 @@ function addExpense($conn)
         $_SESSION['show_btn'] = true;
         $_SESSION['fiscal_year'] = $fiscal_year;
         // Redirect
-        if ($profile_id > 0){
-             header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($total_msg));
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($total_msg));
         } else {
-             header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
+            header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
-       exit;
+        exit;
     } catch (Exception $e) {
         mysqli_rollback($conn);
         // echo "เกิดข้อผิดพลาด: " . $e->getMessage();
@@ -371,20 +375,21 @@ function addExpense($conn)
     }
 }
 
-function handleEditExpense($conn) {
+function handleEditExpense($conn)
+{
     // 1. รับค่าจาก Form
     $page = $_POST['submit_page'] ?? 'dashboard';
     $tab = $_POST['submit_tab'] ?? 'expense';
     $profile_id = $_POST['profile_id'] ?? 0;
-    
+
     // ข้อมูลสำหรับ Update
     $id = $_POST['expense_id'];
     $amount = $_POST['amount']; // ค่าใหม่
     $category_id = $_POST['category_id'];
     $description = $_POST['description'];
-    
+
     // ข้อมูลสำหรับ Log
-    $target_user_id = $_POST['target_user_id'] ?? 0; 
+    $target_user_id = $_POST['target_user_id'] ?? 0;
     $actor_id = $_SESSION['user_id'] ?? 0;
 
     // ---------------------------------------------------------
@@ -426,6 +431,7 @@ function handleEditExpense($conn) {
     // 📝 STEP 3: สร้างข้อความเปรียบเทียบ (Change Log)
     // ---------------------------------------------------------
     $change_details = [];
+    $msg_text = "แก้ไขรายละเอียดรายการ (ID: $id)"; // Default message
 
     // เทียบยอดเงิน (ถ้ายอดไม่เท่าเดิม)
     if (floatval($old_amount) != floatval($amount)) {
@@ -434,65 +440,97 @@ function handleEditExpense($conn) {
 
     // เทียบวันที่
     if ($old_date != $approved_date) {
-        // แปลงวันที่เป็นรูปแบบไทยสั้นๆ เพื่อให้อ่านง่าย
         $old_date_th = date('d/m/', strtotime($old_date)) . (date('Y', strtotime($old_date)) + 543);
         $new_date_th = date('d/m/', strtotime($approved_date)) . (date('Y', strtotime($approved_date)) + 543);
         $change_details[] = "วันที่: " . $old_date_th . " ➝ " . $new_date_th;
     }
 
-    // สร้างข้อความสรุปสุดท้าย
-    if (empty($change_details)) {
-        // กรณีไม่ได้แก้ตัวเลขหรือวันที่ (อาจจะแก้แค่ รายละเอียด หรือ หมวดหมู่)
-        $msg_text = "แก้ไขรายละเอียดรายการ (ID: $id)";
-    } else {
+    if (!empty($change_details)) {
         $msg_text = "แก้ไข (ID: $id): " . implode(", ", $change_details);
     }
 
-    // ---------------------------------------------------------
-    // 💾 STEP 4: อัปเดตข้อมูลลง Database
-    // ---------------------------------------------------------
-    $sql = "UPDATE budget_expenses 
-            SET amount = ?, category_id = ?, approved_date = ?, description = ?, fiscal_year = ? 
-            WHERE id = ?";
-    
-    $stmt = $conn->prepare($sql);
-    
-    if (!$stmt) {
-        // Error Redirect
-        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
-        header("Location: $redirect_url&status=error&msg=prepare_fail");
-        exit;
-    }
+    // =========================================================
+    // 🔴 เริ่มต้น TRANSACTION
+    // =========================================================
+    mysqli_begin_transaction($conn);
 
-    $stmt->bind_param("sissii", $amount, $category_id, $approved_date, $description, $fiscal_year_thai, $id);
+    try {
+        // ---------------------------------------------------------
+        // 💾 STEP 4.1: อัปเดตข้อมูลตารางแม่ (budget_expenses)
+        // ---------------------------------------------------------
+        $sql = "UPDATE budget_expenses 
+                SET amount = ?, category_id = ?, approved_date = ?, description = ?, fiscal_year = ? 
+                WHERE id = ?";
 
-    if ($stmt->execute()) {
-        
-        // ✅ บันทึก Log (ใช้ข้อความ msg_text ที่เราสร้างไว้)
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare Statement Failed (Expenses): " . $conn->error);
+
+        // Bind parameters: d=double(amount), i=int(cat_id), s=string(date), s=string(desc), i=int(year), i=int(id)
+        // หมายเหตุ: amount ควรเป็น d (double) หรือ s (string) ก็ได้ แต่ถ้าเป็นทศนิยมแนะนำ d
+        $stmt->bind_param("sissii", $amount, $category_id, $approved_date, $description, $fiscal_year_thai, $id);
+
+        if (!$stmt->execute()) {
+            throw new Exception("Execute Failed (Expenses): " . $stmt->error);
+        }
+        $stmt->close();
+
+        // ---------------------------------------------------------
+        // 💾 STEP 4.2: อัปเดตตารางลูก (budget_usage_logs) ถ้ามีการเปลี่ยนยอดเงิน
+        // ---------------------------------------------------------
+        if (floatval($old_amount) != floatval($amount)) {
+            // **จุดที่แก้:** SQL เดิมของคุณเขียนผิดชื่อตาราง (UPDATE budget_expenses SET ... WHERE expense_id)
+            // ต้องเป็น budget_usage_logs ครับ
+            $sql_update_log = "UPDATE budget_usage_logs 
+                               SET amount_used = ?
+                               WHERE expense_id = ?";
+
+            $stmt_uel = $conn->prepare($sql_update_log);
+            if (!$stmt_uel) throw new Exception("Prepare Statement Failed (Usage Logs): " . $conn->error);
+
+            $stmt_uel->bind_param("di", $amount, $id); // d = double/decimal
+
+            if (!$stmt_uel->execute()) {
+                throw new Exception("Execute Failed (Usage Logs): " . $stmt_uel->error);
+            }
+            $stmt_uel->close();
+        }
+
+        // ---------------------------------------------------------
+        // ✅ STEP 5: ยืนยันข้อมูล (COMMIT)
+        // ---------------------------------------------------------
+        mysqli_commit($conn);
+
+
+        // --- ทำงานส่วนที่ไม่เกี่ยวกับ Database Transaction (Log & Redirect) ---
+
+        // บันทึก Log
         if (function_exists('logActivity')) {
             logActivity($conn, $actor_id, $target_user_id, 'edit_expense', $msg_text, $id);
         }
 
-        // ✅ ตั้งค่า Session สำหรับ UX
+        // ตั้งค่า Session
         $_SESSION['tragettab'] = 'expense';
         $_SESSION['tragetfilters'] = $id;
         $_SESSION['show_btn'] = true;
         $_SESSION['fiscal_year'] = $fiscal_year_thai;
 
-        // ✅ Redirect พร้อมข้อความแจ้งเตือน (Toast)
-        // ใช้ urlencode($msg_text) ส่งข้อความที่เราสร้างไปแสดงหน้าเว็บ
+        // Redirect Success
         if ($profile_id > 0) {
             header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($msg_text));
         } else {
             header("Location: index.php?page=$page&status=success&tab=" . $tab . "&toastMsg=" . urlencode($msg_text));
         }
+        exit();
+    } catch (Exception $e) {
+        // =========================================================
+        // ⚫ เกิดข้อผิดพลาด -> ยกเลิกทั้งหมด (ROLLBACK)
+        // =========================================================
+        mysqli_rollback($conn);
 
-    } else {
-        // ❌ Error
+        // Redirect Error
         $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
-        header("Location: $redirect_url&status=error");
+        // ส่ง msg error ไปด้วยเพื่อ debug (ใน production อาจจะซ่อน message)
+        header("Location: $redirect_url&status=error&msg=" . urlencode($e->getMessage()));
+        exit();
     }
-    
-    $stmt->close();
-    exit;
 }

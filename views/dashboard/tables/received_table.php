@@ -54,17 +54,28 @@ $border = " border border-{$theme}-200"
 
                                 <?php
                                 // 1. แปลงวันที่จาก Database เป็น Timestamp
-                                $record_time = strtotime($row['record_date']);
+                                $record_time = strtotime($row['approved_date']);
 
                                 // 2. หา Timestamp ของเวลา "2 ปีที่แล้ว" นับจากปัจจุบัน
                                 $two_years_ago = strtotime('-2 years');
 
                                 // 3. เปรียบเทียบ: ถ้าเวลาที่บันทึก น้อยกว่า (เก่ากว่า) 2 ปีที่แล้ว
                                 if ($record_time < $two_years_ago) {
-                                    // แสดงข้อความแจ้งเตือน (ใช้ class text-xs เพื่อให้ตัวเล็กหน่อย ไม่รกตาราง)
-                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold">
-                                                * รายการนี้มีอายุเกิน 2 ปี
-                                            </div>';
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ">
+                                        * รายการนี้มีอายุเกิน 2 ปี
+                                    </div>';
+                                } else if (!is_null($row['received_left']) && $row['received_left'] == 0) {
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ">
+                                        * รายการนี้ถูกตัดยอดไปใช้แล้วทั้งหมด
+                                    </div>';
+                                } else if (!is_null($row['received_left']) && $row['received_left'] > 0) {
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    $formated_ = number_format($row['received_left'], 2);
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะถูกนำไปคำนวนในยอดคงเหลือเพียงบางส่วน (เหลือ ' . $formated_ . 'บาท)">
+                                        * รายการนี้ถูกตัดยอดไปใช้แล้วบางส่วน
+                                    </div>';
                                 }
                                 ?>
                             </td>
@@ -142,7 +153,6 @@ $border = " border border-{$theme}-200"
     $hx_selectors = "[name='search'], [name='dept_id'], [name='date_type'], [name='start_date'], [name='end_date'], [name='min_amount'], [name='max_amount'], [name='year']";
 
     include_once __DIR__ . '/../../../src/Helper/FE_function.php';
-
     if (function_exists('renderPaginationBar')) {
         renderPaginationBar(
             $pagination,       // ข้อมูล Pagination

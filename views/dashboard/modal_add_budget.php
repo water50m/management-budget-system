@@ -33,7 +33,7 @@
                 <input type="text" inputmode="decimal" placeholder="ระบุจำนวนเงิน"
                     value=""
                     class="shadow border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    oninput="formatCurrency(this, 'add_amount_hidden')"></input>
+                    oninput="formatCurrencyAddRec(this, 'add_amount_hidden')"></input>
 
             </div>
 
@@ -79,55 +79,30 @@
         document.getElementById('addBudgetModal').classList.add('hidden');
     }
 
+    function formatCurrencyAddRec(input, hiddenElementId) {
+        let raw = input.value.replace(/[^0-9.]/g, '');
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // ฟังก์ชันช่วยปรับปีในหัวปฏิทินให้เป็น พ.ศ.
-        const setBuddhistYear = (instance) => {
-            if (instance.currentYearElement) {
-                const buddhistYear = instance.currentYear + 543;
-                instance.currentYearElement.value = buddhistYear;
-            }
-        };
-
-        const fp = flatpickr("#budget_date", {
-            locale: "th",
-
-            // ✅ เปลี่ยนตรงนี้: กำหนด Value เป็น mm/dd/yy (ปี ค.ศ. 2 หลัก)
-            // ถ้าอยากได้ปี 4 หลัก (2026) ให้ใช้ "m/d/Y"
-            dateFormat: "m/d/y",
-
-            altInput: true, // เปิดใช้ช่องแสดงผลหลอก
-            altFormat: "j F Y", // รูปแบบที่ตาเห็น (ยังเป็น พ.ศ. เต็ม)
-            disableMobile: true,
-
-            // Event Hooks สำหรับแก้ปี พ.ศ. ในปฏิทิน
-            onReady: (d, dStr, instance) => setBuddhistYear(instance),
-            onOpen: (d, dStr, instance) => setBuddhistYear(instance),
-            onMonthChange: (d, dStr, instance) => setBuddhistYear(instance),
-            onYearChange: (d, dStr, instance) => setBuddhistYear(instance),
-
-            // แปลงวันที่สำหรับแสดงผล (altFormat) ให้เป็นปี พ.ศ.
-            formatDate: (date, format, locale) => {
-                if (format === "j F Y") {
-                    return flatpickr.formatDate(date, "j F", locale) + " " + (date.getFullYear() + 543);
-                }
-                return flatpickr.formatDate(date, format, locale);
-            }
-        });
-
-        // ปุ่ม "ใช้วันที่ปัจจุบัน"
-        const btnUseToday = document.getElementById('btn_use_today');
-        if (btnUseToday) {
-            btnUseToday.addEventListener('click', function() {
-                fp.setDate(new Date(), true);
-
-                // Effect กระพริบ
-                const input = document.querySelector(".flatpickr-input[type='text']");
-                if (input) {
-                    input.classList.add('ring-2', 'ring-green-500');
-                    setTimeout(() => input.classList.remove('ring-2', 'ring-green-500'), 300);
-                }
-            });
+        // กันจุดทศนิยมเกิน 1 จุด
+        const parts = raw.split('.');
+        if (parts.length > 2) {
+            raw = parts[0] + '.' + parts.slice(1).join('');
         }
-    });
+
+        // sync hidden ทุกครั้ง
+        if (hiddenElementId) {
+            document.getElementById(hiddenElementId).value = raw;
+        }
+        console.log(document.getElementById(hiddenElementId).value)
+        if (raw === '') {
+            input.value = '';
+            return;
+        }
+
+        const [intPart, decPart] = raw.split('.');
+
+        input.value =
+            Number(intPart).toLocaleString('en-US') +
+            (decPart !== undefined ? '.' + decPart : '');
+
+    }
 </script>

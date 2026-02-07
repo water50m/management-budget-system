@@ -1,11 +1,5 @@
 <?php
-function dateToThai_old($date)
-{
-    if (!$date) return '-';
-    $timestamp = strtotime($date);
-    $y = date('Y', $timestamp) + 543;
-    return date('d/m/', $timestamp) . $y;
-}
+
 
 function dateToThai($strDate) {
     if (!$strDate || $strDate == "0000-00-00") return "-";

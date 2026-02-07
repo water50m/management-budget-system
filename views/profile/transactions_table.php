@@ -40,7 +40,37 @@
                                 <?php $index += 1; ?>
                                 <?php echo $index; ?>
                             </td>
-                            <td class="px-6 py-4 text-gray-500 font-mono text-sm"><?php echo $txn['thai_date']; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+                                <?php echo $txn['thai_date']; ?>
+
+                                <?php
+                                // 1. แปลงวันที่จาก Database เป็น Timestamp
+                                $record_time = strtotime($txn['txn_date']);
+
+                                // 2. หา Timestamp ของเวลา "2 ปีที่แล้ว" นับจากปัจจุบัน
+                                $two_years_ago = strtotime('-2 years');
+
+                                // 3. เปรียบเทียบ: ถ้าเวลาที่บันทึก น้อยกว่า (เก่ากว่า) 2 ปีที่แล้ว
+                                if ($record_time < $two_years_ago && $txn['type'] == 'income') {
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ หรือยอดที่ได้รับของปีงบประมาณปีปัจจุบัน">
+                                        * รายการนี้มีอายุเกิน 2 ปี
+                                    </div>';
+                                } else if (!is_null($txn['received_left']) && $txn['received_left'] == 0) {
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ">
+                                        * รายการนี้ถูกตัดยอดไปใช้แล้วทั้งหมด
+                                    </div>';
+                                }
+                                 else if (!is_null($txn['received_left']) && $txn['received_left'] > 0) {
+                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
+                                    $formated_ =number_format($txn['received_left'], 2);
+                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะถูกนำไปคำนวนในยอดคงเหลือเพียงบางส่วน (เหลือ ' . $formated_ .'บาท)">
+                                        * รายการนี้ถูกตัดยอดไปใช้แล้วบางส่วน
+                                    </div>';
+                                }
+                                ?>
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-gray-800"><?php echo $txn['description']; ?></div>
 
@@ -118,7 +148,7 @@
                                                     onclick="openEditExpenseModal(
                                                                 '<?= $txn['id'] ?>', 
                                                                 '<?= $user_info['id'] ?>', 
-                                                                '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name']; ?><br><?php echo $user_info['last_name']; ?>', 
+                                                                '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name']. ' ' . $user_info['last_name']; ?>', 
                                                                 '<?= $txn['amount'] ?>', 
                                                                 '<?= $txn['txn_date'] ?>', 
                                                                 '<?= isset($txn['category_id']) ? $txn['category_id'] : '' ?>', 
@@ -196,5 +226,10 @@
             </tfoot>
         </table>
     </div>
-    <?php include_once __DIR__ . '/../../includes/confirm_delete.php'; ?>
+
+    <?php 
+    include_once __DIR__ . '/../../includes/confirm_delete.php';
+    include_once __DIR__ . '/../../includes/modal_edit_expense.php';
+    include_once __DIR__ . '/../../includes/modal_edit_received.php';
+    ?>
 </div>

@@ -25,8 +25,6 @@ function loadEnv($path) {
     }
     return true;
 
-
-
 }
 
 
@@ -113,4 +111,17 @@ function getDepartmentName($conn, $user_id) {
     }
     
     return "ไม่ระบุสังกัด"; // กรณีไม่พบข้อมูล
+}
+
+function getAllDepartment($conn){
+    $dept_sql = "SELECT * FROM departments ORDER BY thai_name ASC";
+    $dept_res = mysqli_query($conn, $dept_sql);
+    $dep_list = [];
+
+    if ($dept_res) {
+        while ($row = mysqli_fetch_assoc($dept_res)) {
+            $dep_list[] = $row;
+        }
+    }
+    return $dep_list;
 }
