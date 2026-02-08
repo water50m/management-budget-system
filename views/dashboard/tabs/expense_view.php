@@ -11,17 +11,16 @@ renderExpenseTableComponent(
     $pagination
 );
 
-
-// 🟢 1. เพิ่ม $pagination = null ใน parameter ตัวสุดท้าย
+// 🟢 1. Add $pagination = null to the last parameter
 function renderExpenseTableComponent($expenses, $filters, $departments, $categories, $years = [], $color = 'purple', $pagination = null)
 {
-    // ป้องกัน Error
+    // Prevent Errors
     $expenses = $expenses ?? [];
     $filters = $filters ?? [];
     $departments = $departments ?? [];
     $categories = $categories ?? [];
 
-    // ตั้งค่า Default Filters
+    // Set Default Filters
     $defaultFilters = [
         'search' => '',
         'dept_id' => 0,
@@ -32,23 +31,22 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
         'min_amount' => '',
         'max_amount' => '',
         'year' => 0,
-        'limit' => 10 // เพิ่ม limit เข้าไปใน filter ด้วย
+        'limit' => 10
     ];
     $filters = array_merge($defaultFilters, $filters);
-
-    // 🟢 2. สร้าง String สำหรับ hx-include (รวมทุกตัวกรองเพื่อให้ส่งค่าไปด้วยตอนเปลี่ยนหน้า)
-    // จำเป็นมากสำหรับหน้านี้เพราะตัวกรองเยอะ
 ?>
     <div class="bg-white p-5 rounded-xl shadow-sm border border-<?= $color ?>-100 mb-6 animate-fade-in">
         <form hx-get="index.php?page=dashboard&tab=expense"
             hx-target="#table-expense"
             hx-push-url="true"
-            hx-indicator="#loading-indicator"
+            hx-swap="innerHTML"
             class="w-full"
-            id="form-expense"> <?php
-                                // เช็คสิทธิ์ Admin
-                                $isHighAdmin = (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin');
-                                ?>
+            id="form-expense"> 
+            
+            <?php
+            // Check Admin Permissions
+            $isHighAdmin = (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin');
+            ?>
 
             <div class="flex flex-wrap md:flex-nowrap gap-3 items-end">
 
@@ -81,11 +79,10 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                             value="<?php echo htmlspecialchars($filters['search']); ?>"
                             class="w-full h-[38px] border-none text-xs text-gray-700 focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
                             placeholder="ชื่อ/รายละเอียด"
-
                             hx-get="index.php?page=dashboard&tab=expense"
                             hx-target="#table-expense"
                             hx-include="#form-expense"
-                            hx-trigger="keyup changed delay:500ms search">
+                            hx-trigger="keyup changed delay:500ms, search">
                     </div>
                 </div>
 
@@ -190,9 +187,6 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
 
                 <div class="w-full md:w-auto flex-shrink-0 flex items-center gap-2">
                     <button type="submit"
-                        hx-get="index.php?page=dashboard&tab=expense"
-                        hx-target="#table-expense"
-                        hx-include="#form-expense"
                         class="w-full md:w-[40px] bg-<?= $color ?>-600 hover:bg-<?= $color ?>-700 text-white rounded-lg text-sm font-medium transition shadow-sm flex justify-center items-center h-[38px]">
                         <i class="fas fa-search"></i>
                     </button>
@@ -205,15 +199,13 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                         <i class="fas fa-sync-alt text-xs"></i>
                     </button>
                 </div>
-
-                <?php if ($pagination): ?>
-                    <input type="hidden" name="limit" value="<?php echo $pagination['limit']; ?>">
-                <?php endif; ?>
-
             </div>
+
+            <?php if ($pagination): ?>
+                <input type="hidden" name="limit" value="<?php echo $pagination['limit']; ?>">
+            <?php endif; ?>
         </form>
     </div>
-
 
 <?php
     include_once __DIR__ . "/../tables/expense_table.php";

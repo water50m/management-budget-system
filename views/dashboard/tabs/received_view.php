@@ -32,7 +32,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
     $btnBg = "bg-{$theme}-600";
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
-    $border = " border border-{$theme}-200"
+    $border = " border border-{$theme}-200";
 ?>
 
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
@@ -40,7 +40,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
         <form hx-get="index.php?page=dashboard&tab=received"
             hx-target="#table-received"
             hx-push-url="true"
-            hx-indicator="#loading-indicator"
+            hx-swap="innerHTML"
             class="w-full"
             id="form-received">
             <div class="flex flex-wrap md:flex-nowrap gap-3 items-end">

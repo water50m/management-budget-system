@@ -34,10 +34,10 @@ $t = [
     
     // Table Headers
     'th_seq' => $is_thai ? 'ลำดับ' : '#',
-    'th_date' => $is_thai ? 'วันที่' : 'Date',
+    'th_date' => $is_thai ? 'วันที่อนุมัติ' : 'Approve Date',
     'th_desc' => $is_thai ? 'รายละเอียด / รายการ' : 'Description / Item',
     'th_cat' => $is_thai ? 'หมวดหมู่' : 'Category',
-    'th_amount' => $is_thai ? 'จำนวนเงิน' : 'Amount',
+    'th_amount' => $is_thai ? 'จำนวนเงิน(บาท)' : 'Amount(THB)',
     'th_type' => $is_thai ? 'ประเภท' : 'Type',
     
     // Table Content

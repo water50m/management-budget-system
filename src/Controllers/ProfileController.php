@@ -12,7 +12,7 @@ class ProfileController
 
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
         $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng,
-                            b.remaining_balance, b.previous_year_budget, b.current_year_budget
+                            b.*
                      FROM users u
                      LEFT JOIN user_profiles p ON u.id = p.user_id
                      LEFT JOIN departments d ON p.department_id = d.id
@@ -63,6 +63,8 @@ class ProfileController
         $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
         $f_prev_year = isset($_GET['prevYear']) && $_GET['prevYear'] != 0 ? intval($_GET['prevYear']) : 0;
         $f_total_balance_show = isset($_GET['total_balance'])  && $_GET['prevYear'] > 0 ? intval($conn, $_GET['total_balance']) : 0;
+        $f_carried_over_remaining = isset($_GET['carried_over_remaining'])  && $_GET['carried_over_remaining'] != '' ? true : false;
+
         // ---------------------------------------------------------
         // 🔄 Logic จับคู่ข้อมูล (ถ้ามาแค่อย่างเดียว ให้เป็นค่าเดียวกัน)
         // ---------------------------------------------------------
@@ -112,14 +114,24 @@ class ProfileController
             $where_exp .= " AND e.amount <= '$f_max' ";
         }
         if ($f_total_balance_show > 0) {
-            $where_inc = " WHERE br.fiscal_year IN ('$f_total_balance_show', '$f_total_balance_show' - 1) ";
-            $where_exp = " WHERE e.fiscal_year = '$f_total_balance_show' ";
+            $where_inc = "  WHERE br.user_id = $user_id AND deleted_at IS NULL AND br.fiscal_year IN ('$f_total_balance_show', '$f_total_balance_show' - 1) ";
+            $where_exp = " WHERE e.user_id = $user_id AND e.deleted_at IS NULL AND e.fiscal_year = '$f_total_balance_show' ";
+        }
+        if ($f_carried_over_remaining) {
+            $where_inc = " WHERE br.user_id = $user_id AND 
+                br.deleted_at IS NULL
+                AND br.approved_date < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                AND br.expire_date >= CURDATE()
+            ORDER BY br.approved_date DESC";
+            $where_exp = "WHERE 1=0";
         }
 
 
         // Combine Query based on Type
         $sql_parts = [];
 
+
+        $carry_over_data = getBudgetCarryOverSummary($conn, $user_id, $current_fiscal_year);
         // ส่วนรายรับ (Income)
         if ($f_type == 'all' || $f_type == 'income') {
             $sql_parts[] = "(SELECT 
@@ -127,24 +139,44 @@ class ProfileController
                                 br.approved_date as txn_date, 
                                 br.remark as description, 
                                 br.amount as amount,
+                                br.expire_date,
                                 'income' as type, 
                                 NULL as category_name, 
                                 NULL as category_id,
                                 
                                 
-                                COALESCE((SELECT SUM(amount_used) 
+                                 -- 2. คำนวณยอดที่ ใช้ไปแล้วในปีก่อน (Past Usage)
+                                -- เพื่อเอามาโชว์ user ว่า อ๋อ หายไปเพราะปีที่แล้วใช้นะ
+                                COALESCE((
+                                    SELECT SUM(amount_used) 
+                                    FROM budget_usage_logs 
+                                    WHERE approval_id = br.id 
+                                    AND deleted_at IS NULL
+                                    AND created_at < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                                ), 0) AS used_last_year,
+
+                                -- 3. คำนวณ ยกยอดมาสุทธิ (Net Carried Over) ⭐ ตัวนี้แหละที่ User อยากรู้
+                                -- สูตร: (เงินรับ - ใช้ไปปีก่อน) = เงินที่ข้ามเวลามาถึงปีนี้
+                                GREATEST(
+                                    br.amount - COALESCE((
+                                        SELECT SUM(amount_used) 
                                         FROM budget_usage_logs 
                                         WHERE approval_id = br.id 
-                                        AND deleted_at IS NULL), 0) as total_used, 
-
-                                GREATEST(
-                                    br.amount - (SELECT SUM(amount_used) 
-                                                FROM budget_usage_logs 
-                                                WHERE approval_id = br.id 
-                                                AND deleted_at IS NULL), 
+                                        AND deleted_at IS NULL
+                                        AND created_at < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                                    ), 0),
                                     0
-                                ) as received_left,
+                                ) AS net_carried_over,
 
+                                -- 4. ยอดคงเหลือปัจจุบัน (Remaining)
+                                -- อันนี้หักลบทุกอย่างแล้ว (ทั้งอดีตและปัจจุบัน)
+                                GREATEST(
+                                    br.amount - COALESCE(
+                                        (SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = br.id AND deleted_at IS NULL),
+                                        0  
+                                    ),
+                                    0
+                                ) AS current_remaining,
                                 br.fiscal_year as fiscal_year_num
                             FROM budget_received br 
                             $where_inc)";
@@ -155,11 +187,11 @@ class ProfileController
             $sql_parts[] = "(SELECT 
                                 e.id, e.approved_date as txn_date, e.description, e.amount as amount,
                                 'expense' as type, c.name_th as category_name, c.id AS category_id,
-                                NULL AS total_used, NULL AS received_left,
+                                NULL AS used_last_year, NULL AS net_carried_over, NULL AS fiscal_year_num, NULL AS expire_date,
                                 fiscal_year as fiscal_year_num
-                             FROM budget_expenses e
-                             LEFT JOIN expense_categories c ON e.category_id = c.id
-                             $where_exp)";
+                            FROM budget_expenses e
+                            LEFT JOIN expense_categories c ON e.category_id = c.id
+                            $where_exp)";
         }
 
         $transactions = [];
@@ -177,6 +209,7 @@ class ProfileController
                     $sum_expense += abs($row['amount']);
                 }
                 $row['thai_date'] = dateToThai($row['txn_date']);
+                $row['expire_date_th'] = dateToThai($row['expire_date']);
                 $transactions[] = $row;
             }
         }
@@ -200,17 +233,21 @@ class ProfileController
         $data = [
             'user_info'    => $user_info,
             'transactions' => $transactions,
+            'carry_over_data' => $carry_over_data,
             'years_list'   => $years_list,
             'cats_list'    => $cats_list,
             'filters'      => $filters,      // ส่ง filters ไปด้วย
             'sum_income'   => $sum_income,
             'sum_expense'  => $sum_expense,
             'current_fiscal_year' => $current_fiscal_year,
-            'department_list' => $department_list
+            'department_list' => $department_list,
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
             submitDeleteUser($conn);
+        }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'change_department') {
+            $this->editDepartment($conn);
         }
 
         if (isset($_SERVER['HTTP_HX_REQUEST'])) {
@@ -370,4 +407,104 @@ class ProfileController
 
         exit;
     }
+}
+
+
+function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year) {
+    // 1. คำนวณช่วงวันที่ของปีงบประมาณปัจจุบัน
+    // แปลงปี พ.ศ. เป็น ค.ศ. (เช่น 2569 -> 2026)
+    $fy_ce = (int)$fiscal_year - 543; 
+    
+    // วันเริ่มปีงบ (1 ต.ค. ปีก่อนหน้า)
+    $start_fy_date = ($fy_ce - 1) . "-10-01"; 
+    // วันสิ้นสุดปีงบ (30 ก.ย. ปีปัจจุบัน)
+    $end_fy_date   = $fy_ce . "-09-30";       
+    // วันนี้ (เพื่อเช็คหมดอายุ)
+    $today = date('Y-m-d');
+
+    // 2. SQL Query
+    $sql = "
+        SELECT 
+            -- 1. ยอดสุทธิที่ยกมา (Net Carried Over)
+            SUM(
+                GREATEST(
+                    br.amount - COALESCE((
+                        SELECT SUM(amount_used) 
+                        FROM budget_usage_logs 
+                        WHERE approval_id = br.id 
+                        AND deleted_at IS NULL
+                        AND created_at < ? -- (s) ตัดยอดก่อนเริ่มปีงบนี้
+                    ), 0),
+                    0
+                )
+            ) AS total_net_carried_over,
+
+            -- 2. ยอดที่ใช้ไป 'ในปีนี้' (Used This Year)
+            COALESCE((
+                SELECT SUM(bul.amount_used)
+                FROM budget_usage_logs bul
+                JOIN budget_received br2 ON bul.approval_id = br2.id
+                WHERE br2.user_id = ?   -- (i)
+                AND br2.fiscal_year < ? -- (i) เฉพาะรายการปีก่อน
+                AND bul.deleted_at IS NULL
+                AND bul.created_at BETWEEN ? AND ? -- (s, s) ช่วงปีงบปัจจุบัน
+            ), 0) AS total_used_this_year,
+
+            -- 3. ยอดที่หมดอายุ/คืนคลัง (Lapsed)
+            SUM(
+                CASE 
+                    WHEN br.expire_date < ? THEN -- (s) ถ้าหมดอายุแล้วเทียบกับวันนี้
+                        GREATEST(
+                            br.amount - COALESCE((
+                                SELECT SUM(amount_used) 
+                                FROM budget_usage_logs 
+                                WHERE approval_id = br.id 
+                                AND deleted_at IS NULL
+                            ), 0),
+                            0
+                        )
+                    ELSE 0 
+                END
+            ) AS total_lapsed
+
+        FROM budget_received br
+        WHERE br.user_id = ?    -- (i)
+        AND br.fiscal_year < ?  -- (i) เฉพาะรายการจากปีก่อนๆ
+    ";
+
+    // 3. Prepare & Execute
+    $stmt = $conn->prepare($sql);
+    
+    if (!$stmt) {
+        // กรณี SQL Error ให้ Return 0 หมดเพื่อกันเว็บพัง
+        return [
+            'carried_over_remaining' => 0,
+            'carried_over_used' => 0,
+            'carried_over_lapsed' => 0
+        ];
+    }
+
+
+    $stmt->bind_param(
+        "siisssii", 
+        $start_fy_date, 
+        $user_id, 
+        $fiscal_year, 
+        $start_fy_date, 
+        $end_fy_date, 
+        $today, 
+        $user_id, 
+        $fiscal_year
+    );
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    // 4. Return ผลลัพธ์ (ใส่ 0 หากเป็น null)
+    return [
+        'carried_over_remaining' => $row['total_net_carried_over'] ?? 0,
+        'carried_over_used'      => $row['total_used_this_year'] ?? 0,
+        'carried_over_lapsed'    => $row['total_lapsed'] ?? 0
+    ];
 }

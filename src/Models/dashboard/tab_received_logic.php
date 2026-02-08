@@ -267,11 +267,14 @@ function addReceiveBudget($conn)
     try {
 
         // A. บันทึกข้อมูลงบประมาณ
+        $expire_date = date('Y-m-d', strtotime($approved_date . " +2 years"));
+
+        // 2. เพิ่ม expire_date เข้าไปใน SQL
         $sql_budget = "INSERT INTO budget_received 
-                                (user_id, amount, approved_date, remark, fiscal_year) 
-                                VALUES 
-                                ('$user_id', '$amount', '$approved_date', '$remark', '$fiscal_year')
-                                ";
+                    (user_id, amount, approved_date, expire_date, remark, fiscal_year) 
+                    VALUES 
+                    ('$user_id', '$amount', '$approved_date', '$expire_date', '$remark', '$fiscal_year')
+                    ";
 
         if (!mysqli_query($conn, $sql_budget)) {
             throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
@@ -473,9 +476,17 @@ function handleEditReceived($conn)
     // 💾 STEP 4: อัปเดตข้อมูลลง Database (รวม fiscal_year)
     // ---------------------------------------------------------
 
-    // ✅ เพิ่ม fiscal_year = ? ใน SQL
+    // 1. ✅ คำนวณวันหมดอายุใหม่ (Approved Date + 2 ปี)
+    if (empty($approved_date)) {
+        $approved_date = $old_date;
+    }
+
+    // 2. คำนวณวันหมดอายุ (+2 ปี) จากวันที่ที่ถูกต้องแล้ว
+    $expire_date = date('Y-m-d', strtotime($approved_date . " +2 years"));
+
+    // 2. ✅ เพิ่ม expire_date = ? ใน SQL
     $sql = "UPDATE budget_received 
-            SET amount = ?, approved_date = ?, remark = ?, fiscal_year = ? 
+            SET amount = ?, approved_date = ?, expire_date = ?, remark = ?, fiscal_year = ? 
             WHERE id = ?";
 
     $stmt = $conn->prepare($sql);
@@ -486,12 +497,11 @@ function handleEditReceived($conn)
         exit;
     }
 
-    // ✅ Bind Params: เพิ่ม i (integer) สำหรับ fiscal_year
-    // s(amount), s(date), s(remark), i(fiscal_year), i(id)
-    // สร้างไฟล์ชื่อ debug_log.txt ไว้ที่เดียวกับ index.php
-    // FILE_APPEND คือให้เขียนต่อท้ายไปเรื่อยๆ ไม่ทับของเดิม
-    file_put_contents('debug_log.txt', print_r($amount, true) . "\n------------------\n", FILE_APPEND);
-    $stmt->bind_param("sssii", $amount, $approved_date, $remark, $fiscal_year_thai, $id);
+    // 3. ✅ Bind Params: 
+    // เพิ่ม 's' สำหรับ expire_date เข้าไป (เป็นตัวที่ 3)
+    // เรียงลำดับ: amount(s), approved_date(s), expire_date(s), remark(s), fiscal_year(i), id(i)
+    // กลายเป็น "ssssii"
+    $stmt->bind_param("ssssii", $amount, $approved_date, $expire_date, $remark, $fiscal_year_thai, $id);
 
     // 3. Execute
     if ($stmt->execute()) {

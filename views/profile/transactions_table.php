@@ -18,58 +18,59 @@
                 <?php if (count($transactions) > 0): ?>
                     <?php $index = 0; ?>
                     <?php foreach ($transactions as $txn): ?>
-                        <?php
-                        $row_bg = "bg-white";
-                        $fy_badge_color = "bg-gray-100 text-gray-500";
-                        if ($txn['type'] == 'expense') {
-                            $row_bg = "bg-red-50 hover:bg-red-100";
-                        } else {
-                            if ($txn['fiscal_year_num'] == $current_fiscal_year) {
-                                $row_bg = "bg-green-50 hover:bg-green-100";
-                                $fy_badge_color = "bg-green-100 text-green-700";
-                            } elseif ($txn['fiscal_year_num'] == ($current_fiscal_year - 1)) {
-                                $row_bg = "bg-yellow-50 hover:bg-yellow-100";
-                                $fy_badge_color = "bg-yellow-100 text-yellow-700";
-                            } else {
-                                $row_bg = "bg-gray-50/40 hover:bg-gray-100";
-                            }
-                        }
-                        ?>
-                        <tr class="<?php echo $row_bg; ?> transition group">
+
+                        <tr class="border-b transition-colors hover:bg-opacity-75 <?php echo ($txn['type'] == 'income') ? 'bg-green-50' : 'bg-red-50'; ?>">
                             <td class="px-6 py-4 text-center text-gray-400 font-mono text-sm">
                                 <?php $index += 1; ?>
                                 <?php echo $index; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
-                                <?php echo $txn['thai_date']; ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-left align-top">
+                                <div class="text-gray-900 font-medium">
+                                    <?php echo $txn['thai_date']; ?>
+                                </div>
 
-                                <?php
-                                // 1. แปลงวันที่จาก Database เป็น Timestamp
-                                $record_time = strtotime($txn['txn_date']);
+                                <?php if ($txn['type'] == 'income'): ?>
+                                    <?php
+                                    // --- A. เตรียมข้อมูลสำหรับ "คำนวณ" (ต้องใช้ Eng เท่านั้น) ---
+                                    $today = date('Y-m-d');
 
-                                // 2. หา Timestamp ของเวลา "2 ปีที่แล้ว" นับจากปัจจุบัน
-                                $two_years_ago = strtotime('-2 years');
+                                    // ใช้ expire_date ดิบจาก DB (ถ้าไม่มี ให้เอา txn_date ดิบมา +2 ปี)
+                                    // *ห้ามเอา thai_date มาใช้นะครับ เพราะคำนวณไม่ได้*
+                                    $raw_expire_date = isset($txn['expire_date']) ? $txn['expire_date'] : date('Y-m-d', strtotime($txn['txn_date'] . ' +2 years'));
 
-                                // 3. เปรียบเทียบ: ถ้าเวลาที่บันทึก น้อยกว่า (เก่ากว่า) 2 ปีที่แล้ว
-                                if ($record_time < $two_years_ago && $txn['type'] == 'income') {
-                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
-                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ หรือยอดที่ได้รับของปีงบประมาณปีปัจจุบัน">
-                                        * รายการนี้มีอายุเกิน 2 ปี
-                                    </div>';
-                                } else if (!is_null($txn['received_left']) && $txn['received_left'] == 0) {
-                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
-                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ">
-                                        * รายการนี้ถูกตัดยอดไปใช้แล้วทั้งหมด
-                                    </div>';
-                                }
-                                 else if (!is_null($txn['received_left']) && $txn['received_left'] > 0) {
-                                    // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
-                                    $formated_ =number_format($txn['received_left'], 2);
-                                    echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะถูกนำไปคำนวนในยอดคงเหลือเพียงบางส่วน (เหลือ ' . $formated_ .'บาท)">
-                                        * รายการนี้ถูกตัดยอดไปใช้แล้วบางส่วน
-                                    </div>';
-                                }
-                                ?>
+                                    // เช็คว่าหมดอายุหรือยัง (เทียบด้วย Eng)
+                                    $is_expired = ($raw_expire_date < $today);
+
+
+                                    // --- B. เตรียมข้อมูลสำหรับ "แสดงผล" (ใช้ Thai) ---
+                                    if (isset($txn['expire_date_th'])) {
+                                        // ถ้ามีวันที่ไทยส่งมาแล้ว ให้ใช้เลย (ไม่ต้องเข้า date/strtotime อีก)
+                                        $show_expire_date = $txn['expire_date_th'];
+                                    } else {
+                                        // ถ้าไม่มี ต้องแปลงเอง (แปลง $raw_expire_date เป็นไทย)
+                                        // สมมติว่าแปลงง่ายๆ แบบนี้ (หรือคุณใช้ function แปลงที่มีอยู่แล้วก็ได้)
+                                        $timestamp = strtotime($raw_expire_date);
+                                        $thai_months = [null, 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                                        $show_expire_date = date('j', $timestamp) . ' ' . $thai_months[date('n', $timestamp)] . ' ' . (date('Y', $timestamp) + 543);
+                                    }
+                                    ?>
+
+                                    <div class="mt-1">
+                                        <?php if ($is_expired): ?>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800" title="รายการนี้หมดอายุแล้ว">
+                                                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                                </svg>
+                                                หมดอายุ: <?php echo $show_expire_date; ?> </span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center text-xs text-gray-500" title="วันที่จะหมดอายุ">
+                                                <svg class="mr-1 h-3 w-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                หมดเขต: <?php echo $show_expire_date; ?> </span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-gray-800"><?php echo $txn['description']; ?></div>
@@ -82,11 +83,111 @@
                                     <span class="text-gray-300 text-sm">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 text-right font-mono font-medium">
+                            <td class="px-6 py-4 text-right font-mono font-medium align-top rounded-xl ">
                                 <?php if ($txn['type'] == 'income'): ?>
-                                    <span class="text-green-600 text-lg"><?php echo number_format($txn['amount'], 2); ?></span>
+                                    <?php
+                                    // --- 1. เตรียมข้อมูลตัวเลข ---
+                                    $amount = (float)$txn['amount'];
+                                    $net = isset($txn['net_carried_over']) ? (float)$txn['net_carried_over'] : $amount;
+                                    $raw_left = isset($txn['current_remaining']) ? $txn['current_remaining'] : null;
+                                    $display_left = is_null($raw_left) ? $amount : (float)$raw_left;
+
+                                    // --- 2. เช็คเรื่องเวลา (Time Logic) ---
+                                    $today = date('Y-m-d');
+                                    $expire_date = isset($txn['expire_date']) ? $txn['expire_date'] : '9999-12-31';
+
+                                    // เช็คว่าเป็นรายการจากปีก่อนๆ หรือไม่? (เทียบปี Approved กับปีปัจจุบัน)
+                                    // (ใช้ txn_date ที่เป็น Eng จาก DB นะครับ อย่าใช้ thai_date)
+                                    $txn_year = date('Y', strtotime($txn['txn_date']));
+                                    $current_year = date('Y');
+                                    $is_from_past = ($txn_year < $current_year);
+
+                                    // --- 3. สรุปเงื่อนไขการแสดงผล ---
+                                    $is_lapsed = ($expire_date < $today && $display_left > 0);
+                                    $is_depleted = ($net == 0 || $display_left <= 0);
+
+                                    // --- 4. Logic Tooltip (หัวใจสำคัญ) ---
+                                    // โชว์ Tooltip เมื่อ:
+                                    //  A. ยอดไม่เท่ากัน (net != amount) -> แปลว่ามีการหักใช้ไปแล้ว
+                                    //  B. หรือ เป็นรายการจากปีก่อน ($is_from_past) -> แปลว่ายกยอดมาเต็มๆ
+                                    $show_tooltip = ($net != $amount) || $is_from_past;
+
+                                    $tooltip_attr = $show_tooltip ? 'title="ยกยอดมา ' . number_format($net, 2) . ' บาท"' : '';
+                                    $cursor_cls = $show_tooltip ? 'cursor-help' : '';
+                                    ?>
+
+                                    <?php if ($is_lapsed): ?>
+                                        <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+                                            <span class="text-gray-400 text-lg line-through decoration-gray-400">
+                                                <?php echo number_format($amount, 2); ?>
+                                            </span>
+                                            <span class="text-purple-600 font-bold text-xs mt-1">
+                                                คืนคลัง: <?php echo number_format($display_left, 2); ?>
+                                            </span>
+                                            <span class="text-[10px] text-gray-400">
+                                                (จากยอด <?php echo number_format($amount, 0); ?>)
+                                            </span>
+                                        </div>
+
+                                    <?php elseif ($is_depleted): ?>
+                                        <div class="flex flex-col items-end opacity-60 <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+
+                                            <?php if ($net != $amount): ?>
+                                                <span class="text-green-700 text-lg font-bold">
+                                                    <?php echo number_format($net, 2); ?>
+                                                </span>
+                                                <span class="text-gray-500 text-xs line-through decoration-gray-500">
+                                                    <?php echo number_format($amount, 2); ?>
+                                                </span>
+                                                <span class="text-[10px] text-gray-600 mt-0.5">
+                                                    *ยกยอดมา <?php echo number_format($net, 0); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-gray-500 text-lg decoration-0">
+                                                    <?php echo number_format($amount, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <span class="text-[10px] text-red-500 font-bold mt-1">
+                                                *ยอดรายการนี้ถูกใช้ทั้งหมดแล้ว
+                                            </span>
+                                        </div>
+
+                                    <?php elseif ($net != $amount): ?>
+                                        <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+                                            <span class="text-green-600 text-lg font-bold">
+                                                <?php echo number_format($net, 2); ?>
+                                            </span>
+                                            <span class="text-gray-400 text-xs line-through decoration-gray-400">
+                                                <?php echo number_format($amount, 2); ?>
+                                            </span>
+                                            <span class="text-[10px] text-gray-500 mt-1">
+                                                *ยกยอดมา <?php echo number_format($net, 0); ?> บาท จาก <?php echo number_format($amount, 0); ?> บาท
+                                            </span>
+                                            <span class="text-[10px] text-blue-600 font-semibold">
+                                                (คงเหลือปัจจุบัน: <?php echo number_format($display_left, 2); ?>)
+                                            </span>
+                                        </div>
+
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+                                            <span class="text-green-600 text-lg">
+                                                <?php echo number_format($amount, 2); ?>
+                                            </span>
+
+                                            <?php if ($display_left < $amount): ?>
+                                                <span class="text-[10px] text-blue-600">
+                                                    (เหลือ: <?php echo number_format($display_left, 2); ?>)
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                    <?php endif; ?>
+
                                 <?php else: ?>
-                                    <span class="text-red-500 text-lg"><?php echo number_format($txn['amount'], 2); ?></span>
+                                    <span class="text-red-500 text-lg font-bold">
+                                        -<?php echo number_format($txn['amount'], 2); ?>
+                                    </span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 text-center">
@@ -148,7 +249,7 @@
                                                     onclick="openEditExpenseModal(
                                                                 '<?= $txn['id'] ?>', 
                                                                 '<?= $user_info['id'] ?>', 
-                                                                '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name']. ' ' . $user_info['last_name']; ?>', 
+                                                                '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>', 
                                                                 '<?= $txn['amount'] ?>', 
                                                                 '<?= $txn['txn_date'] ?>', 
                                                                 '<?= isset($txn['category_id']) ? $txn['category_id'] : '' ?>', 
@@ -227,7 +328,7 @@
         </table>
     </div>
 
-    <?php 
+    <?php
     include_once __DIR__ . '/../../includes/confirm_delete.php';
     include_once __DIR__ . '/../../includes/modal_edit_expense.php';
     include_once __DIR__ . '/../../includes/modal_edit_received.php';

@@ -53,7 +53,7 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                             value="<?php echo htmlspecialchars($filters['search_text']); ?>"
                             class="w-full border-gray-300 rounded-md shadow-sm <?php echo $focusRing; ?> pl-9 pr-3 py-2 border text-sm"
                             placeholder="พิมพ์ชื่ออาจารย์ หรือ username..."
-                            hx-trigger="keyup changed delay:500ms search"
+                            hx-trigger="keyup changed delay:500ms, search"
                             hx-get="index.php?page=dashboard&tab=users"
                             hx-target="#user-results"
                             hx-select="#user-results">

@@ -34,13 +34,23 @@ if ($current_month >= 10) {
 $fiscal_year_th = $fiscal_year_ad + 543;
 $uid = $user_info['id'];
 
+
 ?>
 <div class="container mx-auto px-4 py-6 max-w-[1800px] ">
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
         <div class="lg:col-span-1 flex flex-col gap-4 min-h-[256px]">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center flex flex-col h-full">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center flex flex-col h-full relative">
+
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
+                    <button type="button"
+                        class="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors duration-200"
+                        title="ลบข้อมูล"
+                        onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                <?php endif; ?>
 
                 <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-3xl text-blue-600 border-2 border-blue-100 mx-auto mb-3">
                     <i class="fas fa-user"></i>
@@ -49,6 +59,7 @@ $uid = $user_info['id'];
                 <h3 class="text-lg font-bold text-gray-800 mb-1">
                     <?php echo $user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>
                 </h3>
+
                 <?php include_once __DIR__ . '/../../includes/html_change_dep.php'; ?>
 
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
@@ -57,13 +68,6 @@ $uid = $user_info['id'];
                         <div class="flex items-center gap-1 justify-center">
                             <input type="hidden" name="current_page" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>">
                             <?php renderUserRoleManageComponent($user_info, $conn) ?>
-                        </div>
-                        <div class="flex items-center gap-1 justify-center mt-2">
-                            <button type="button"
-                                class="text-red-500 hover:text-red-700 text-sm"
-                                onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
-                                <i class="fas fa-trash"></i> ลบข้อมูล
-                            </button>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -157,20 +161,48 @@ $uid = $user_info['id'];
                         <div class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs">
                             <i class="fas fa-history"></i>
                         </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase font-bold"><?php echo $t['carried_over']; ?></p>
-                            <p class="font-bold text-gray-800"><?php echo number_format($user_info['previous_year_budget'], 2); ?></p>
+
+                        <div class="flex flex-col">
+                            <p class="text-[10px] text-gray-400 uppercase font-bold leading-tight">
+                                <?php echo $t['carried_over']; ?>
+                            </p>
+
+                            <p class="font-bold text-gray-800 text-sm leading-tight">
+                                <?php echo number_format($carry_over_data['carried_over_remaining'], 0); ?>
+                            </p>
+
+                            <div class="flex items-center gap-2 mt-0.5 text-[10px] font-medium">
+
+                                <?php
+                                // สมมติชื่อตัวแปร ถ้าชื่ออื่นแก้ตรงนี้ครับ
+                                $used = isset($carry_over_data['carried_over_used']) ? $carry_over_data['carried_over_used'] : 0;
+                                ?>
+                                <span class="text-red-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่ใช้ไปแล้วในปีนี้">
+                                    <i class="fas fa-minus-circle text-[8px]"></i>
+                                    <?php echo number_format($used, 0); ?> บาท
+                                </span>
+
+                                <span class="text-gray-300">|</span>
+
+                                <?php
+                                // สมมติชื่อตัวแปร ถ้าชื่ออื่นแก้ตรงนี้ครับ
+                                $lapsed = isset($carry_over_data['carried_over_lapsed']) ? $carry_over_data['carried_over_lapsed'] : 0;
+                                ?>
+                                <span class="text-purple-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
+                                    <i class="fas fa-exclamation-circle text-[8px]"></i>
+                                    <?php echo number_format($lapsed, 0); ?> บาท
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <a hx-get="index.php?page=profile&id=<?= $user_info['id'] ?>&search=&year=<?= $fiscal_year_th - 1 ?>&cat=0&type=income&min_amount=&max_amount="
+                    <a hx-get="index.php?page=profile&id=<?= $user_info['id'] ?>&carried_over_remaining=true&cat=0&type=income"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
                         hx-push-url="true"
-                        class="cursor-pointer px-2 py-1 text-xs font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition duration-200 whitespace-nowrap cursor-pointer"
+                        class="cursor-pointer px-2 py-1 text-xs font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition duration-200 whitespace-nowrap"
                         title="คลิกเพื่อดูข้อมูลรายการยอดที่รับ ในปีงบประมาณปีก่อนหน้า">
-
                         ดูรายการ <i class="fas fa-chevron-right text-[10px]"></i>
                     </a>
                 </div>
@@ -304,11 +336,24 @@ $uid = $user_info['id'];
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold shadow transition whitespace-nowrap flex-1 fit:flex-none justify-center h-[39px] flex items-center">
                             <?php echo $t['btn_filter'] ?? 'กรองข้อมูล'; ?>
                         </button>
+                        <?php
+                        $current_month = date('n'); // เดือนปัจจุบัน (1-12)
+                        $current_year = date('Y');  // ปี ค.ศ. ปัจจุบัน
 
+                        // Logic: ถ้าเดือน >= 10 (ต.ค., พ.ย., ธ.ค.) ให้บวกปี ค.ศ. เพิ่ม 1
+                        if ($current_month >= 10) {
+                            $fiscal_year_ad = $current_year + 1;
+                        } else {
+                            $fiscal_year_ad = $current_year;
+                        }
+
+                        // แปลงเป็น พ.ศ. (+543)
+                        $fiscal_year_th = $fiscal_year_ad + 543;
+                        ?>
                         <button type="button"
-                            hx-get="index.php?page=profile&id=<?php echo $_GET['id'] ?? ''; ?>"
-                            hx-target="#txn-table-container"
-                            hx-swap="outerHTML"
+                            hx-get="index.php?page=profile&id=<?php echo $_GET['id'] ?? ''; ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=all&min_amount=&max_amount="
+                            hx-target="#app-container"
+                            hx-swap="innerHTML"
                             hx-push-url="true"
                             class="text-gray-500 hover:text-red-500 px-3 py-2 border border-transparent hover:bg-gray-100 rounded-lg transition h-[39px] flex items-center border border-gray-200"
                             title="Reset">
