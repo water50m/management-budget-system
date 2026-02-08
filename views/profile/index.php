@@ -188,7 +188,7 @@ $uid = $user_info['id'];
                                 // สมมติชื่อตัวแปร ถ้าชื่ออื่นแก้ตรงนี้ครับ
                                 $lapsed = isset($carry_over_data['carried_over_lapsed']) ? $carry_over_data['carried_over_lapsed'] : 0;
                                 ?>
-                                <span class="text-purple-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
+                                <span class="text-purple-500 flex items-center gap-1 cursor-help    " title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
                                     <i class="fas fa-exclamation-circle text-[8px]"></i>
                                     <?php echo number_format($lapsed, 0); ?> บาท
                                 </span>
@@ -336,20 +336,7 @@ $uid = $user_info['id'];
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold shadow transition whitespace-nowrap flex-1 fit:flex-none justify-center h-[39px] flex items-center">
                             <?php echo $t['btn_filter'] ?? 'กรองข้อมูล'; ?>
                         </button>
-                        <?php
-                        $current_month = date('n'); // เดือนปัจจุบัน (1-12)
-                        $current_year = date('Y');  // ปี ค.ศ. ปัจจุบัน
 
-                        // Logic: ถ้าเดือน >= 10 (ต.ค., พ.ย., ธ.ค.) ให้บวกปี ค.ศ. เพิ่ม 1
-                        if ($current_month >= 10) {
-                            $fiscal_year_ad = $current_year + 1;
-                        } else {
-                            $fiscal_year_ad = $current_year;
-                        }
-
-                        // แปลงเป็น พ.ศ. (+543)
-                        $fiscal_year_th = $fiscal_year_ad + 543;
-                        ?>
                         <button type="button"
                             hx-get="index.php?page=profile&id=<?php echo $_GET['id'] ?? ''; ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=all&min_amount=&max_amount="
                             hx-target="#app-container"

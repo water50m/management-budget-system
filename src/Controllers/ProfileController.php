@@ -187,8 +187,8 @@ class ProfileController
             $sql_parts[] = "(SELECT 
                                 e.id, e.approved_date as txn_date, e.description, e.amount as amount,
                                 'expense' as type, c.name_th as category_name, c.id AS category_id,
-                                NULL AS used_last_year, NULL AS net_carried_over, NULL AS fiscal_year_num, NULL AS expire_date,
-                                fiscal_year as fiscal_year_num
+                                NULL AS used_last_year, NULL AS net_carried_over, NULL AS expire_date,
+                                fiscal_year as fiscal_year_num, NULL AS current_remaining
                             FROM budget_expenses e
                             LEFT JOIN expense_categories c ON e.category_id = c.id
                             $where_exp)";

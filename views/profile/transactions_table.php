@@ -18,8 +18,39 @@
                 <?php if (count($transactions) > 0): ?>
                     <?php $index = 0; ?>
                     <?php foreach ($transactions as $txn): ?>
+                        <?php
+                        $current_month = date('n'); // เดือนปัจจุบัน (1-12)
+                        $current_year = date('Y');  // ปี ค.ศ. ปัจจุบัน
 
-                        <tr class="border-b transition-colors hover:bg-opacity-75 <?php echo ($txn['type'] == 'income') ? 'bg-green-50' : 'bg-red-50'; ?>">
+                        // Logic: ถ้าเดือน >= 10 (ต.ค., พ.ย., ธ.ค.) ให้บวกปี ค.ศ. เพิ่ม 1
+                        if ($current_month >= 10) {
+                            $fiscal_year_ad = $current_year + 1;
+                        } else {
+                            $fiscal_year_ad = $current_year;
+                        }
+
+                        // แปลงเป็น พ.ศ. (+543)
+                        $fiscal_year_th = $fiscal_year_ad + 543;
+                        
+                        // --- คำนวณสีพื้นหลังของแถว ---
+                        $row_bg = 'bg-red-50'; // ค่าเริ่มต้น: รายจ่าย (สีแดง)
+
+                        if ($txn['type'] == 'income') {
+                            // คำนวณระยะห่างปี (Current Fiscal Year - Transaction Fiscal Year)
+                            // เช่น ปีปัจจุบัน 2570, รายการปี 2569 -> diff = 1
+                            $fy_diff = (int)$fiscal_year_th - (int)$txn['fiscal_year_num'];
+
+                            if ($fy_diff == 0) {
+                                $row_bg = 'bg-green-50';  // 🟢 ปีปัจจุบัน
+                            } elseif ($fy_diff == 1) {
+                                $row_bg = 'bg-yellow-50'; // 🟡 ปีก่อนหน้า (งบปีที่แล้ว)
+                            } else {
+                                $row_bg = 'bg-gray-100';   // ⚪ เก่ากว่านั้น (งบยกมานานแล้ว)
+                            }
+                        }
+                        ?>
+
+                        <tr class="border-b transition-colors hover:bg-opacity-75 <?php echo $row_bg; ?>">
                             <td class="px-6 py-4 text-center text-gray-400 font-mono text-sm">
                                 <?php $index += 1; ?>
                                 <?php echo $index; ?>
@@ -186,7 +217,7 @@
 
                                 <?php else: ?>
                                     <span class="text-red-500 text-lg font-bold">
-                                        -<?php echo number_format($txn['amount'], 2); ?>
+                                        <?php echo number_format($txn['amount'], 2); ?>
                                     </span>
                                 <?php endif; ?>
                             </td>
