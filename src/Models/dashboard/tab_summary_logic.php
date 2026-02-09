@@ -19,21 +19,21 @@ function getDashboardStats($conn, $year, $dept_sql)
     // --- ส่วนที่ 1: ข้อมูลของปีปัจจุบัน (โค้ดเดิม) ---
     // ยอดรับ (ปีปัจจุบัน)
     $sql_rec = "SELECT COALESCE(SUM(b.amount), 0) as total FROM budget_received b LEFT JOIN user_profiles u ON b.user_id = u.user_id WHERE b.fiscal_year = '$year' AND b.deleted_at IS NULL $dept_sql";
-    $received = mysqli_fetch_assoc(mysqli_query($conn, $sql_rec))['total'];
+    $received = $conn->query($sql_rec)->fetch_assoc()['total'];
 
     // ยอดจ่าย (ปีปัจจุบัน)
     $sql_exp = "SELECT COALESCE(SUM(b.amount), 0) as total FROM budget_expenses b LEFT JOIN user_profiles u ON b.user_id = u.user_id WHERE b.fiscal_year = '$year' AND b.deleted_at IS NULL $dept_sql";
-    $spent = mysqli_fetch_assoc(mysqli_query($conn, $sql_exp))['total'];
+    $spent = $conn->query($sql_exp)->fetch_assoc()['total'];
 
 
     // --- ✅ ส่วนที่ 2: เพิ่มการคำนวณยอดคงเหลือจาก "ปีที่แล้ว" ---
     // รับปีที่แล้ว
     $sql_prev_rec = "SELECT COALESCE(SUM(b.amount), 0) as total FROM budget_received b LEFT JOIN user_profiles u ON b.user_id = u.user_id WHERE b.fiscal_year = '$prev_year' AND b.deleted_at IS NULL $dept_sql";
-    $prev_received = mysqli_fetch_assoc(mysqli_query($conn, $sql_prev_rec))['total'];
+    $prev_received = $conn->query($sql_prev_rec)->fetch_assoc()['total'];
 
     // จ่ายปีที่แล้ว
     $sql_prev_exp = "SELECT COALESCE(SUM(b.amount), 0) as total FROM budget_expenses b LEFT JOIN user_profiles u ON b.user_id = u.user_id WHERE b.fiscal_year = '$prev_year' AND b.deleted_at IS NULL $dept_sql";
-    $prev_spent = mysqli_fetch_assoc(mysqli_query($conn, $sql_prev_exp))['total'];
+    $prev_spent = $conn->query($sql_prev_exp)->fetch_assoc()['total'];
 
     // เงินคงเหลือยกยอด (รับปีก่อน - จ่ายปีก่อน)
     $carry_over = $prev_received - $prev_spent;
@@ -92,7 +92,7 @@ function getExpenseByDepartment($conn, $year, $dept_sql)
             HAVING total_received > 0 OR total_spent > 0
             ORDER BY total_received DESC";
 
-    return mysqli_query($conn, $sql);
+    return $conn->query($sql);
 }
 
 // 4. ข้อมูลกราฟแยกตามหมวดหมู่
@@ -106,7 +106,7 @@ function getExpenseByCategory($conn, $year, $dept_sql)
             WHERE be.fiscal_year = '$year' AND be.deleted_at IS NULL $dept_sql
             GROUP BY ec.id, ec.name_th ORDER BY total_spent DESC";
 
-    return mysqli_query($conn, $sql);
+    return $conn->query($sql);
 }
 
 // 5. Top 5 ผู้ใช้จ่ายสูงสุด
@@ -119,7 +119,7 @@ function getTopSpenders($conn, $year, $dept_sql)
             WHERE be.fiscal_year = '$year' AND be.deleted_at IS NULL 
             $dept_sql
             GROUP BY u.user_id ORDER BY total_spent DESC LIMIT 5";
-    return mysqli_query($conn, $sql);
+    return $conn->query($sql);
 }
 
 
@@ -201,11 +201,11 @@ function getFpaSummary($conn, $year, $dept_id = 0)
             HAVING (travel + book + comp + sci) > 0
             ORDER BY p.user_id ASC";
 
-    $result = mysqli_query($conn, $sql);
+    $result = $conn->query($sql);
 
     $data = [];
     if ($result) {
-        while ($row = mysqli_fetch_assoc($result)) {
+        while ($row = $result->fetch_assoc()) {
             $data[] = $row;
         }
     }
@@ -217,8 +217,8 @@ function getFiscalYearOptions($conn)
 {
     // 1. หาปีน้อยสุดและมากสุดที่มีในฐานข้อมูล
     $sql = "SELECT MIN(fiscal_year) as min_year, MAX(fiscal_year) as max_year FROM budget_expenses";
-    $result = mysqli_query($conn, $sql);
-    $row = mysqli_fetch_assoc($result);
+    $result = $conn->query($sql);
+    $row = $result->fetch_assoc();
 
     $currentYear = date('Y') + 543; // ถ้าเก็บเป็น พ.ศ. ให้ +543 (ถ้าเก็บ ค.ศ. เอา +543 ออก)
     // หรือถ้าใน DB เก็บเป็น ค.ศ. ให้ใช้: $currentYear = date('Y');
@@ -249,11 +249,11 @@ function getFiscalYearOptions($conn)
 function getDepartments($conn)
 {
     $sql = "SELECT id, thai_name FROM departments ORDER BY thai_name ASC";
-    $result = mysqli_query($conn, $sql);
+    $result = $conn->query($sql);
 
     $departments = [];
     if ($result) {
-        while ($row = mysqli_fetch_assoc($result)) {
+        while ($row = $result->fetch_assoc()) {
             $departments[] = $row;
         }
     }

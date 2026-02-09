@@ -1,0 +1,13 @@
+{
+    "name": "reschdb/reschdb",
+    "description": "Research Database Management System",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
+    }
+}
