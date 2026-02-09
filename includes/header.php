@@ -35,6 +35,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <title>ระบบบริหารงานวิจัย</title>
@@ -70,6 +71,20 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
             }
         }
     </script>
+    <style>
+        body {
+            /* สำหรับ Chrome, Brave, Safari, Edge */
+            zoom: 0.85;
+
+            /* สำหรับ Firefox (ตัวเก่า) */
+            -moz-transform: scale(0.90);
+            -moz-transform-origin: top center;
+
+            /* คุณสมบัติมาตรฐาน (Standard) - ช่วยแก้ปัญหาตามรูปที่ส่งมา */
+            transform: scale(0.90);
+            transform-origin: top center;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 h-screen lg:overflow-hidden flex flex-col font-sarabun">
@@ -211,6 +226,7 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
     <div id="app-container" class="flex-1 flex flex-col min-h-0 bg-gray-50">
 
         <script>
+            
             document.addEventListener('DOMContentLoaded', function() {
                 const tabs = document.querySelectorAll('.nav-tab');
                 const inactiveClass = "text-gray-500 hover:bg-gray-50 hover:text-gray-700";

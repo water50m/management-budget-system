@@ -62,6 +62,7 @@ class AuthController
 
                 $user = $_POST["username"];
                 $psw = $_POST["password"];
+
                 $user = stripslashes($user);
                 $psw = stripslashes($psw);
                 $user = mysqli_real_escape_string($conn, $user);
@@ -85,17 +86,17 @@ class AuthController
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
                         exit();
                     } else {
-                        $raw_username = isset($_POST['username']) ? $_POST['username'] : '';
-                        $username = mysqli_real_escape_string($conn, trim($raw_username));
+
 
                         // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
                         $sql = "SELECT p.id, u.username, p.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
                                 FROM users u
                                 LEFT JOIN user_profiles p ON u.id = p.user_id
                                 LEFT JOIN roles r ON p.role_id = r.id
-                                WHERE u.username = '$username'";
+                                WHERE u.username = '$user'";
 
                         $result = mysqli_query($conn, $sql);
+                        
                         if (mysqli_num_rows($result) > 0) {
                             // ดึงข้อมูลออกมาใส่ตัวแปร $row
                             $row = mysqli_fetch_assoc($result);
