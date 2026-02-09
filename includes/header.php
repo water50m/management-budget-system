@@ -74,14 +74,14 @@ $inactive_style = "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border bor
     <style>
         body {
             /* สำหรับ Chrome, Brave, Safari, Edge */
-            zoom: 0.85;
+            zoom: 1;
 
             /* สำหรับ Firefox (ตัวเก่า) */
-            -moz-transform: scale(0.90);
+            -moz-transform: scale(1);
             -moz-transform-origin: top center;
 
             /* คุณสมบัติมาตรฐาน (Standard) - ช่วยแก้ปัญหาตามรูปที่ส่งมา */
-            transform: scale(0.90);
+            transform: scale(1);
             transform-origin: top center;
         }
     </style>

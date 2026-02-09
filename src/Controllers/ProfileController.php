@@ -118,11 +118,11 @@ class ProfileController
             $where_exp = " WHERE e.user_id = $user_id AND e.deleted_at IS NULL AND e.fiscal_year = '$f_total_balance_show' ";
         }
         if ($f_carried_over_remaining) {
-            $where_inc = " WHERE br.user_id = $user_id AND 
-                br.deleted_at IS NULL
-                AND br.approved_date < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
-                AND br.expire_date >= CURDATE()
-            ORDER BY br.approved_date DESC";
+            $where_inc = " WHERE br.user_id = $user_id 
+                            AND br.deleted_at IS NULL
+                            AND br.approved_date < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                            AND br.expire_date >= DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                            ORDER BY br.approved_date DESC";
             $where_exp = "WHERE 1=0";
         }
 
@@ -410,15 +410,16 @@ class ProfileController
 }
 
 
-function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year) {
+function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year)
+{
     // 1. คำนวณช่วงวันที่ของปีงบประมาณปัจจุบัน
     // แปลงปี พ.ศ. เป็น ค.ศ. (เช่น 2569 -> 2026)
-    $fy_ce = (int)$fiscal_year - 543; 
-    
+    $fy_ce = (int)$fiscal_year - 543;
+
     // วันเริ่มปีงบ (1 ต.ค. ปีก่อนหน้า)
-    $start_fy_date = ($fy_ce - 1) . "-10-01"; 
+    $start_fy_date = ($fy_ce - 1) . "-10-01";
     // วันสิ้นสุดปีงบ (30 ก.ย. ปีปัจจุบัน)
-    $end_fy_date   = $fy_ce . "-09-30";       
+    $end_fy_date   = $fy_ce . "-09-30";
     // วันนี้ (เพื่อเช็คหมดอายุ)
     $today = date('Y-m-d');
 
@@ -474,7 +475,7 @@ function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year) {
 
     // 3. Prepare & Execute
     $stmt = $conn->prepare($sql);
-    
+
     if (!$stmt) {
         // กรณี SQL Error ให้ Return 0 หมดเพื่อกันเว็บพัง
         return [
@@ -486,14 +487,14 @@ function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year) {
 
 
     $stmt->bind_param(
-        "siisssii", 
-        $start_fy_date, 
-        $user_id, 
-        $fiscal_year, 
-        $start_fy_date, 
-        $end_fy_date, 
-        $today, 
-        $user_id, 
+        "siisssii",
+        $start_fy_date,
+        $user_id,
+        $fiscal_year,
+        $start_fy_date,
+        $end_fy_date,
+        $today,
+        $user_id,
         $fiscal_year
     );
 

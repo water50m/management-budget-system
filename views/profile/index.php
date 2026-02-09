@@ -74,41 +74,47 @@ $uid = $user_info['id'];
 
             </div>
 
-            <div class="bg-gradient-to-b from-blue-600 to-indigo-700 rounded-xl shadow-lg p-5 text-white relative overflow-hidden flex flex-col justify-between h-full">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-lg p-4 text-white relative overflow-hidden flex items-center justify-between">
 
-                <div class="absolute right-[-10px] top-[-10px] opacity-20 pointer-events-none">
-                    <i class="fas fa-wallet text-8xl"></i>
+                <div class="absolute right-[-10px] top-[-20px] opacity-20 pointer-events-none rotate-12">
+                    <i class="fas fa-wallet text-7xl"></i>
                 </div>
 
-                <div>
-                    <p class="text-blue-100 text-xs font-medium uppercase tracking-wider mb-1"><?php echo $t['net_balance']; ?></p>
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] != 'user'): ?>
-                        <h3 class="text-3xl font-bold"><?php echo number_format($user_info['remaining_balance'], 2); ?>
-                            <span class="text-xs font-light opacity-80"><?php echo $t['currency']; ?></span>
-                        </h3>
-                    <?php else: ?>
-                        <h3 class="text-3xl font-bold"><?php echo number_format($user_info['remaining_balance'], 2); ?></h3>
-                        <span class="text-xs font-light opacity-80"><?php echo $t['currency']; ?></span>
-                    <?php endif; ?>
-
+                <div class="z-10">
+                    <p class="text-blue-100 text-[10px] font-bold uppercase tracking-wider mb-0.5 opacity-80"><?php echo $t['net_balance']; ?></p>
+                    <div class="flex items-baseline gap-1">
+                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] != 'user'): ?>
+                            <h3 class="text-2xl font-bold leading-none tracking-tight">
+                                <?php echo number_format($user_info['remaining_balance'], 2); ?>
+                            </h3>
+                            <span class="text-[10px] font-light opacity-70"><?php echo $t['currency']; ?></span>
+                        <?php else: ?>
+                            <h3 class="text-2xl font-bold leading-none tracking-tight">
+                                <?php echo number_format($user_info['remaining_balance'], 2); ?>
+                            </h3>
+                            <span class="text-[10px] font-light opacity-70"><?php echo $t['currency']; ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-blue-400/30 flex justify-end">
+                <div class="z-10 pl-4 border-l border-blue-400/30">
                     <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['id'] ?>&search=&year=0&cat=0&type=all&min_amount=&max_amount=$total_balance=<?= $fiscal_year_th ?>"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
                         hx-push-url="true"
-                        class="text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 px-4 py-1.5 rounded-full shadow-sm transition-colors duration-200 cursor-pointer flex items-center gap-1">
-                        ดูรายการ <i class="fas fa-chevron-right text-[10px]"></i>
+                        class="group flex flex-col items-center justify-center text-xs font-bold text-white hover:text-blue-100 transition-colors duration-200 cursor-pointer"
+                        title="ดูรายการทั้งหมด">
+                        <div class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center mb-1 backdrop-blur-sm transition-all">
+                            <i class="fas fa-chevron-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                        </div>
+                        <span class="text-[9px] opacity-80">ดูรายการ</span>
                     </a>
                 </div>
 
             </div>
 
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
-
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 space-y-3 mt-3">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">
@@ -119,14 +125,12 @@ $uid = $user_info['id'];
                             <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_received_all'], 2); ?></p>
                         </div>
                     </div>
-
                     <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['id'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=income&min_amount=&max_amount=&prevYear=<?= $fiscal_year_th - 1 ?>"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
                         hx-push-url="true"
-                        class="px-2 py-1 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 rounded transition duration-200 whitespace-nowrap cursor-pointer"
-                        title="คลิกเพื่อดูข้อมูลรายการยอดรับ ในปีงบประมาณปีปัจจุบันและปีก่อนหน้า">
+                        class="px-2 py-1 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 rounded transition duration-200 whitespace-nowrap cursor-pointer">
                         ดูรายการ <i class="fas fa-chevron-right text-[10px]"></i>
                     </a>
                 </div>
@@ -148,8 +152,7 @@ $uid = $user_info['id'];
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
                         hx-push-url="true"
-                        class="cursor-pointer px-2 py-1 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded transition duration-200 whitespace-nowrap cursor-pointer"
-                        title="คลิกเพื่อดูข้อมูลรายการยอดที่ตัด ในปีงบประมาณปีปัจจุบัน">
+                        class="px-2 py-1 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded transition duration-200 whitespace-nowrap cursor-pointer">
                         ดูรายการ <i class="fas fa-chevron-right text-[10px]"></i>
                     </a>
                 </div>
@@ -161,37 +164,41 @@ $uid = $user_info['id'];
                         <div class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs">
                             <i class="fas fa-history"></i>
                         </div>
-
                         <div class="flex flex-col">
-                            <p class="text-[10px] text-gray-400 uppercase font-bold leading-tight">
-                                <?php echo $t['carried_over']; ?>
-                            </p>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold leading-tight"><?php echo $t['carried_over']; ?></p>
+
+                            <?php
+                            // --- 1. เตรียมตัวแปรและคำนวณ ---
+                            $total_carried = $carry_over_data['carried_over_remaining']; // ยอดยกมาตั้งต้น
+                            $used   = isset($carry_over_data['carried_over_used']) ? $carry_over_data['carried_over_used'] : 0;
+                            $lapsed = isset($carry_over_data['carried_over_lapsed']) ? $carry_over_data['carried_over_lapsed'] : 0;
+
+                            // คำนวณยอดคงเหลือปัจจุบัน (Total - Used - Lapsed)
+                            $current_available = $total_carried - $used - $lapsed;
+                            ?>
 
                             <p class="font-bold text-gray-800 text-sm leading-tight">
-                                <?php echo number_format($carry_over_data['carried_over_remaining'], 0); ?>
+                                <?php echo number_format($total_carried, 0); ?>
                             </p>
 
                             <div class="flex items-center gap-2 mt-0.5 text-[10px] font-medium">
 
-                                <?php
-                                // สมมติชื่อตัวแปร ถ้าชื่ออื่นแก้ตรงนี้ครับ
-                                $used = isset($carry_over_data['carried_over_used']) ? $carry_over_data['carried_over_used'] : 0;
-                                ?>
                                 <span class="text-red-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่ใช้ไปแล้วในปีนี้">
-                                    <i class="fas fa-minus-circle text-[8px]"></i>
-                                    <?php echo number_format($used, 0); ?> บาท
+                                    <i class="fas fa-minus-circle text-[8px]"></i>ตัด <?php echo number_format($used, 0); ?>
                                 </span>
 
                                 <span class="text-gray-300">|</span>
 
-                                <?php
-                                // สมมติชื่อตัวแปร ถ้าชื่ออื่นแก้ตรงนี้ครับ
-                                $lapsed = isset($carry_over_data['carried_over_lapsed']) ? $carry_over_data['carried_over_lapsed'] : 0;
-                                ?>
-                                <span class="text-purple-500 flex items-center gap-1 cursor-help    " title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
-                                    <i class="fas fa-exclamation-circle text-[8px]"></i>
-                                    <?php echo number_format($lapsed, 0); ?> บาท
+                                <span class="text-purple-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
+                                    <i class="fas fa-exclamation-circle text-[8px]"></i>คืน <?php echo number_format($lapsed, 0); ?>
                                 </span>
+
+                                <span class="text-gray-300">|</span>
+
+                                <span class="text-blue-600 flex items-center gap-1 font-bold cursor-help" title="ยอดยกมาที่เหลือใช้ได้จริง ณ ปัจจุบัน">
+                                    <i class="fas fa-coins text-[8px]"></i>เหลือ <?php echo number_format($current_available, 0); ?>
+                                </span>
+
                             </div>
                         </div>
                     </div>
@@ -201,12 +208,10 @@ $uid = $user_info['id'];
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
                         hx-push-url="true"
-                        class="cursor-pointer px-2 py-1 text-xs font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition duration-200 whitespace-nowrap"
-                        title="คลิกเพื่อดูข้อมูลรายการยอดที่รับ ในปีงบประมาณปีก่อนหน้า">
+                        class="px-2 py-1 text-xs font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition duration-200 whitespace-nowrap cursor-pointer">
                         ดูรายการ <i class="fas fa-chevron-right text-[10px]"></i>
                     </a>
                 </div>
-
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
