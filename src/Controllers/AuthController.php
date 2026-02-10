@@ -68,11 +68,7 @@ class AuthController
                 $psw = mysqli_real_escape_string($conn, $psw);
 
                 include_once __DIR__ . '/../../inc/func.php';
-                // loadEnv(__DIR__ . '/../../.env');
-                // if (!getenv('LDAP_SERVER')) {
-                //     echo 'Not found secret key (2)';
-                //     exit;
-                // }
+
                 $server = 'ldaps://ldaps.nu.local:636';
                 $local = "@nu.local";
                 $ad = ldap_connect($server);
@@ -85,20 +81,12 @@ class AuthController
                 } else {
                     $b = @ldap_bind($ad, $user . $local, $psw);
 
-                    // -----------------------------------------------------------
-                    // ส่วนแสดงผล Debug แบบละเอียด (Copy ไปวางต่อท้ายได้เลย)
-                    // -----------------------------------------------------------
-
-                    // 1. ดึงข้อมูล Error เชิงลึก (Diagnostic Message)
-                    // ตัวนี้สำคัญมาก! มันจะบอกได้ละเอียดกว่า "Invalid credentials"
-                    // เช่น บอกว่า data 52e (รหัสผิด), data 532 (รหัสหมดอายุ), data 773 (ต้องเปลี่ยนรหัส)
                     $extended_error = "";
                     if (!$b) {
                         @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
                         exit;
                     }
-
 
                     // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
                     $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
@@ -158,6 +146,70 @@ class AuthController
     }
 
 
+    public function LDAP_login_test_2()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+
+                $user = $_POST["username"];
+                $psw = $_POST["password"];
+
+                // ลบ stripslashes และ real_escape_string ออกจากรหัสผ่านเพื่อป้องกันปัญหา Login ไม่ผ่าน
+                // เพราะ password บางตัวมีอักขระพิเศษที่ถูก escape แล้ว LDAP จะมองว่าเป็นรหัสผิด
+                $user = stripslashes($user); 
+                // $psw = stripslashes($psw); // ไม่แนะนำให้ยุ่งกับ password
+                
+                // Escape เฉพาะตัวแปรที่จะใช้กับ SQL เท่านั้น (ถ้ามี)
+                $user_sql = mysqli_real_escape_string($conn, $user);
+                
+                include_once __DIR__ . '/../../inc/func.php';
+                
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = "@nu.local";
+                $ad = ldap_connect($server);
+                
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+                
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit();
+                } else {
+                    // ใช้ @ เพื่อซ่อน Warning กรณีรหัสผิด
+                    $b = @ldap_bind($ad, $user . $local, $psw);
+
+                    if ($b) {
+                        // --- ✅ Login สำเร็จ ---
+                        
+                        // ตัวอย่างการกำหนดค่า Session (ปรับปรุงตาม Logic จริงของคุณได้เลย)
+                        // เช่น อาจจะ query ข้อมูล user จาก DB ของคุณมาใส่ Session แทนการ hardcode
+                        $_SESSION['user_id'] = '1'; 
+                        $_SESSION['role'] = 'high-admin';
+                        $_SESSION['fullname'] = $user; // หรือดึงชื่อจริงจาก LDAP/DB
+                        $_SESSION['seer'] = 0;
+
+                        // Redirect ไปหน้า Dashboard
+                        header("Location: index.php?page=dashboard");
+                        exit();
+
+                    } else {
+                        // --- ❌ Login ไม่สำเร็จ (รหัสผิด / User ผิด) ---
+                        header("Location: index.php?page=login&status=error&msg=invalid_credentials");
+                        exit();
+                    }
+                }
+            } else if (empty($_POST['username']) || empty($_POST['password'])) {
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
+            }
+        }
+        
+        // ถ้าไม่ใช่ POST หรือ Login ไม่ผ่าน ให้แสดงหน้า Form Login (ถ้ามีไฟล์นี้)
+        require_once __DIR__ . '/../../views/auth/login-test.php';
+    }
 
     public function LDAP_login_test()
     {

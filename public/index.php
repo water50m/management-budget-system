@@ -24,7 +24,7 @@ switch ($page) {
 
     case 'ldap-test':
         $controller = new AuthController();
-        $controller->LDAP_login_test();
+        $controller->LDAP_login_test_2();
         break;
 
     case 'logout':
