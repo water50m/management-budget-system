@@ -165,11 +165,11 @@ class AuthController
                 $psw = mysqli_real_escape_string($conn, $psw);
 
                 include_once __DIR__ . '/../../inc/func.php';
-                loadEnv(__DIR__ . '/../../.env');
-                if (!getenv('LDAP_SERVER')) {
-                    echo 'Not found secret key (2)';
-                    exit;
-                }
+                // loadEnv(__DIR__ . '/../../.env');
+                // if (!getenv('LDAP_SERVER')) {
+                //     echo 'Not found secret key (2)';
+                //     exit;
+                // }
                 $server = 'ldaps://ldaps.nu.local:636';
                 $local = "@nu.local";
                 $ad = ldap_connect($server);
