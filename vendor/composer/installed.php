@@ -1,24 +1,15 @@
 <?php return array(
     'root' => array(
-        'name' => '__root__',
+        'name' => 'reschdb/reschdb',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '5fe1f2b7442723c9205766cbc09fdf8aa63af835',
+        'reference' => 'db8d4754e249429bb5ed0e458fedeaf96f2dc170',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
-        '__root__' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '5fe1f2b7442723c9205766cbc09fdf8aa63af835',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../../',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'mpdf/mpdf' => array(
             'pretty_version' => 'v8.2.7',
             'version' => '8.2.7.0',
@@ -79,6 +70,15 @@
             'reference' => 'f16e1d5863e37f8d8c2a01719f5b34baa2b714d3',
             'type' => 'library',
             'install_path' => __DIR__ . '/../psr/log',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'reschdb/reschdb' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'db8d4754e249429bb5ed0e458fedeaf96f2dc170',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
         ),

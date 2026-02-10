@@ -75,6 +75,7 @@ class AuthController
                 ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
                 ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
                 ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+
                 if (!$ad) {
                     header("Location: index.php?page=login&status=error&msg=cant_server");
                     exit();
@@ -82,6 +83,8 @@ class AuthController
                     $b = @ldap_bind($ad, $user . $local, $psw);
 
                     $extended_error = "";
+                    echo $b;
+                    die;
                     if (!$b) {
                         @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
@@ -151,42 +154,43 @@ class AuthController
         global $conn;
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
             if (!empty($_POST['username']) && !empty($_POST['password'])) {
 
                 $user = $_POST["username"];
                 $psw = $_POST["password"];
 
-                // ลบ stripslashes และ real_escape_string ออกจากรหัสผ่านเพื่อป้องกันปัญหา Login ไม่ผ่าน
-                // เพราะ password บางตัวมีอักขระพิเศษที่ถูก escape แล้ว LDAP จะมองว่าเป็นรหัสผิด
-                $user = stripslashes($user); 
-                // $psw = stripslashes($psw); // ไม่แนะนำให้ยุ่งกับ password
-                
-                // Escape เฉพาะตัวแปรที่จะใช้กับ SQL เท่านั้น (ถ้ามี)
-                $user_sql = mysqli_real_escape_string($conn, $user);
-                
-                include_once __DIR__ . '/../../inc/func.php';
-                
+                $user = stripslashes($user);
+                $psw = stripslashes($psw);
+                $user = mysqli_real_escape_string($conn, $user);
+                $psw = mysqli_real_escape_string($conn, $psw);
+
+
                 $server = 'ldaps://ldaps.nu.local:636';
                 $local = "@nu.local";
                 $ad = ldap_connect($server);
-                
+
                 ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
                 ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
                 ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
-                
+
                 if (!$ad) {
+
                     header("Location: index.php?page=login&status=error&msg=cant_server");
                     exit();
                 } else {
+
                     // ใช้ @ เพื่อซ่อน Warning กรณีรหัสผิด
                     $b = @ldap_bind($ad, $user . $local, $psw);
 
                     if ($b) {
+                        echo 'test2 success';
+                        die;
                         // --- ✅ Login สำเร็จ ---
-                        
+
                         // ตัวอย่างการกำหนดค่า Session (ปรับปรุงตาม Logic จริงของคุณได้เลย)
                         // เช่น อาจจะ query ข้อมูล user จาก DB ของคุณมาใส่ Session แทนการ hardcode
-                        $_SESSION['user_id'] = '1'; 
+                        $_SESSION['user_id'] = '1';
                         $_SESSION['role'] = 'high-admin';
                         $_SESSION['fullname'] = $user; // หรือดึงชื่อจริงจาก LDAP/DB
                         $_SESSION['seer'] = 0;
@@ -194,8 +198,8 @@ class AuthController
                         // Redirect ไปหน้า Dashboard
                         header("Location: index.php?page=dashboard");
                         exit();
-
                     } else {
+
                         // --- ❌ Login ไม่สำเร็จ (รหัสผิด / User ผิด) ---
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
                         exit();
@@ -206,10 +210,11 @@ class AuthController
                 exit();
             }
         }
-        
+
         // ถ้าไม่ใช่ POST หรือ Login ไม่ผ่าน ให้แสดงหน้า Form Login (ถ้ามีไฟล์นี้)
-        require_once __DIR__ . '/../../views/auth/login-test.php';
+        require_once __DIR__ . '/../../views/auth/login3.php';
     }
+
 
     public function LDAP_login_test()
     {
@@ -220,12 +225,12 @@ class AuthController
 
                 $user = $_POST["username"];
                 $psw = $_POST["password"];
+
                 $user = stripslashes($user);
                 $psw = stripslashes($psw);
                 $user = mysqli_real_escape_string($conn, $user);
                 $psw = mysqli_real_escape_string($conn, $psw);
 
-                include_once __DIR__ . '/../../inc/func.php';
                 // loadEnv(__DIR__ . '/../../.env');
                 // if (!getenv('LDAP_SERVER')) {
                 //     echo 'Not found secret key (2)';
@@ -385,7 +390,7 @@ class AuthController
                         </div>
 
                     </div>
-<?php
+        <?php
                     die();
                     if (!$b) {
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
@@ -403,8 +408,294 @@ class AuthController
                 exit();
             }
         }
+        require_once __DIR__ . '/../../views/auth/login2.php';
+    }
+
+    public function LDAP_login_test_3()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+
+                $user = $_POST["username"];
+                $psw = $_POST["password"];
+                $user = stripslashes($user);
+                $psw = stripslashes($psw);
+                $user = mysqli_real_escape_string($conn, $user);
+                $psw = mysqli_real_escape_string($conn, $psw);
+
+                // loadEnv(__DIR__ . '/../../.env');
+                // if (!getenv('LDAP_SERVER')) {
+                //     echo 'Not found secret key (2)';
+                //     exit;
+                // }
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = "@nu.local";
+                $ad = ldap_connect($server);
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit();
+                } else {
+                    $b = @ldap_bind($ad, $user . $local, $psw);
+
+                    // -----------------------------------------------------------
+                    // ส่วนแสดงผล Debug แบบละเอียด (Copy ไปวางต่อท้ายได้เลย)
+                    // -----------------------------------------------------------
+
+                    // 1. ดึงข้อมูล Error เชิงลึก (Diagnostic Message)
+                    // ตัวนี้สำคัญมาก! มันจะบอกได้ละเอียดกว่า "Invalid credentials"
+                    // เช่น บอกว่า data 52e (รหัสผิด), data 532 (รหัสหมดอายุ), data 773 (ต้องเปลี่ยนรหัส)
+                    $extended_error = "";
+                    if (!$b) {
+                        $error = @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
+                        echo $error;
+                        exit;
+                        header("Location: index.php?page=login&status=error&msg=invalid_credentials");
+                    } else {
+                        //    ------------------
+                        // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
+                        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+                                FROM users u
+                                LEFT JOIN user_profiles p ON u.id = p.user_id
+                                LEFT JOIN roles r ON u.role_id = r.id
+                                WHERE u.username = '$user'";
+
+                        $result = mysqli_query($conn, $sql);
+
+                        if (mysqli_num_rows($result) > 0) {
+                            // ดึงข้อมูลออกมาใส่ตัวแปร $row
+                            $row = mysqli_fetch_assoc($result);
+
+                            // เรียกใช้ได้เลย
+                            $user_id = $row['id'];
+                            $_SESSION['user_id'] = $user_id;
+                            $_SESSION['role'] = $row['role_name'];
+                            $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
+                            $_SESSION['seer'] = $row['role_id'] == 7 ? 7 : $row['role_id']  - 1;
+                            if (isset($_POST['remember'])) {
+                                $this->rememberAuth($conn, $user_id);
+                            }
+                            if ($row['role_id'] != 7) {
+                                header("Location: index.php?page=dashboard&tab=summary");
+                            } else {
+                                header("Location: index.php?page=profile&id=$user_id");
+                            }
+                        }
+                        // ------------------
+                        header("Location: index.php?page=dashboard");
+                    }
+                }
+            } else if (empty($_POST['username']) || empty($_POST['password'])) {
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
+            }
+        }
         require_once __DIR__ . '/../../views/auth/login-test.php';
     }
+
+    public function LDAP_login_test_4()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+
+                $user = mysqli_real_escape_string($conn, stripslashes($_POST["username"]));
+                $psw = mysqli_real_escape_string($conn, stripslashes($_POST["password"]));
+
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = "@nu.local";
+
+                $ad = ldap_connect($server);
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit();
+                }
+
+                // พยายาม Bind
+                $b = @ldap_bind($ad, $user . $local, $psw);
+
+                // ดึง Error เชิงลึก
+                $extended_error = "";
+                if (!$b) {
+                    @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
+                }
+
+                // เรียกใช้ฟังก์ชันแสดงผล (ส่งค่าที่จำเป็นไป)
+                $this->render_debug_view($b, $ad, $user, $local, $extended_error);
+                die(); // หยุดการทำงานหลังแสดงผล Debug
+
+            } else {
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
+            }
+        }
+        require_once __DIR__ . '/../../views/auth/login4.php';
+    }
+
+    public function LDAP_login_test_5()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!empty($_POST['username']) && !empty($_POST['password'])) {
+
+                $user = mysqli_real_escape_string($conn, stripslashes($_POST["username"]));
+                $psw = mysqli_real_escape_string($conn, stripslashes($_POST["password"]));
+
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = "@nu.local";
+
+                $ad = ldap_connect($server);
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+
+                if (!$ad) {
+                    header("Location: index.php?page=login&status=error&msg=cant_server");
+                    exit();
+                }
+
+                $b = @ldap_bind($ad, $user . $local, $psw);
+
+                if ($b) {
+                    // ถ้า Bind สำเร็จ ไปดึงข้อมูล DB และจัดการ Session
+                    $this->handle_login_success($conn, $user);
+                } else {
+                    // ถ้าล้มเหลว แสดงหน้า Debug
+                    $extended_error = "";
+                    @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
+                    $this->render_debug_view(false, $ad, $user, $local, $extended_error);
+                }
+                exit();
+            } else {
+                header("Location: index.php?page=login&status=error&msg=empty_fields");
+                exit();
+            }
+        }
+        require_once __DIR__ . '/../../views/auth/login5.php';
+    }
+
+    private function handle_login_success($conn, $user)
+    {
+        // 1. ดึงข้อมูลจากฐานข้อมูล
+        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+            FROM users u
+            LEFT JOIN user_profiles p ON u.id = p.user_id
+            LEFT JOIN roles r ON u.role_id = r.id
+            WHERE u.username = '$user'";
+
+        $result = mysqli_query($conn, $sql);
+
+        if (mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+
+            // 2. ตั้งค่า Session
+            $user_id = $row['user_id']; // แก้จาก $row['id'] เป็น user_id ตาม SQL Select
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['role'] = $row['role_name'];
+            $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
+
+            // Logic พิเศษสำหรับค่า seer
+            $_SESSION['seer'] = ($row['role_id'] == 7) ? 7 : ($row['role_id'] - 1);
+
+            // 3. จัดการ Remember Me
+            if (isset($_POST['remember'])) {
+                $this->rememberAuth($conn, $user_id);
+            }
+
+            // 4. Redirect ตาม Role
+            if ($row['role_id'] != 7) {
+                header("Location: index.php?page=dashboard&tab=summary");
+            } else {
+                header("Location: index.php?page=profile&id=$user_id");
+            }
+        } else {
+            // กรณี Bind LDAP ผ่าน แต่ไม่มีชื่อ User นี้ในฐานข้อมูลระบบ
+            header("Location: index.php?page=login&status=error&msg=user_not_found_in_db");
+        }
+        exit();
+    }
+
+    private function render_debug_view($is_success, $ad, $user, $local, $extended_error)
+    {
+        // เตรียมข้อมูลสำหรับการแสดงผล
+        $statusColor = $is_success ? '#dcfce7' : '#fee2e2';
+        $borderColor = $is_success ? '#22c55e' : '#ef4444';
+        $textColor = $is_success ? '#166534' : '#991b1b';
+        $statusTitle = $is_success ? '✅ LOGIN SUCCESS' : '❌ LOGIN FAILED';
+
+        $testRoles = [
+            'ad_anatomy' => ['name' => 'กายวิภาคศาสตร์', 'color' => '#8b5cf6'],
+            'ad_biochemistr' => ['name' => 'ชีวเคมี', 'color' => '#ec4899'],
+            'ad_mic_par' => ['name' => 'จุลชีววิทยาฯ', 'color' => '#10b981'],
+            'ad_physiology' => ['name' => 'สรีรวิทยา', 'color' => '#f59e0b'],
+            'ad_office' => ['name' => 'สำนักงานเลขานุการ', 'color' => '#3b82f6'],
+            'high_admin' => ['name' => 'High Admin (Default)', 'color' => '#ef4444'],
+        ];
+        ?>
+        <div style="font-family: 'Sarabun', sans-serif; max-width: 800px; margin: 30px auto; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: <?php echo $statusColor; ?>; padding: 20px; border-bottom: 2px solid <?php echo $borderColor; ?>; text-align: center;">
+                <h2 style="margin: 0; color: <?php echo $textColor; ?>; font-weight: 800;"><?php echo $statusTitle; ?></h2>
+                <p style="margin: 5px 0 0; color: <?php echo $textColor; ?>;">
+                    <?php echo $is_success ? 'ยืนยันตัวตนถูกต้อง ระบบพร้อมทำงาน' : 'กรุณาตรวจสอบ Username, Password หรือการตั้งค่า Server'; ?>
+                </p>
+            </div>
+
+            <div style="padding: 25px; background-color: #ffffff;">
+                <h3 style="border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; margin-top: 0;">🔍 ข้อมูลตัวแปร (Debug Info)</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: bold; width: 30%;">User ที่ส่งไป:</td>
+                        <td style="padding: 10px; font-family: monospace; color: #2563eb;"><?php echo htmlspecialchars($user . $local); ?></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: bold;">Bind Result ($b):</td>
+                        <td style="padding: 10px;">
+                            <?php echo $is_success
+                                ? "<span style='background:#22c55e; color:white; padding:2px 8px; border-radius:4px;'>TRUE</span>"
+                                : "<span style='background:#ef4444; color:white; padding:2px 8px; border-radius:4px;'>FALSE</span>"; ?>
+                        </td>
+                    </tr>
+                </table>
+
+                <?php if (!$is_success): ?>
+                    <div style="background-color: #fef2f2; border: 1px solid #ef4444; border-radius: 8px; padding: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: #991b1b;">⚠️ รายละเอียดข้อผิดพลาด</h4>
+                        <p><strong>LDAP Error Msg:</strong> <span style="color: red;"><?php echo ldap_error($ad); ?></span></p>
+                        <?php if (!empty($extended_error)): ?>
+                            <p><strong>Diagnostic:</strong> <code style="background: #eee; padding: 2px 5px;"><?php echo $extended_error; ?></code></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center;">
+                <h4 style="color: #4b5563;">🧪 ทดสอบระบบด้วยสิทธิ์ต่างๆ</h4>
+                <form action="index.php?page=fast-login" method="POST">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+                        <?php foreach ($testRoles as $key => $info): ?>
+                            <button type="submit" name="test-role-test" value="<?php echo $key; ?>"
+                                style="border: 1px solid <?php echo $info['color']; ?>; color: <?php echo $info['color']; ?>; padding: 8px; border-radius: 6px; background: white; cursor: pointer; font-weight: bold;">
+                                <?php echo $key ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </form>
+                <div style="margin-top: 15px;"><a href="javascript:history.back()">กลับไปลองใหม่</a></div>
+            </div>
+        </div>
+<?php
+    }
+
     public function fast_login()
     {
         global $conn;

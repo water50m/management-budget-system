@@ -17,12 +17,27 @@ switch ($page) {
         $controller->LDAP_login();
         break;
 
+    case 'login4':
+        $controller = new AuthController();
+        $controller->LDAP_login_test_4();
+        break;
+
+    case 'login5':
+        $controller = new AuthController();
+        $controller->LDAP_login_test_4();
+        break;
+
     case 'fast-login':
         $controller = new AuthController();
         $controller->fast_login();
         break;
 
-    case 'ldap-test':
+    case 'login2':
+        $controller = new AuthController();
+        $controller->LDAP_login_test();
+        break;
+
+    case 'login3':
         $controller = new AuthController();
         $controller->LDAP_login_test_2();
         break;

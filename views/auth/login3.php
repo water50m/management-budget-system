@@ -67,7 +67,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 </p>
             </div>
 
-            <form action="index.php?page=ldap-test" method="POST" class="space-y-5">
+            <form action="index.php?page=login3" method="POST" class="space-y-5">
 
                 <?php if (isset($trasnlate_msg) && !empty($trasnlate_msg)): ?>
                 <?php endif; ?>
