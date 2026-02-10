@@ -81,7 +81,7 @@ class AuthController
                 } else {
                     $b = @ldap_bind($ad, $user . $local, $psw);
 
-
+                    @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
                     if (!$b) {
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
                         exit();
@@ -342,7 +342,7 @@ class AuthController
                 exit();
             }
         }
-        require_once __DIR__ . '/../../views/auth/login.php';
+        require_once __DIR__ . '/../../views/auth/login-test.php';
     }
     public function fast_login()
     {
