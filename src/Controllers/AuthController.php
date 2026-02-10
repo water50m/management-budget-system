@@ -62,13 +62,17 @@ class AuthController
 
                 $user = $_POST["username"];
                 $psw = $_POST["password"];
-
                 $user = stripslashes($user);
                 $psw = stripslashes($psw);
                 $user = mysqli_real_escape_string($conn, $user);
                 $psw = mysqli_real_escape_string($conn, $psw);
 
                 include_once __DIR__ . '/../../inc/func.php';
+                // loadEnv(__DIR__ . '/../../.env');
+                // if (!getenv('LDAP_SERVER')) {
+                //     echo 'Not found secret key (2)';
+                //     exit;
+                // }
                 $server = 'ldaps://ldaps.nu.local:636';
                 $local = "@nu.local";
                 $ad = ldap_connect($server);
@@ -81,55 +85,61 @@ class AuthController
                 } else {
                     $b = @ldap_bind($ad, $user . $local, $psw);
 
-                    @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
+                    // -----------------------------------------------------------
+                    // ส่วนแสดงผล Debug แบบละเอียด (Copy ไปวางต่อท้ายได้เลย)
+                    // -----------------------------------------------------------
+
+                    // 1. ดึงข้อมูล Error เชิงลึก (Diagnostic Message)
+                    // ตัวนี้สำคัญมาก! มันจะบอกได้ละเอียดกว่า "Invalid credentials"
+                    // เช่น บอกว่า data 52e (รหัสผิด), data 532 (รหัสหมดอายุ), data 773 (ต้องเปลี่ยนรหัส)
+                    $extended_error = "";
                     if (!$b) {
+                        @ldap_get_option($ad, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
                         header("Location: index.php?page=login&status=error&msg=invalid_credentials");
-                        exit();
-                    } else {
+                        exit;
+                    }
 
 
-                        // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
-                        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+                    // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
+                    $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
                                 FROM users u
                                 LEFT JOIN user_profiles p ON u.id = p.user_id
                                 LEFT JOIN roles r ON u.role_id = r.id
                                 WHERE u.username = '$user'";
 
-                        $result = mysqli_query($conn, $sql);
-                        
-                        if (mysqli_num_rows($result) > 0) {
-                            // ดึงข้อมูลออกมาใส่ตัวแปร $row
-                            $row = mysqli_fetch_assoc($result);
+                    $result = mysqli_query($conn, $sql);
 
-                            // เรียกใช้ได้เลย
-                            $user_id = $row['id'];
-                            $_SESSION['user_id'] = $user_id;
-                            $_SESSION['role'] = $row['role_name'];
-                            $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
-                            $_SESSION['seer'] = $row['role_id'] == 7 ? 7 : $row['role_id']  - 1;
-                            if (isset($_POST['remember'])) {
-                                $this->rememberAuth($conn, $user_id);
-                            }
-                            if ($row['role_id'] != 7) {
-                                header("Location: index.php?page=dashboard&tab=summary");
-                            } else {
-                                header("Location: index.php?page=profile&id=$user_id");
-                            }
-                        } else {
-                            header("Location: index.php?page=login&status=error&msg=unknow_username");
+                    if (mysqli_num_rows($result) > 0) {
+                        // ดึงข้อมูลออกมาใส่ตัวแปร $row
+                        $row = mysqli_fetch_assoc($result);
+
+                        // เรียกใช้ได้เลย
+                        $user_id = $row['id'];
+                        $_SESSION['user_id'] = $user_id;
+                        $_SESSION['role'] = $row['role_name'];
+                        $_SESSION['fullname'] = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
+                        $_SESSION['seer'] = $row['role_id'] == 7 ? 7 : $row['role_id']  - 1;
+                        if (isset($_POST['remember'])) {
+                            $this->rememberAuth($conn, $user_id);
                         }
-                        exit;
+                        if ($row['role_id'] != 7) {
+                            header("Location: index.php?page=dashboard&tab=summary");
+                        } else {
+                            header("Location: index.php?page=profile&id=$user_id");
+                        }
+                    } else {
+                        header("Location: index.php?page=login&status=error&msg=unknow_username");
                     }
+                    exit;
                 }
-            } else if (!empty($_POST['login_via_remember'])){
+            } else if (!empty($_POST['login_via_remember'])) {
                 $user_id = intval($_POST['login_via_remember']);
-                if(!$this->autometicLogin($conn, $user_id)){
+                if (!$this->autometicLogin($conn, $user_id)) {
                     header("Location: index.php?page=login&status=error&msg=empty_fields");
                     exit();
                 }
                 $this->deleteRememberedAuth($conn);
-            }
-            else if (empty($_POST['username']) || empty($_POST['password'])) {
+            } else if (empty($_POST['username']) || empty($_POST['password'])) {
                 header("Location: index.php?page=login&status=error&msg=empty_fields");
                 exit();
             }
@@ -138,7 +148,6 @@ class AuthController
         $remembered_user = null;
         if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
             $remembered_user = $this->checkRememberedAuth($conn);
-            
         }
 
         // ส่วน Logout / เปลี่ยนบัญชี
@@ -373,7 +382,7 @@ class AuthController
             $_SESSION['role'] = 'user';
             $_SESSION['seer'] = 7;
         } else if ($role == 'admin') {
-            
+
             $_SESSION['role'] = 'high-admin';
             $_SESSION['seer'] = 0;
         }
@@ -464,7 +473,7 @@ class AuthController
     }
 
     private function autometicLogin($conn, $user_id)
-    {   
+    {
         if ($this->checkRememberedAuth($conn)) {
 
             $stmt = $conn->prepare("SELECT p.user_id, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
@@ -472,7 +481,7 @@ class AuthController
                                 LEFT JOIN user_profiles p ON u.id = p.user_id
                                 LEFT JOIN roles r ON u.role_id = r.id
                                 WHERE u.id = ? AND u.remember_expiry > NOW()");
-            
+
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
             $result = $stmt->get_result();
