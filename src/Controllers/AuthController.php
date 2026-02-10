@@ -89,10 +89,10 @@ class AuthController
 
 
                         // 2. เขียน SQL (สังเกตที่ '$username' ต้องมีขีดเดียวครอบ)
-                        $sql = "SELECT p.id, u.username, p.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+                        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
                                 FROM users u
                                 LEFT JOIN user_profiles p ON u.id = p.user_id
-                                LEFT JOIN roles r ON p.role_id = r.id
+                                LEFT JOIN roles r ON u.role_id = r.id
                                 WHERE u.username = '$user'";
 
                         $result = mysqli_query($conn, $sql);
