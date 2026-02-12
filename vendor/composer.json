@@ -2,7 +2,7 @@
     "name": "reschdb/reschdb",
     "description": "Research Database Management System",
     "require": {
-        "mpdf/mpdf": "^8.0"
+        "mpdf/mpdf": "^7.1"
     },
     "require-dev": {
         

@@ -530,7 +530,7 @@ class AuthController
                 }
 
                 // เรียกใช้ฟังก์ชันแสดงผล (ส่งค่าที่จำเป็นไป)
-                $this->render_debug_view($b, $ad, $user, $local, $extended_error);
+                $this->handle_login_success($conn, $user);
                 die(); // หยุดการทำงานหลังแสดงผล Debug
 
             } else {
@@ -568,7 +568,7 @@ class AuthController
 
                 if ($b) {
                     // ถ้า Bind สำเร็จ ไปดึงข้อมูล DB และจัดการ Session
-                    $this->handle_login_success($conn, $user);
+                    $this->render_debug_view($b, $ad, $user, $local, "");
                 } else {
                     // ถ้าล้มเหลว แสดงหน้า Debug
                     $extended_error = "";
