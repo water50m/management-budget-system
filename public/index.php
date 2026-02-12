@@ -14,37 +14,12 @@ switch ($page) {
     // --- ส่วนจัดการ Login/Logout ---
     case 'login':
         $controller = new AuthController();
-        $controller->LDAP_login();
-        break;
-
-    case 'login-3':
-        $controller = new AuthController();
-        $controller->LDAP_login_test_3();
-        break;
-
-    case 'login4':
-        $controller = new AuthController();
-        $controller->LDAP_login_test_4();
-        break;
-
-    case 'login5':
-        $controller = new AuthController();
-        $controller->LDAP_login_test_5();
+        $controller->LDAP_login_4();
         break;
 
     case 'fast-login':
         $controller = new AuthController();
         $controller->fast_login();
-        break;
-
-    case 'login2':
-        $controller = new AuthController();
-        $controller->LDAP_login_test();
-        break;
-
-    case 'login3':
-        $controller = new AuthController();
-        $controller->LDAP_login_test_2();
         break;
 
     case 'logout':
