@@ -1,5 +1,15 @@
 {
+    "name": "reschdb/reschdb",
+    "description": "Research Database Management System",
     "require": {
-        "mpdf/mpdf": "^8.2"
+        "mpdf/mpdf": "^8.0"
+    },
+    "require-dev": {
+        
+    },
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
     }
 }

@@ -69,6 +69,9 @@ class DashboardController
             if (isset($_POST['action']) && $_POST['action'] == 'edit_budget_expense') {
                 handleEditExpense($conn);
             }
+            if (isset($_POST['action']) && $_POST['action'] == 'update_role') {
+                submitUpdateRole($conn);
+            }
         }
 
         // ==================================================================================
@@ -171,15 +174,15 @@ class DashboardController
             } else if ($hx_target == 'fpaTableBody') {
                 require_once __DIR__ . '/../Helper/table_summary_FPA.php';
                 exit;
-            } else if ($hx_target == 'table-received'){
+            } else if ($hx_target == 'table-received') {
                 extract($data);
                 require_once __DIR__ . '/../../views/dashboard/tables/received_table.php';
                 exit;
-            } else if ($hx_target == 'table-expense'){
+            } else if ($hx_target == 'table-expense') {
                 extract($data);
                 require_once __DIR__ . '/../../views/dashboard/tables/expense_table.php';
                 exit;
-            } else if ($page != 'dashboard'){
+            } else if ($page != 'dashboard') {
                 require_once __DIR__ . '/../../views/profile/idex.php';
             }
         }
@@ -207,12 +210,12 @@ function submitDeleteExpense($conn)
     $expense_id = isset($_POST['id_to_delete']) ? intval($_POST['id_to_delete']) : 0;
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
-    
+
     // ดึง User ID คนทำรายการ (Actor)
     $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
     if ($expense_id > 0) {
-        
+
         // ดึงข้อมูลเก่า (เอาไว้ทำ Log)
         $sql_check = "SELECT b.description, b.amount, b.user_id,
                              up.prefix, up.first_name, up.last_name 
@@ -259,10 +262,10 @@ function submitDeleteExpense($conn)
             mysqli_commit($conn);
 
             // --- ส่วนบันทึก Log และ Redirect ทำหลังจาก Commit สำเร็จแล้ว ---
-            
+
             // บันทึก Activity Log
             if (function_exists('logActivity')) {
-                 logActivity($conn, $actor_id, $old_data['user_id'] ?? 0, 'delete_expense', $log_desc, $expense_id);
+                logActivity($conn, $actor_id, $old_data['user_id'] ?? 0, 'delete_expense', $log_desc, $expense_id);
             }
 
             // เตรียมข้อความแจ้งเตือน
@@ -277,13 +280,12 @@ function submitDeleteExpense($conn)
                 header("Location: index.php?page=dashboard&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
             }
             exit();
-
         } catch (Exception $e) {
             // =========================================================
             // ⚫ เกิดข้อผิดพลาด -> ยกเลิกทั้งหมด (ROLLBACK)
             // =========================================================
             mysqli_rollback($conn);
-            
+
             // แสดง Error หรือ Redirect ไปหน้า Error
             echo "Transaction Failed: " . $e->getMessage();
             exit();

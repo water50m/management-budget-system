@@ -362,6 +362,7 @@ class ProfileController
 
     private function editDepartment($conn)
     {
+
         // 1. รับค่าจาก Form (ที่ส่งมาแบบ POST)
         $id = $_POST['user_id'] ?? 0;               // ID ของ User ที่เรากำลังแก้ไข
         $new_dept_id = $_POST['new_department_id'] ?? 0; // ID ภาควิชาใหม่ที่เลือกมา
@@ -375,7 +376,7 @@ class ProfileController
 
         // 3. เตรียมคำสั่ง SQL (Update)
         // หมายเหตุ: ตรง WHERE id = ? คือการอ้างอิง Primary Key ของตาราง user_profiles
-        $sql = "UPDATE user_profiles SET department_id = ? WHERE id = ?";
+        $sql = "UPDATE user_profiles SET department_id = ? WHERE user_id = ?";
 
         $stmt = $conn->prepare($sql);
 

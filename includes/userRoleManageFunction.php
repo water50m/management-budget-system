@@ -3,9 +3,6 @@ include_once __DIR__ . "/saveLogFunction.php";
 
 
 // ดักจับการ Submit (ถ้ามีการส่ง form มา)
-if (isset($_POST['action']) && $_POST['action'] == 'update_role') {
-    submitUpdateRole($conn, $redirect_url);
-}
 
 /**
  * Component ย่อย: สำหรับแสดงผลและจัดการ Role ในตาราง
@@ -18,7 +15,7 @@ function renderUserRoleManageComponent($u, $conn)
 
     // 1. ดึงรายการ Role ทั้งหมดจาก DB เพื่อมาทำ Dropdown
     // เรียงตาม ID หรือตามความเหมาะสม
-    $role_query = "SELECT id,role_name, description FROM roles ORDER BY id ASC";
+    $role_query = "SELECT id, role_name, description FROM roles ORDER BY id ASC";
     $role_result = mysqli_query($conn, $role_query);
 
     $roles_list = [];
@@ -116,22 +113,25 @@ function renderUserRoleManageComponent($u, $conn)
 /**
  * ฟังก์ชันบันทึกการแก้ไข Role
  */
-function submitUpdateRole($conn, $redirect_url = null)
+function submitUpdateRole($conn)
 {
     // ... (ส่วนตั้งค่า URL และ Helper เหมือนเดิม) ...
-    $default_url = "index.php?page=dashboard&tab=users";
+    $redirect_page = isset($_GET['page']) ? $_GET['page'] : 'profile';
+    $redirect_tab = isset($_GET['tab']) ? $_GET['tab'] : '';
+    $default_url = "index.php?page=$redirect_page&tab=$redirect_tab";
     $final_redirect = !empty($redirect_url) ? $redirect_url : $default_url;
     $sep = (strpos($final_redirect, '?') !== false) ? '&' : '?';
-
+            
     // 1. เช็คสิทธิ์ (เหมือนเดิม)
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'high-admin') {
-        header("Location: " . $final_redirect . $sep . "status=error&msg=access_denied");
+        header("Location: " . $final_redirect . $sep . "status=error&toastMsg=access_denied");
         exit();
     }
 
     $target_upid = mysqli_real_escape_string($conn, $_POST['target_user_id']); // รับ upid
-    $new_role_id = intval($_POST['new_role_id']); // ✅ รับเป็น ID (ตัวเลข) มาเลย
+    $new_role_id = intval($_POST['new_role']); // ✅ รับเป็น ID (ตัวเลข) มาเลย
     $actor_id    = $_SESSION['user_id'];
+
 
     // 1. ตรวจสอบว่า Role ID ที่ส่งมา มีอยู่จริงไหม (กันคนมั่วตัวเลข)
     $check_role_sql = "SELECT description FROM roles WHERE id = $new_role_id";
@@ -153,8 +153,7 @@ function submitUpdateRole($conn, $redirect_url = null)
     if (mysqli_query($conn, $sql_update)) {
         // Log
         logActivity($conn, $actor_id, $target_upid, 'update_role', "เปลี่ยนสิทธิ์เป็น $role_desc (ID: $new_role_id)");
-
-        header("Location: ... msg=role_updated");
+        header("Location: " . $final_redirect . "&status=success&toastMsg=role_updated");
         exit();
     } else {
         echo "Error: " . mysqli_error($conn);
