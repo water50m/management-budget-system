@@ -2,14 +2,19 @@
     "name": "reschdb/reschdb",
     "description": "Research Database Management System",
     "require": {
-        "mpdf/mpdf": "^8.0"
+        "mpdf/mpdf": "^7.1"
     },
-    "require-dev": {
-        
-    },
-    "autoload": {
-        "classmap": [
-            "src/"
-        ]
+    "config": {
+        "platform": {
+            "php": "7.3"
+        },
+        "audit": {
+            "ignore": {
+                "PKSA-7967-nbfd-sbj6": "*"
+            }
+        },
+        "allow-plugins": {
+            "mpdf/qrcode": true
+        }
     }
 }

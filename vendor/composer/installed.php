@@ -3,7 +3,7 @@
         'name' => 'reschdb/reschdb',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '47639e4c035655b7fc7b46260f247376a5d697d7',
+        'reference' => '34ac15aaf523b087de2514f7da35a186a72cf704',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -76,7 +76,7 @@
         'reschdb/reschdb' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '47639e4c035655b7fc7b46260f247376a5d697d7',
+            'reference' => '34ac15aaf523b087de2514f7da35a186a72cf704',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
