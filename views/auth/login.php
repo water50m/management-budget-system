@@ -23,6 +23,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบ - ระบบบริหารงบประมาณ FPA</title>
+    <link rel="icon" type="image/png" href="assets\images\icon-medsci.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -62,6 +63,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2 leading-tight">
                     ระบบบริหารงบประมาณ
                 </h1>
+                
                 <p class="text-gray-500 font-light text-sm md:text-base">
                     เพื่อการพัฒนาวิชาการและการวิจัย
                 </p>
