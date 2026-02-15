@@ -87,7 +87,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
 
                         <input type="hidden" name="login_via_remember" value="<?php echo $remembered_user['user_id']; ?>">
                         <div class="space-y-3 pt-2">
-                            <button type="submit" 
+                            <button type="submit"
                                 class="w-full bg-primary hover:bg-primaryDark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-amber-500/20 transform active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-2 group">
                                 <span>ดำเนินการต่อ</span>
                                 <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
@@ -136,7 +136,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 <?php endif; ?>
             </form>
 
-            <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
+            <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
                 <p class="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
                     --- Developer Access (Temporary) ---
                 </p>
@@ -150,16 +150,16 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                         <i class="fa-solid fa-user-shield text-amber-400"></i> Mock Admin
                     </button>
                 </div>
+            </div> -->
+            <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
+                <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
+                    ต้องการความช่วยเหลือ?
+                </p>
+                <div class="inline-flex items-center justify-center gap-2 text-sm text-gray-600 transition-colors">
+                    <i class="fa-solid fa-headset text-gray-400"></i>
+                    <span>ติดต่อฝ่าย IT Support </span>
+                </div>
             </div>
-                        <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
-    <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
-        ต้องการความช่วยเหลือ?
-    </p>
-    <a href="#" class="inline-flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-primary transition-colors">
-        <i class="fa-solid fa-headset text-gray-400"></i>
-        <span>ติดต่อฝ่าย IT Support / ลืมรหัสผ่าน</span>
-    </a>
-</div> -->
 
 
             <div class="mt-8 text-center md:text-left text-xs text-gray-400">
