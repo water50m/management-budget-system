@@ -216,7 +216,7 @@ function getFpaSummary($conn, $year, $dept_id = 0)
 function getFiscalYearOptions($conn)
 {
     // 1. หาปีน้อยสุดและมากสุดที่มีในฐานข้อมูล
-    $sql = "SELECT MIN(fiscal_year) as min_year, MAX(fiscal_year) as max_year FROM budget_expenses";
+    $sql = "SELECT MIN(fiscal_year) as min_year, MAX(fiscal_year) as max_year FROM budget_received";
     $result = $conn->query($sql);
     $row = $result->fetch_assoc();
 

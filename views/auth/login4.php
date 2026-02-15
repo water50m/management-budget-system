@@ -136,13 +136,13 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 <?php endif; ?>
             </form>
 
-            <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
+            <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
                 <p class="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
                     --- Developer Access (Temporary) ---
                 </p>
                 <div class="flex gap-3">
                     <button type="button" onclick="devLogin('user')"
-                        class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                          class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
                         <i class="fa-solid fa-user-tag text-gray-500"></i> Mock User
                     </button>
                     <button type="button" onclick="devLogin('admin')"
@@ -150,8 +150,8 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                         <i class="fa-solid fa-user-shield text-amber-400"></i> Mock Admin
                     </button>
                 </div>
-            </div> -->
-            <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
+            </div>
+            <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
                 <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
                     ต้องการความช่วยเหลือ?
                 </p>
@@ -159,7 +159,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                     <i class="fa-solid fa-headset text-gray-400"></i>
                     <span>ติดต่อฝ่าย IT Support </span>
                 </div>
-            </div>
+            </div> -->
 
 
             <div class="mt-8 text-center md:text-left text-xs text-gray-400">

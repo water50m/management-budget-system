@@ -191,6 +191,9 @@ $dept_options = getDepartments($conn);
         <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100">
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
                 <i class="fas fa-building text-blue-500"></i> การเบิกจ่ายแยกตามภาควิชา
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                        </span>
             </h4>
             <div class="relative h-64">
                 <canvas id="deptChart"></canvas>
@@ -199,7 +202,10 @@ $dept_options = getDepartments($conn);
 
         <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100">
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
-                <i class="fas fa-tags text-pink-500"></i> สัดส่วนตามหมวดหมู่
+                <i class="fas fa-tags text-pink-500"></i> สัดส่วนตามหมวดหมู่ 
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                        </span>
             </h4>
             <div class="relative h-64 flex justify-center">
                 <canvas id="catChart"></canvas>
