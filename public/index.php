@@ -19,7 +19,7 @@ switch ($page) {
 
     case 'fast-login':
         $controller = new AuthController();
-        $controller->fast_login();
+        $controller->LDAP_login_4_test();
         break;
 
     case 'logout':

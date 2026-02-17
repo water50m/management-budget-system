@@ -79,8 +79,8 @@ function showAndSearchReceived($conn)
 
     // Base Table Joins (ใช้เหมือนกันทั้ง Count และ Select)
     $base_joins = " FROM budget_received a
-        JOIN users u ON a.user_id = u.id 
-        JOIN user_profiles p ON u.id = p.user_id 
+        JOIN users u ON a.user_id = u.upid 
+        JOIN user_profiles p ON u.upid = p.user_id 
         LEFT JOIN departments d ON p.department_id = d.id";
 
     // Base Condition

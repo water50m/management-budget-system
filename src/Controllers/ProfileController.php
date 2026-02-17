@@ -14,14 +14,26 @@ class ProfileController
         $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng,
                             b.*
                      FROM users u
-                     LEFT JOIN user_profiles p ON u.id = p.user_id
+                     LEFT JOIN user_profiles p ON u.upid = p.user_id
                      LEFT JOIN departments d ON p.department_id = d.id
                      LEFT JOIN v_user_budget_summary b ON p.user_id = b.user_id
-                     WHERE u.id = $user_id";
+                     WHERE u.upid = $user_id";
         $user_info = mysqli_fetch_assoc(mysqli_query($conn, $sql_user));
+        $query_result = mysqli_query($conn, $sql_user);
+
+        // 1. เช็คก่อนว่า Query พังหรือไม่? (สำคัญมาก)
+        if (!$query_result) {
+            die("<h1>SQL Error!</h1><br>" . mysqli_error($conn)); 
+        }
+
+        $user_info = mysqli_fetch_assoc($query_result);
+
+        // 2. ถ้า Query ผ่าน แต่หาข้อมูลไม่เจอ
         if (!$user_info) {
-            header("Location: index.php?page=dashboard");
-            exit;
+            // header("Location: index.php?page=dashboard"); // <--- ปิด Redirect ไว้ก่อน
+            // exit;
+            
+            die("<h1>User Not Found</h1><br>ID ที่ค้นหา: " . $user_id);
         }
 
         // 2. คำนวณยอดรวมต่างๆ (เหมือนเดิม)
@@ -297,6 +309,11 @@ class ProfileController
             $role_id = isset($_POST['role_id']) ? intval($_POST['role_id']) : 7;
             $actor_id = $_SESSION['user_id']; // คนทำรายการ
 
+            // -----------------------------------------------------------
+            // 🛑 เริ่มส่วน DEBUG (ลบออกเมื่อใช้จริง)
+            // -----------------------------------------------------------
+
+
             // 2. ตรวจสอบ Username ซ้ำ
             $check_sql = "SELECT id FROM users WHERE username = '$username'";
             if (mysqli_num_rows(mysqli_query($conn, $check_sql)) > 0) {
@@ -344,7 +361,7 @@ class ProfileController
                 logActivity($conn, $actor_id, $profile_id, 'add_user', "เพิ่มผู้ใช้งานใหม่: $fullname (User: $username)");
 
                 $_SESSION['tragettab'] = 'users';
-                $_SESSION['tragetfilters'] = 'id=' . $profile_id;
+                $_SESSION['tragetfilters'] = $profile_id;
                 $_SESSION['show_btn'] = true;
 
                 // Redirect Success

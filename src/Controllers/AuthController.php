@@ -52,13 +52,29 @@ class AuthController
         require_once __DIR__ . '/../../views/auth/login4.php';
     }
 
+    public function LDAP_login_4_test()
+    {
+        global $conn;
+
+        if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+
+                $user = 'Jeerawanth';
+                
+                // เรียกใช้ฟังก์ชันแสดงผล (ส่งค่าที่จำเป็นไป)
+                $this->handle_login_success($conn, 'Jeerawanth');
+
+
+        }
+        require_once __DIR__ . '/../../views/auth/login4.php';
+    }
+
 
     private function handle_login_success($conn, $user)
     {
         // 1. ดึงข้อมูลจากฐานข้อมูล
         $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
             FROM users u
-            LEFT JOIN user_profiles p ON u.id = p.user_id
+            LEFT JOIN user_profiles p ON u.upid = p.user_id
             LEFT JOIN roles r ON u.role_id = r.id
             WHERE u.username = '$user'";
 
@@ -290,9 +306,9 @@ class AuthController
 
             $stmt = $conn->prepare("SELECT p.user_id, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
                                 FROM users u
-                                LEFT JOIN user_profiles p ON u.id = p.user_id
+                                LEFT JOIN user_profiles p ON u.upid = p.user_id
                                 LEFT JOIN roles r ON u.role_id = r.id
-                                WHERE u.id = ? AND u.remember_expiry > NOW()");
+                                WHERE u.upid = ? AND u.remember_expiry > NOW()");
 
             $stmt->bind_param("i", $user_id);
             $stmt->execute();

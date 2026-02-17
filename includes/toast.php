@@ -51,7 +51,10 @@ function showToast($type, $message)
     $targetTab = $_SESSION['tragettab'] ?? '';
     $targetFilters = $_SESSION['tragetfilters'] ?? 0;
     $fiscal_year = isset($_SESSION['fiscal_year']) ? $_SESSION['fiscal_year'] : 0;
-    $redirectUrl = "index.php?page=profile&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters) . "&year=" . urlencode($fiscal_year);
+    // $targetTab =  $_SESSION['tragettab'] = 'users';
+    // $targetFilters =  $_SESSION['tragetfilters'] = '50' ;
+    // $showbtn = $_SESSION['show_btn'] = true;
+    $redirectUrl = "index.php?page=dashboard&tab=" . urlencode($targetTab) . "&show_id=" . urlencode($targetFilters) . "&year=" . urlencode($fiscal_year);
     unset($_SESSION['show_btn']);
     unset($_SESSION['tragettab']);
     unset($_SESSION['tragetfilters']);
@@ -74,7 +77,7 @@ function showToast($type, $message)
                     <?= htmlspecialchars($message) ?>
                 </p>
 
-                <?php if (isset($showbtn) && $showbtn == true): die; ?>
+                <?php if (isset($showbtn) && $showbtn == true): ?>
                     <div class="mt-2">
                         <a href="<?= $redirectUrl ?>"
                             class="inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">

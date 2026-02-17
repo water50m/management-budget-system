@@ -34,7 +34,7 @@ function showAndSearchUsers($conn)
     // 3. Query นับจำนวน (Count Logic)
     // ---------------------------------------------------------
     $count_sql = "SELECT COUNT(*) as total FROM users u 
-                  LEFT JOIN user_profiles p ON u.id = p.user_id 
+                  LEFT JOIN user_profiles p ON u.upid = p.user_id 
                   LEFT JOIN departments d ON p.department_id = d.id
                   WHERE p.deleted_at IS NULL ";
 
@@ -68,7 +68,7 @@ function showAndSearchUsers($conn)
     $sql = "SELECT u.*, p.*, d.thai_name AS department, r.description AS role_user
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN user_profiles p ON u.id = p.user_id
+            LEFT JOIN user_profiles p ON u.upid = p.user_id
             LEFT JOIN departments d ON p.department_id = d.id
             WHERE p.deleted_at IS NULL ";
 

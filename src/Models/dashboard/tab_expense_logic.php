@@ -116,7 +116,7 @@ function showAndSearchExpense($conn)
     // (ต้องระวัง! ฟังก์ชัน applyPermissionFilter ปกติมันเติม WHERE หรือ AND? 
     // สมมติว่ามันเติมเงื่อนไขต่อท้าย SQL ให้ ถ้ามันเริ่มด้วย WHERE ต้องแก้ให้สอดคล้อง)
     // วิธีที่ปลอดภัยคือ เรียกใช้ function แล้วเอามาต่อท้าย
-    $temp_sql = "SELECT * FROM budget_expenses e JOIN users u ON e.user_id = u.id JOIN user_profiles p ON u.id = p.user_id WHERE 1=1 ";
+    $temp_sql = "SELECT * FROM budget_expenses e JOIN users u ON e.user_id = u.upid JOIN user_profiles p ON u.upid = p.user_id WHERE 1=1 ";
     $filtered_sql = applyPermissionFilter($temp_sql);
     // ดึงเฉพาะส่วนที่เติมเพิ่มมา (อันนี้อาจจะยากถ้า function มัน return sql เต็ม)
     // ถ้า applyPermissionFilter คืนค่าเป็น SQL เต็มๆ ให้ใช้วิธีเดิมของคุณคือเอามาต่อท้าย Query หลัก
@@ -169,8 +169,8 @@ function showAndSearchExpense($conn)
     // ต้อง JOIN เหมือน Query หลัก เพื่อให้เงื่อนไข WHERE ทำงานได้ถูกต้อง
     $count_sql = "SELECT COUNT(*) as total 
                   FROM budget_expenses e
-                  JOIN users u ON e.user_id = u.id
-                  JOIN user_profiles p ON u.id = p.user_id
+                  JOIN users u ON e.user_id = u.upid
+                  JOIN user_profiles p ON u.upid = p.user_id
                   LEFT JOIN expense_categories c ON e.category_id = c.id
                   LEFT JOIN departments d ON p.department_id = d.id
                   $where_sql";
@@ -195,8 +195,8 @@ function showAndSearchExpense($conn)
                    c.name_th as category_name,
                    d.thai_name as department
             FROM budget_expenses e
-            JOIN users u ON e.user_id = u.id
-            JOIN user_profiles p ON u.id = p.user_id
+            JOIN users u ON e.user_id = u.upid
+            JOIN user_profiles p ON u.upid = p.user_id
             LEFT JOIN expense_categories c ON e.category_id = c.id
             LEFT JOIN departments d ON p.department_id = d.id
             $where_sql ";

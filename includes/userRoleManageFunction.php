@@ -6,7 +6,7 @@ include_once __DIR__ . "/saveLogFunction.php";
 
 /**
  * Component ย่อย: สำหรับแสดงผลและจัดการ Role ในตาราง
- * * @param array $u ข้อมูล User แถวนั้นๆ (ต้องมี u.id และ u.role_id หรือ u.role_name)
+ * * @param array $u ข้อมูล User แถวนั้นๆ (ต้องมี u.upid และ u.role_id หรือ u.role_name)
  * @param string $currentUserRole Role ของคนที่ Login อยู่ (เช่น 'high-admin')
  * @param object $conn Database Connection (ต้องส่งมาเพื่อ Query Role List)
  */
