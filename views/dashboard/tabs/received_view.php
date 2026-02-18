@@ -33,6 +33,8 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
     $btnHover = "hover:bg-{$theme}-700";
     $textAmount = "text-{$theme}-600"; // สีตัวเลขเงิน
     $border = " border border-{$theme}-200";
+    $year_list_ = getBudgetYears();
+    $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
 ?>
 
     <div class="bg-white p-5 rounded-xl shadow-sm border <?php echo $borderBase; ?> mb-6">
@@ -54,12 +56,21 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
                             hx-target="#table-received"
                             hx-include="#form-received"
                             class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
+
                             <option value="0">ทุกปีงบฯ</option>
-                            <?php foreach ($years as $y): ?>
-                                <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
+
+                            <?php foreach ($year_list_ as $y):
+                                // เช็คเงื่อนไขเก็บไว้ในตัวแปร เพื่อความอ่านง่าย
+                                $is_current = ($fiscal_year == $y);
+                            ?>
+                                <option value="<?php echo $y; ?>"
+                                    class="<?php echo $is_current ? 'bg-green-50 text-green-800 font-bold cursor-help' : ''; ?>"
+                                    title="<?php echo $is_current ? 'ปีงบประมาณปีปัจจุบัน' : ''; ?>"
+                                    <?php echo $is_current ? 'selected' : ''; ?>>
                                     <?php echo $y; ?>
                                 </option>
                             <?php endforeach; ?>
+
                         </select>
                     </div>
                 </div>

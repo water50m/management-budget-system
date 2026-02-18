@@ -154,3 +154,9 @@ function getAllDepartment($conn){
     }
     return $dep_list;
 }
+
+function getBudgetYears($start = 2568, $end = 2580) {
+    return range($start, $end);
+}
+
+// วิธีใช้
