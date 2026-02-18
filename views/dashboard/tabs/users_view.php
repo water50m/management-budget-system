@@ -222,7 +222,7 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-80 group-hover:opacity-100 transition">
-                                        <a hx-get="index.php?page=profile&id=<?php echo $u['id']; ?>"
+                                        <a hx-get="index.php?page=profile&id=<?php echo $u['upid']; ?>"
                                             hx-target="#app-container"
                                             hx-swap="innerHTML"
                                             hx-push-url="true"
@@ -230,18 +230,18 @@ function renderUserTableComponent($users, $filters, $departments, $conn, $roles,
                                             <i class="fas fa-user"></i> ดูโปรไฟล์
                                         </a>
 
-                                        <button type="button" onclick="openExpenseModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>', <?php echo $balance; ?>)"
+                                        <button type="button" onclick="openExpenseModal('<?php echo $u['upid']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>', <?php echo $balance; ?>)"
                                             class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition" title="ตัดยอด">
                                             <i class="fas fa-minus"></i> ตัดยอด
                                         </button>
 
-                                        <button type="button" onclick="openAddBudgetModal('<?php echo $u['id']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>')"
+                                        <button type="button" onclick="openAddBudgetModal('<?php echo $u['upid']; ?>', '<?php echo htmlspecialchars($u['prefix']  . ' ' . $u['first_name'] . ' ' . $u['last_name']); ?>')"
                                             class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 text-xs font-bold transition" title="เติมเงิน">
                                             <i class="fas fa-plus"></i> รับยอด
                                         </button>
                                         <?php if ($_SESSION['role'] == 'high-admin' && $u['role_id'] != 1): ?>
 
-                                            <button type="button" onclick="openDeleteUserModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?>')"
+                                            <button type="button" onclick="openDeleteUserModal(<?php echo $u['upid']; ?>, '<?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?>')"
                                                 class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition" title="ลบ">
                                                 <i class="fas fa-trash"></i>
                                             </button>

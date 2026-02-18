@@ -28,70 +28,99 @@ function loadEnv($path) {
 }
 
 
-// ตรวจสอบว่ามีการส่ง Form Action 'delete_user' มาหรือไม่
-function submitDeleteUser($conn){
-    // 1. รับค่า ID
+function submitDeleteUser($conn) {
+    // 1. รับค่าและกำหนดค่าเริ่มต้น
     $target_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-    $actor_id = $_SESSION['user_id'];
-    $submit_page = $_POST['submit_page'];
-    $submit_tab = $_POST['submit_tab'];
+    $actor_id       = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 
-    if ($target_user_id > 0) {
+    // รับค่าหน้าที่จะให้เด้งกลับ (ถ้าไม่มีให้กลับไปหน้า dashboard)
+    $submit_page    = isset($_POST['submit_page']) ? $_POST['submit_page'] : 'dashboard';
+    $submit_tab     = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
+
+    try {
+        // เริ่มต้น Transaction (เพื่อความปลอดภัย ถ้าพังกลางทาง ข้อมูลจะไม่หาย)
+        mysqli_begin_transaction($conn);
 
         // ---------------------------------------------------------
-        // ✅ Step 1: ดึงข้อมูลเก่ามาตรวจสอบก่อน
+        // 🛑 Validation Checks (ตรวจสอบความถูกต้อง)
         // ---------------------------------------------------------
+        
+        // เช็คว่า ID ถูกต้องหรือไม่
+        if ($target_user_id <= 0) {
+            throw new Exception("ไม่พบรหัสผู้ใช้งาน (Invalid User ID)");
+        }
+
+        // ✅ Step 1: ดึงข้อมูลเก่ามาตรวจสอบ
         $sql_check = "SELECT prefix, first_name, last_name FROM user_profiles WHERE user_id = '$target_user_id'";
         $result_check = mysqli_query($conn, $sql_check);
+
+        // เช็คว่า Query ผ่านไหม
+        if (!$result_check) {
+            throw new Exception("Database Error (Check): " . mysqli_error($conn));
+        }
+
         $old_data = mysqli_fetch_assoc($result_check);
 
-        // ถ้าไม่พบข้อมูล
+        // เช็คว่ามีข้อมูลจริงไหม
         if (!$old_data) {
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode("ไม่พบข้อมูลผู้ใช้งาน"));
-            exit();
+            throw new Exception("ไม่พบข้อมูลผู้ใช้งานในระบบ id=". $target_user_id);
         }
 
-        // 🚨 CRITICAL CHECK: ห้ามลบ Admin 🚨
+        // 🚨 CRITICAL CHECK: ห้ามลบ Admin
         if (trim($old_data['first_name']) === 'Admin') {
-            // ส่งกลับไปหน้าเดิมพร้อม Error
-            $error_msg = "ไม่สามารถลบผู้ใช้งานระบบ (Admin) ได้";
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode($error_msg));
-            exit();
+            throw new Exception("ไม่สามารถลบผู้ใช้งานระบบ (Admin) ได้");
         }
 
-        // เตรียมชื่อสำหรับ Log
+        // เตรียมข้อมูลสำหรับ Log
         $deleted_name = $old_data['prefix'] . $old_data['first_name'] . ' ' . $old_data['last_name'];
 
+
         // ---------------------------------------------------------
-        // ✅ Step 2: ทำ Soft Delete (UPDATE deleted_at)
+        // 🗑️ Step 2: ทำ Soft Delete (UPDATE deleted_at)
         // ---------------------------------------------------------
         $sql_delete = "UPDATE user_profiles SET deleted_at = NOW() WHERE user_id = '$target_user_id'";
-
-        if (mysqli_query($conn, $sql_delete)) {
-
-            // ---------------------------------------------------------
-            // ✅ Step 3: บันทึก Log
-            // ---------------------------------------------------------
-            $log_message = "ลบข้อมูลบุคลากร: " . $deleted_name;
-            logActivity($conn, $actor_id, $target_user_id, 'delete_user', $log_message);
-
-            // ---------------------------------------------------------
-            // ✅ Step 4: Redirect สำเร็จ
-            // ---------------------------------------------------------
-            $msg = "ลบข้อมูลของ $deleted_name เรียบร้อยแล้ว";
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=delete&msg=" . urlencode($msg));
-            exit();
-        } else {
-            $error_msg = "เกิดข้อผิดพลาด: " . mysqli_error($conn);
-            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode($error_msg));
-            exit();
+        
+        if (!mysqli_query($conn, $sql_delete)) {
+            throw new Exception("เกิดข้อผิดพลาดในการลบข้อมูล: " . mysqli_error($conn));
         }
-    } else {
-        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&msg=" . urlencode("ไม่พบรหัสผู้ใช้งาน"));
+
+        // ---------------------------------------------------------
+        // 📝 Step 3: บันทึก Log
+        // ---------------------------------------------------------
+        $log_message = "ลบข้อมูลบุคลากร: " . $deleted_name;
+        
+        // สมมติว่าฟังก์ชัน logActivity คืนค่า true/false (ถ้าฟังก์ชันนี้ไม่มี return ก็ไม่เป็นไรครับ)
+        // logActivity($conn, $actor_id, $target_user_id, 'delete_user', $log_message); 
+        
+        // เพื่อความชัวร์ในการทำ Transaction ควรเช็คการ insert log ด้วย (ถ้าทำได้)
+        // แต่ในที่นี้เรียกใช้ฟังก์ชันเดิมตามโค้ดเก่า
+        logActivity($conn, $actor_id, $target_user_id, 'delete_user', $log_message);
+
+
+        // ---------------------------------------------------------
+        // ✅ Commit: ยืนยันการทำงานทั้งหมด
+        // ---------------------------------------------------------
+        mysqli_commit($conn);
+
+        // Redirect สำเร็จ
+        $msg = "ลบข้อมูลของ $deleted_name เรียบร้อยแล้ว";
+        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=delete&toastMsg=" . urlencode($msg));
+        exit();
+
+    } catch (Exception $e) {
+        // ---------------------------------------------------------
+        // ❌ Rollback: ยกเลิกการกระทำทั้งหมดถ้ามี Error
+        // ---------------------------------------------------------
+        mysqli_rollback($conn);
+
+        // ดึงข้อความ Error ที่เรา throw ไว้ หรือ Error จากระบบ
+        $error_msg = $e->getMessage();
+
+        // Redirect กลับไปแจ้งเตือน Error
+        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=" . urlencode($error_msg));
         exit();
     }
 }
-
 
 function getDepartmentName($conn, $user_id) {
     // ป้องกัน SQL Injection ด้วยการรับค่าเป็น Integer

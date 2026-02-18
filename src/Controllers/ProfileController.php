@@ -8,8 +8,8 @@ class ProfileController
         require_once __DIR__ . '/../../includes/userRoleManageFunction.php';
         include_once __DIR__ . "/../Helper/function.php";
 
-        $user_id = isset($_GET['id']) ? intval($_GET['id']) : $_SESSION['user_id'];
-
+        $user_id = isset($_GET['id']) ? intval($_GET['id']) : '';
+        
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
         $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng,
                             b.*

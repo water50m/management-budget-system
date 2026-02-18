@@ -136,7 +136,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 <?php endif; ?>
             </form>
 
-            <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
+            <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
                 <p class="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
                     --- Developer Access (Temporary) ---
                 </p>
@@ -150,7 +150,7 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                         <i class="fa-solid fa-user-shield text-amber-400"></i> Mock Admin
                     </button>
                 </div>
-            </div>
+            </div> -->
             <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
                 <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
                     ต้องการความช่วยเหลือ?

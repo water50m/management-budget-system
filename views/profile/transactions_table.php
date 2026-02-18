@@ -244,7 +244,7 @@
                                                 <button type="button"
                                                     onclick="openEditBudgetReceivedModal(
                                                         '<?php echo $txn['id']; ?>', 
-                                                        '<?php echo $user_info['id']; ?>', 
+                                                        '<?php echo $user_info['upid']; ?>', 
                                                         '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>',
                                                         '<?php echo $txn['amount']; ?>', 
                                                         '<?php echo $txn['txn_date']; ?>', 
@@ -279,7 +279,7 @@
                                                 <button type="button"
                                                     onclick="openEditExpenseModal(
                                                                 '<?= $txn['id'] ?>', 
-                                                                '<?= $user_info['id'] ?>', 
+                                                                '<?= $user_info['upid'] ?>', 
                                                                 '<?php echo $user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']; ?>', 
                                                                 '<?= $txn['amount'] ?>', 
                                                                 '<?= $txn['txn_date'] ?>', 

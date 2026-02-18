@@ -32,7 +32,8 @@ if ($current_month >= 10) {
 
 // แปลงเป็น พ.ศ. (+543)
 $fiscal_year_th = $fiscal_year_ad + 543;
-$uid = $user_info['id'];
+$uid = $user_info['upid'];
+
 
 
 ?>
@@ -47,7 +48,7 @@ $uid = $user_info['id'];
                     <button type="button"
                         class="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors duration-200"
                         title="ลบข้อมูล"
-                        onclick="openDeleteUserModal(<?php echo $user_info['id']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
+                        onclick="openDeleteUserModal(<?php echo $user_info['upid']; ?>, '<?php echo htmlspecialchars($user_info['prefix'] . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')">
                         <i class="fas fa-trash"></i>
                     </button>
                 <?php endif; ?>
@@ -98,7 +99,7 @@ $uid = $user_info['id'];
                 </div>
 
                 <div class="z-10 pl-4 border-l border-blue-400/30">
-                    <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['id'] ?>&search=&year=0&cat=0&type=all&min_amount=&max_amount=$total_balance=<?= $fiscal_year_th ?>"
+                    <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['upid'] ?>&search=&year=0&cat=0&type=all&min_amount=&max_amount=$total_balance=<?= $fiscal_year_th ?>"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
@@ -125,7 +126,7 @@ $uid = $user_info['id'];
                             <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_received_all'], 2); ?></p>
                         </div>
                     </div>
-                    <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['id'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=income&min_amount=&max_amount=&prevYear=<?= $fiscal_year_th - 1 ?>"
+                    <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['upid'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=income&min_amount=&max_amount=&prevYear=<?= $fiscal_year_th - 1 ?>"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
@@ -147,7 +148,7 @@ $uid = $user_info['id'];
                             <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_spent_this_year'], 2); ?></p>
                         </div>
                     </div>
-                    <a hx-get="index.php?page=profile&id=<?= $user_info['id'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=expense&min_amount=&max_amount="
+                    <a hx-get="index.php?page=profile&id=<?= $user_info['upid'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=expense&min_amount=&max_amount="
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
@@ -203,7 +204,7 @@ $uid = $user_info['id'];
                         </div>
                     </div>
 
-                    <a hx-get="index.php?page=profile&id=<?= $user_info['id'] ?>&carried_over_remaining=true&cat=0&type=income"
+                    <a hx-get="index.php?page=profile&id=<?= $user_info['upid'] ?>&carried_over_remaining=true&cat=0&type=income"
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"
@@ -225,7 +226,7 @@ $uid = $user_info['id'];
                 <?php if ($role == $admin_check || $role == 'high-admin'): ?>
                     <div class="grid grid-cols-2 gap-3">
                         <button type="button"
-                            onclick="openExpenseModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>', <?php echo $user_info['remaining_balance']; ?>)"
+                            onclick="openExpenseModal('<?php echo $user_info['upid']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>', <?php echo $user_info['remaining_balance']; ?>)"
                             class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white hover:border-orange-600 hover:shadow-md transition-all duration-200 group">
 
                             <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
@@ -235,7 +236,7 @@ $uid = $user_info['id'];
                         </button>
 
                         <button type="button"
-                            onclick="openAddBudgetModal('<?php echo $user_info['id']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"
+                            onclick="openAddBudgetModal('<?php echo $user_info['upid']; ?>', '<?php echo htmlspecialchars($user_info['prefix'] . ' ' . $user_info['first_name'] . ' ' . $user_info['last_name']); ?>')"
                             class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 hover:shadow-md transition-all duration-200 group">
 
                             <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
