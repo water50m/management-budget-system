@@ -44,6 +44,7 @@ $current_dept = isset($_GET['department_id']) ? $_GET['department_id'] : $show_d
 $year_options = getFiscalYearOptions($conn);
 $dept_options = getDepartments($conn);
 
+$year_list_ = getBudgetYears();
 ?>
 
 
@@ -74,11 +75,16 @@ $dept_options = getDepartments($conn);
                     $current_buddhist_year = date('Y') + 543;
                     $real_fiscal_year = ($current_month >= 10) ? $current_buddhist_year + 1 : $current_buddhist_year;
 
-                    if ($current_year == $real_fiscal_year):
-                    ?>
+                    if ($current_year == $real_fiscal_year): ?>
                         <p class="text-xs text-red-400 mt-1 font-medium">
                             <i class="fa-solid fa-info-circle mr-1"></i>
-                            ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ(ปีนี้)ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                            ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ (ปีนี้) ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                        </p>
+
+                    <?php elseif ($current_year > $real_fiscal_year): ?>
+                        <p class="text-xs text-red-500 mt-1 font-medium">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            ข้อมูลนี้เป็นแผนงบประมาณล่วงหน้าสำหรับปี <?php echo $current_year; ?> (ข้อมูลอาจมีการเปลี่ยนแปลง)
                         </p>
                     <?php endif; ?>
                 </div>
@@ -98,8 +104,22 @@ $dept_options = getDepartments($conn);
                         hx-trigger="change"
                         hx-include="[name='department_id']"
                         hx-indicator="#loadingIndicator">
-                        <?php foreach ($year_options as $y): ?>
-                            <option value="<?php echo $y; ?>" <?php echo ($y == $current_year) ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                        <?php
+                        // คำนวณปีงบประมาณปัจจุบันไว้รอเช็คใน loop
+                        $current_fiscal = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+
+                        foreach ($year_list_ as $y):
+                            $is_now = ($y == $current_fiscal);
+                            // ถ้าเป็นปีปัจจุบัน ให้ใช้สีเขียว และ cursor-help
+                            $current_class = $is_now ? 'bg-blue-50 text-blue-800 font-bold cursor-help' : '';
+                            $current_title = $is_now ? 'title="ปีงบประมาณปีปัจจุบัน"' : '';
+                        ?>
+                            <option value="<?php echo $y; ?>"
+                                class="<?php echo $current_class; ?>"
+                                <?php echo $current_title; ?>
+                                <?php echo ($current_fiscal == $y) ? 'selected' : ''; ?>>
+                                <?php echo $y ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
@@ -191,9 +211,9 @@ $dept_options = getDepartments($conn);
         <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100">
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
                 <i class="fas fa-building text-blue-500"></i> การเบิกจ่ายแยกตามภาควิชา
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
-                        </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                </span>
             </h4>
             <div class="relative h-64">
                 <canvas id="deptChart"></canvas>
@@ -202,10 +222,10 @@ $dept_options = getDepartments($conn);
 
         <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100">
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
-                <i class="fas fa-tags text-pink-500"></i> สัดส่วนตามหมวดหมู่ 
+                <i class="fas fa-tags text-pink-500"></i> สัดส่วนตามหมวดหมู่
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
-                        </span>
+                    ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                </span>
             </h4>
             <div class="relative h-64 flex justify-center">
                 <canvas id="catChart"></canvas>

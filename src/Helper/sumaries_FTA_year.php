@@ -19,9 +19,23 @@
                     hx-trigger="change"
                     hx-include="[name='department_id']"
                     hx-indicator="#loadingIndicator">
-                    <?php foreach ($year_options as $y): ?>
-                        <option value="<?php echo $y; ?>" <?php echo ($y == $current_year) ? 'selected' : ''; ?>><?php echo $y; ?></option>
-                    <?php endforeach; ?>
+                    <?php
+                            // คำนวณปีงบประมาณปัจจุบันไว้รอเช็คใน loop
+                            $current_fiscal = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+             
+                            foreach ($year_list_ as $y):
+                                $is_now = ($y == $current_fiscal);
+                                // ถ้าเป็นปีปัจจุบัน ให้ใช้สีเขียว และ cursor-help
+                                $current_class = $is_now ? 'bg-blue-50 text-blue-800 font-bold cursor-help' : '';
+                                $current_title = $is_now ? 'title="ปีงบประมาณปีปัจจุบัน"' : '';
+                            ?>
+                                <option value="<?php echo $y; ?>"
+                                    class="<?php echo $current_class; ?>"
+                                    <?php echo $current_title; ?>
+                                    <?php echo ($current_fiscal == $y) ? 'selected' : ''; ?>>
+                                    <?php echo $y ?>
+                                </option>
+                            <?php endforeach; ?>
                 </select>
 
 
@@ -29,11 +43,16 @@
 
                 </span>
             </h2>
-            <?php if ($current_year == $real_fiscal_year):
-            ?>
+            <?php if ($current_year == $real_fiscal_year): ?>
                 <p class="text-xs text-red-400 mt-1 font-medium">
                     <i class="fa-solid fa-info-circle mr-1"></i>
-                    ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ(ปีนี้)ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                    ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ (ปีนี้) ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
+                </p>
+
+            <?php elseif ($current_year > $real_fiscal_year): ?>
+                <p class="text-xs text-red-500 mt-1 font-medium">
+                    <i class="fa-solid fa-info-circle mr-1"></i>
+                        ข้อมูลนี้เป็นแผนงบประมาณล่วงหน้าสำหรับปี <?php echo $current_year; ?> (ข้อมูลอาจมีการเปลี่ยนแปลง)
                 </p>
             <?php endif; ?>
         </div>

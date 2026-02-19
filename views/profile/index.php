@@ -34,7 +34,8 @@ if ($current_month >= 10) {
 $fiscal_year_th = $fiscal_year_ad + 543;
 $uid = $user_info['upid'];
 
-
+$year_list_ = getBudgetYears();
+$fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
 
 ?>
 <div class="container mx-auto px-4 py-6 max-w-[1800px] ">
@@ -277,14 +278,33 @@ $uid = $user_info['upid'];
                     </div>
 
                     <div class="w-[48%] md:w-[12%]">
-                        <label class="block text-xs font-bold text-gray-700 mb-1"><?php echo $t['fiscal_year'] ?? 'ปีงบประมาณ'; ?></label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <?php echo $t['fiscal_year'] ?? 'ปีงบประมาณ'; ?>
+                        </label>
+
                         <select name="year"
                             onchange="htmx.trigger(this.form, 'submit')"
                             class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
-                            <option value="0" <?php echo ($filters['year'] == 0) ? 'selected' : ''; ?>><?php echo $t['all_years'] ?? 'ทุกปี'; ?></option>
-                            <?php foreach ($years_list as $y): ?>
-                                <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
-                                    <?php echo $t['year_prefix'] ?? 'ปี'; ?> <?php echo $y; ?>
+
+                            <option value="0" >
+                                <?php echo $t['all_years'] ?? 'ทุกปีงบ'; ?>
+                            </option>
+
+                            <?php
+                            // คำนวณปีงบประมาณปัจจุบันไว้รอเช็คใน loop
+                            $current_fiscal = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+             
+                            foreach ($year_list_ as $y):
+                                $is_now = ($y == $current_fiscal);
+                                // ถ้าเป็นปีปัจจุบัน ให้ใช้สีเขียว และ cursor-help
+                                $current_class = $is_now ? 'bg-blue-50 text-blue-800 font-bold cursor-help' : '';
+                                $current_title = $is_now ? 'title="ปีงบประมาณปีปัจจุบัน"' : '';
+                            ?>
+                                <option value="<?php echo $y; ?>"
+                                    class="<?php echo $current_class; ?>"
+                                    <?php echo $current_title; ?>
+                                    <?php echo ($current_fiscal == $y) ? 'selected' : ''; ?>>
+                                    <?php echo $y ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

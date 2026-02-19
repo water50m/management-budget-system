@@ -34,6 +34,9 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
         'limit' => 10
     ];
     $filters = array_merge($defaultFilters, $filters);
+
+    $year_list_ = getBudgetYears();
+    $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
 ?>
     <div class="bg-white p-5 rounded-xl shadow-sm border border-<?= $color ?>-100 mb-6 animate-fade-in">
         <form hx-get="index.php?page=dashboard&tab=expense"
@@ -41,8 +44,8 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
             hx-push-url="true"
             hx-swap="innerHTML"
             class="w-full"
-            id="form-expense"> 
-            
+            id="form-expense">
+
             <?php
             // Check Admin Permissions
             $isHighAdmin = (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin');
@@ -59,13 +62,23 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                             hx-target="#table-expense"
                             hx-include="#form-expense"
                             class="w-full h-[38px] border-none text-xs text-gray-700 pl-2 cursor-pointer focus:ring-0">
+
                             <option value="0">ทุกปีงบฯ</option>
-                            <?php foreach ($years as $y): ?>
-                                <option value="<?php echo $y; ?>" <?php echo ($filters['year'] == $y) ? 'selected' : ''; ?>>
+
+                            <?php foreach ($year_list_ as $y):
+                                // เช็คเงื่อนไขเก็บไว้ในตัวแปร เพื่อความอ่านง่าย
+                                $is_current = ($fiscal_year == $y);
+                            ?>
+                                <option value="<?php echo $y; ?>"
+                                    class="<?php echo $is_current ? "bg-{$color}-50 text-{$color}-800 font-bold cursor-help" : ""; ?>"
+                                    title="<?php echo $is_current ? 'ปีงบประมาณปีปัจจุบัน' : ''; ?>"
+                                    <?php echo $is_current ? 'selected' : ''; ?>>
                                     <?php echo $y; ?>
                                 </option>
                             <?php endforeach; ?>
+
                         </select>
+
                     </div>
                 </div>
 
@@ -104,6 +117,7 @@ function renderExpenseTableComponent($expenses, $filters, $departments, $categor
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
                     </div>
                 <?php endif; ?>
 
