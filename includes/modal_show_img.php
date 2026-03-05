@@ -61,7 +61,7 @@
                 </label>
                 <input type="file" id="new_receipt_image" name="new_receipt_image" class="hidden" accept="image/*" required onchange="handleFileSelect(this)">
 
-                <button type="submit" id="btnSubmitReupload" class="px-5 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-colors hidden shadow-md animate-pulse">
+                <button type="submit" id="btnSubmitReupload" class="px-5 py-2 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-colors hidden shadow-md ">
                     💾 ยืนยันบันทึกรูปใหม่
                 </button>
             </form>
