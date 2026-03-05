@@ -72,6 +72,12 @@ class DashboardController
             if (isset($_POST['action']) && $_POST['action'] == 'update_role') {
                 submitUpdateRole($conn);
             }
+            if (isset($_POST['action']) && $_POST['action'] === 'delete_receipt_image') {
+                deleteReceiptImage($conn);
+            }
+            if (isset($_POST['action']) && $_POST['action'] === 'reupload_receipt_image') {
+                reuploadReceiptImage($conn);
+            } 
         }
 
         // ==================================================================================

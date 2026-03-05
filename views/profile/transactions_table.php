@@ -31,7 +31,7 @@
 
                         // แปลงเป็น พ.ศ. (+543)
                         $fiscal_year_th = $fiscal_year_ad + 543;
-                        
+
                         // --- คำนวณสีพื้นหลังของแถว ---
                         $row_bg = 'bg-red-50'; // ค่าเริ่มต้น: รายจ่าย (สีแดง)
 
@@ -276,6 +276,12 @@
                                             } else {
                                             ?>
                                                 <input type="hidden" id="delete_target_id" name="id_to_delete" value="<?= $txn['id'] ?>">
+                                                <button type="button"
+                                                    onclick="openImageModal('<?= $txn['id'] ?>', '<?= $txn['receipt_image_path'] ?? '' ?>')"
+                                                    class="bg-green-50 text-green-600 border border-green-200 px-3 py-1 rounded hover:bg-green-100 text-xs font-bold transition flex items-center gap-1"
+                                                    title="ดูใบเสร็จ">
+                                                    <i class="fas fa-receipt"></i> เอกสาร
+                                                </button>
                                                 <button type="button"
                                                     onclick="openEditExpenseModal(
                                                                 '<?= $txn['id'] ?>', 

@@ -82,44 +82,50 @@
                             <td class="px-6 py-2 font-mono font-bold text-red-600 text-lg whitespace-nowrap text-right">
                                 <?php echo number_format($row['amount'], 2); ?>
                             </td>
+
                             <td class="px-6 py-2 text-center">
                                 <div class="flex items-center justify-center gap-2">
+
+                                    <button type="button"
+                                        onclick="openImageModal('<?= $row['id'] ?>', '<?= $row['receipt_image_path'] ?? '' ?>')"
+                                        class="bg-green-50 text-green-600 border border-green-200 px-3 py-1 rounded hover:bg-green-100 text-xs font-bold transition flex items-center gap-1"
+                                        title="ดูใบเสร็จ">
+                                        <i class="fas fa-receipt"></i> เอกสาร
+                                    </button>
 
                                     <a hx-get="index.php?page=profile&id=<?php echo $row['user_id']; ?>"
                                         hx-target="#app-container"
                                         hx-swap="innerHTML"
                                         hx-push-url="true"
                                         class="cursor-pointer bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1">
-                                        <i class="fas fa-user"></i> ดูโปรไฟล์
+                                        <i class="fas fa-user"></i> โปรไฟล์
                                     </a>
 
                                     <?php
                                     // รวมชื่อ-นามสกุลเพื่อส่งไป Modal
                                     $fullName = $row['prefix'] . ' ' . $row['first_name'] . ' ' . $row['last_name'];
-
-                                    // เช็ค key ของวันที่ให้ชัวร์ (ปกติใน DB มักเป็น expense_date หรือ approved_date)
-                                    // สมมติว่าใช้ expense_date ตามฟอร์มรายจ่าย
                                     $rawDate = isset($row['approved_date']) ? $row['approved_date'] : $row['created_at'];
                                     ?>
+
                                     <button type="button"
                                         onclick="openEditExpenseModal(
-                                                                '<?= $row['id'] ?>', 
-                                                                '<?= $row['user_id'] ?>', 
-                                                                '<?= addslashes($fullName) ?>', 
-                                                                '<?= $row['amount'] ?>', 
-                                                                '<?= $rawDate ?>', 
-                                                                '<?= isset($row['category_id']) ? $row['category_id'] : '' ?>', 
-                                                                '<?= addslashes($row['description']) ?>'
-                                                            )"
+                            '<?= $row['id'] ?>', 
+                            '<?= $row['user_id'] ?>', 
+                            '<?= addslashes($fullName) ?>', 
+                            '<?= $row['amount'] ?>', 
+                            '<?= $rawDate ?>', 
+                            '<?= isset($row['category_id']) ? $row['category_id'] : '' ?>', 
+                            '<?= addslashes($row['description']) ?>'
+                        )"
                                         class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-1 rounded hover:bg-orange-100 text-xs font-bold transition flex items-center gap-1">
                                         <i class="fas fa-edit"></i> แก้ไข
                                     </button>
 
                                     <button type="button"
                                         onclick="openDeleteModal(
-                                                        '<?php echo $row['id']; ?>', 
-                                                        'delete_expense'
-                                                    )"
+                            '<?php echo $row['id']; ?>', 
+                            'delete_expense'
+                        )"
                                         class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 text-xs font-bold transition"
                                         title="ลบรายการนี้">
                                         <i class="fas fa-trash"></i>
@@ -127,6 +133,7 @@
 
                                 </div>
                             </td>
+
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -147,6 +154,6 @@
     }
     include_once __DIR__ . "/../../../includes/confirm_delete.php";
     include_once __DIR__ . '/../../../includes/modal_edit_expense.php';
-
+    include_once __DIR__ . '/../../../includes/modal_show_img.php';
     ?>
 </div>

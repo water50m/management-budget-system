@@ -47,6 +47,10 @@ switch ($page) {
         $controller->showPDF();
         break;
 
+    case 'config':
+        include __DIR__ . '/../views/config/index.php';
+        break;
+
     // --- ส่วน Register (ถ้าแยก Controller ก็ใส่ตรงนี้) ---
     // case 'register': ...
 
