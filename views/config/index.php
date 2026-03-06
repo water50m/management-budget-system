@@ -8,17 +8,26 @@ if (session_status() === PHP_SESSION_NONE) {
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'high-admin') {
     // ถ้าไม่มีสิทธิ์ ให้ Redirect กลับไปที่หน้า login.php
     header("Location: index.php?page=login");
-    exit(); // หยุดการทำงานของสคริปต์ทันที ป้องกันไม่ให้โค้ดด้านล่างทำงานต่อ
+    exit(); 
 }
 include_once __DIR__ . '/../../includes/db.php';
+
+$dbNameDisplay = isset($dbname) ? $dbname : (isset($dbName) ? $dbName : 'Your Database');
 
 // ---------------------------------------------------------
 // 2. ข้อมูล Configuration ที่ต้องการดำเนินการ
 // ---------------------------------------------------------
 $tableName = 'budget_expenses';
-$columnName = 'receipt_image_path';
-$dataType = 'VARCHAR(255) NULL DEFAULT NULL';
-$columnComment = 'เก็บ path รูปเอกสาร';
+
+// คอลัมน์ที่ 1 (พรีวิว / รูปภาพ)
+$col1 = 'receipt_image_path';
+$col1Type = 'VARCHAR(255) NULL DEFAULT NULL';
+$col1Comment = 'เก็บ path รูปเอกสาร';
+
+// คอลัมน์ที่ 2 (ไฟล์ต้นฉบับ)
+$col2 = 'receipt_original_path';
+$col2Type = 'VARCHAR(255) NULL DEFAULT NULL';
+$col2Comment = 'เก็บ path ไฟล์ดิบ (Word/Excel)';
 
 // ---------------------------------------------------------
 // 3. ฟังก์ชันที่เกี่ยวข้อง
@@ -31,29 +40,58 @@ function checkColumnExists($conn, $tableName, $columnName) {
     return ($result && mysqli_num_rows($result) > 0);
 }
 
-function addImageColumn($conn, $tableName, $columnName, $dataType, $columnComment) {
+function addImageColumn($conn, $tableName, $columnName, $dataType, $columnComment, $afterColumn = '') {
     $safeTable = mysqli_real_escape_string($conn, $tableName);
     $safeColumn = mysqli_real_escape_string($conn, $columnName);
     $sql = "ALTER TABLE `$safeTable` ADD COLUMN `$safeColumn` $dataType COMMENT '$columnComment'";
+    
+    if ($afterColumn !== '') {
+        $safeAfter = mysqli_real_escape_string($conn, $afterColumn);
+        $sql .= " AFTER `$safeAfter`";
+    }
+    
     return mysqli_query($conn, $sql) ? true : mysqli_error($conn);
 }
 
 // ---------------------------------------------------------
-// 4. จัดการ Logic เมื่อมีการกดปุ่ม
+// 4. จัดการ Logic เมื่อมีการกดปุ่ม (แยก 2 ปุ่ม)
 // ---------------------------------------------------------
 $alertMessage = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_column'])) {
-    $result = addImageColumn($conn, $tableName, $columnName, $dataType, $columnComment);
-    if ($result === true) {
-        $alertMessage = "<div class='alert alert-success'><strong>Success:</strong> ระบบได้ทำการเพิ่มคอลัมน์ <code>{$columnName}</code> ลงในตาราง <code>{$tableName}</code> เรียบร้อยแล้ว</div>";
-    } else {
-        $alertMessage = "<div class='alert alert-danger'><strong>Error:</strong> ไม่สามารถอัปเดตฐานข้อมูลได้: {$result}</div>";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    
+    // กรณีกดปุ่มเพิ่มคอลัมน์ที่ 1
+    if (isset($_POST['action_add_col1'])) {
+        if (!checkColumnExists($conn, $tableName, $col1)) {
+            $res = addImageColumn($conn, $tableName, $col1, $col1Type, $col1Comment);
+            if ($res === true) {
+                $alertMessage = "<div class='alert alert-success'>✅ <strong>สำเร็จ:</strong> เพิ่มคอลัมน์ <code>{$col1}</code> เรียบร้อยแล้ว</div>";
+            } else {
+                $alertMessage = "<div class='alert alert-danger'>❌ <strong>ข้อผิดพลาด:</strong> ไม่สามารถเพิ่ม {$col1} ได้: {$res}</div>";
+            }
+        }
+    }
+
+    // กรณีกดปุ่มเพิ่มคอลัมน์ที่ 2
+    if (isset($_POST['action_add_col2'])) {
+        if (!checkColumnExists($conn, $tableName, $col2)) {
+            // เช็คว่ามี col1 ไหม ถ้ามีให้วางต่อจาก col1 แต่ถ้าไม่มีก็ไม่ต้องใส่ AFTER
+            $after = checkColumnExists($conn, $tableName, $col1) ? $col1 : '';
+            
+            $res = addImageColumn($conn, $tableName, $col2, $col2Type, $col2Comment, $after);
+            if ($res === true) {
+                $alertMessage = "<div class='alert alert-success'>✅ <strong>สำเร็จ:</strong> เพิ่มคอลัมน์ <code>{$col2}</code> เรียบร้อยแล้ว</div>";
+            } else {
+                $alertMessage = "<div class='alert alert-danger'>❌ <strong>ข้อผิดพลาด:</strong> ไม่สามารถเพิ่ม {$col2} ได้: {$res}</div>";
+            }
+        }
     }
 }
 
-// เช็คสถานะปัจจุบัน
-$isColumnExist = checkColumnExists($conn, $tableName, $columnName);
+// เช็คสถานะปัจจุบันของทั้ง 2 คอลัมน์ เพื่อแสดงผลใน UI
+$isCol1Exist = checkColumnExists($conn, $tableName, $col1);
+$isCol2Exist = checkColumnExists($conn, $tableName, $col2);
+$isFullyUpdated = ($isCol1Exist && $isCol2Exist);
 ?>
 
 <!DOCTYPE html>
@@ -75,7 +113,7 @@ $isColumnExist = checkColumnExists($conn, $tableName, $columnName);
         .container { 
             background: #ffffff; 
             width: 100%; 
-            max-width: 650px; 
+            max-width: 800px; 
             padding: 30px; 
             border-radius: 6px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
@@ -103,10 +141,11 @@ $isColumnExist = checkColumnExists($conn, $tableName, $columnName);
             padding: 12px 15px; 
             border: 1px solid #e3e6f0; 
             text-align: left; 
+            vertical-align: middle;
         }
         .info-table th { 
             background-color: #f8f9fa; 
-            width: 35%; 
+            width: 20%; 
             color: #495057; 
             font-weight: 600;
         }
@@ -126,34 +165,19 @@ $isColumnExist = checkColumnExists($conn, $tableName, $columnName);
         }
         .status-exists { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
         .status-missing { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-        .action-area {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #f0f2f5;
-            text-align: right;
-        }
+        
         .btn { 
-            padding: 10px 20px; 
+            padding: 8px 15px; 
             border: none; 
             border-radius: 4px; 
-            font-size: 14px; 
+            font-size: 13px; 
             font-weight: 600; 
             cursor: pointer; 
             transition: all 0.2s; 
         }
-        .btn-primary { 
-            background-color: #0d6efd; 
-            color: white; 
-        }
-        .btn-primary:hover { 
-            background-color: #0b5ed7; 
-        }
-        .btn-disabled { 
-            background-color: #e9ecef; 
-            color: #6c757d; 
-            cursor: not-allowed; 
-            border: 1px solid #ced4da; 
-        }
+        .btn-primary { background-color: #0d6efd; color: white; }
+        .btn-primary:hover { background-color: #0b5ed7; }
+        
         .alert { 
             padding: 15px; 
             margin-bottom: 20px; 
@@ -162,61 +186,69 @@ $isColumnExist = checkColumnExists($conn, $tableName, $columnName);
         }
         .alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
         .alert-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .mt-2 { margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>System Database Configuration</h2>
-        <p class="description">หน้าต่างนี้สำหรับตรวจสอบและอัปเดตโครงสร้างฐานข้อมูล เพื่อรองรับระบบการอัปโหลดเอกสารใบเสร็จ (Receipt Upload Feature)</p>
+        <h2>⚙️ System Database Configuration</h2>
+        <p class="description">หน้าต่างนี้สำหรับตรวจสอบและอัปเดตโครงสร้างฐานข้อมูล เพื่อรองรับระบบการอัปโหลดเอกสารใบเสร็จ (แยกเพิ่มทีละคอลัมน์ได้)</p>
         
         <?= $alertMessage ?>
 
         <table class="info-table">
             <tbody>
                 <tr>
-                    <th>ฐานข้อมูลเป้าหมาย (Database)</th>
-                    <td><code><?= htmlspecialchars($dbname) ?></code></td>
+                    <th>ตารางเป้าหมาย</th>
+                    <td colspan="2"><code><?= htmlspecialchars($tableName) ?></code> (Database: <code><?= htmlspecialchars($dbNameDisplay) ?></code>)</td>
                 </tr>
+                
                 <tr>
-                    <th>ตารางเป้าหมาย (Table)</th>
-                    <td><code><?= htmlspecialchars($tableName) ?></code></td>
-                </tr>
-                <tr>
-                    <th>คอลัมน์ที่จะเพิ่ม (New Column)</th>
-                    <td><code><?= htmlspecialchars($columnName) ?></code></td>
-                </tr>
-                <tr>
-                    <th>ชนิดข้อมูล (Data Type)</th>
-                    <td><?= htmlspecialchars($dataType) ?></td>
-                </tr>
-                <tr>
-                    <th>สถานะปัจจุบัน (Status)</th>
+                    <th>โครงสร้างที่ 1</th>
                     <td>
-                        <?php if ($isColumnExist): ?>
-                            <span class="status-badge status-exists">พร้อมใช้งาน (Exists)</span>
+                        <b>ชื่อคอลัมน์:</b> <code><?= htmlspecialchars($col1) ?></code><br>
+                        <b>คำอธิบาย:</b> <span style="color:#666;"><?= htmlspecialchars($col1Comment) ?></span>
+                    </td>
+                    <td class="text-center" style="width: 25%;">
+                        <?php if ($isCol1Exist): ?>
+                            <span class="status-badge status-exists">✅ พร้อมใช้งาน</span>
                         <?php else: ?>
-                            <span class="status-badge status-missing">ยังไม่มีคอลัมน์ (Not Found)</span>
+                            <span class="status-badge status-missing">❌ ยังไม่มีคอลัมน์</span>
+                            <form method="POST" onsubmit="return confirm('ยืนยันการเพิ่มคอลัมน์ <?= $col1 ?> ?');" class="mt-2" style="margin-bottom:0;">
+                                <input type="hidden" name="action_add_col1" value="1">
+                                <button type="submit" class="btn btn-primary">➕ เพิ่มคอลัมน์นี้</button>
+                            </form>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th>โครงสร้างที่ 2</th>
+                    <td>
+                        <b>ชื่อคอลัมน์:</b> <code><?= htmlspecialchars($col2) ?></code><br>
+                        <b>คำอธิบาย:</b> <span style="color:#666;"><?= htmlspecialchars($col2Comment) ?></span>
+                    </td>
+                    <td class="text-center" style="width: 25%;">
+                        <?php if ($isCol2Exist): ?>
+                            <span class="status-badge status-exists">✅ พร้อมใช้งาน</span>
+                        <?php else: ?>
+                            <span class="status-badge status-missing">❌ ยังไม่มีคอลัมน์</span>
+                            <form method="POST" onsubmit="return confirm('ยืนยันการเพิ่มคอลัมน์ <?= $col2 ?> ?');" class="mt-2" style="margin-bottom:0;">
+                                <input type="hidden" name="action_add_col2" value="1">
+                                <button type="submit" class="btn btn-primary">➕ เพิ่มคอลัมน์นี้</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <div class="action-area">
-            <?php if ($isColumnExist): ?>
-                <button class="btn btn-disabled" disabled>
-                    โครงสร้างฐานข้อมูลอัปเดตแล้ว
-                </button>
-            <?php else: ?>
-                <form method="POST" onsubmit="return confirm('กรุณายืนยัน: คุณต้องการรันคำสั่ง ALTER TABLE เพื่อเพิ่มคอลัมน์ใช่หรือไม่?');" style="margin: 0;">
-                    <input type="hidden" name="action_add_column" value="1">
-                    <button type="submit" class="btn btn-primary">
-                        ดำเนินการอัปเดตฐานข้อมูล (Apply Changes)
-                    </button>
-                </form>
-            <?php endif; ?>
-        </div>
+        <?php if ($isFullyUpdated): ?>
+            <div style="text-align: center; margin-top: 30px; padding: 15px; background: #e8f5e9; color: #2e7d32; border-radius: 6px; font-weight: bold;">
+                🎉 โครงสร้างฐานข้อมูลอัปเดตครบถ้วนพร้อมใช้งานแล้ว!
+            </div>
+        <?php endif; ?>
     </div>
 
 </body>

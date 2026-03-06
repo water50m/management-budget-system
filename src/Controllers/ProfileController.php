@@ -156,6 +156,7 @@ class ProfileController
                                 NULL as category_name, 
                                 NULL as category_id,
                                 NULL as receipt_image_path,
+                                NULL as receipt_original_path,
                                  -- 2. คำนวณยอดที่ ใช้ไปแล้วในปีก่อน (Past Usage)
                                 -- เพื่อเอามาโชว์ user ว่า อ๋อ หายไปเพราะปีที่แล้วใช้นะ
                                 COALESCE((
@@ -199,7 +200,7 @@ class ProfileController
                                 e.id, e.approved_date as txn_date, e.description, e.amount as amount,
                                 'expense' as type, c.name_th as category_name, c.id AS category_id,
                                 NULL AS used_last_year, NULL AS net_carried_over, NULL AS expire_date,
-                                fiscal_year as fiscal_year_num, NULL AS current_remaining, e.receipt_image_path 
+                                fiscal_year as fiscal_year_num, NULL AS current_remaining, e.receipt_image_path, e.receipt_original_path
                             FROM budget_expenses e
                             LEFT JOIN expense_categories c ON e.category_id = c.id
                             $where_exp)";

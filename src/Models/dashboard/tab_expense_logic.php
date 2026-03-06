@@ -1,6 +1,7 @@
 <?php
 
-function deleteReceiptImage($conn) {
+function deleteReceiptImage($conn)
+{
     $expense_id = intval($_POST['expense_id']);
 
     // รับค่า Page Navigation จากหน้าบ้าน (อย่าลืมใส่ input hidden ในฟอร์มลบรูปด้วยนะครับ)
@@ -24,7 +25,7 @@ function deleteReceiptImage($conn) {
         // ตรวจสอบว่ามี Path รูปภาพบันทึกอยู่จริง
         if (!empty($info['receipt_image_path'])) {
             $old_file = $info['receipt_image_path'];
-            
+
             // 1. ลบไฟล์ออกจาก Server
             if (file_exists($old_file)) {
                 unlink($old_file);
@@ -42,7 +43,7 @@ function deleteReceiptImage($conn) {
             $amount_needed = $info['amount'];
             $fiscal_year = $info['fiscal_year'];
             $full_name = trim($info['prefix'] . ' ' . $info['first_name'] . ' ' . $info['last_name']);
-            
+
             $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
             $log_desc = "ลบรูปภาพใบเสร็จรายการ: $description จำนวน " . number_format($amount_needed, 2) . " บาท";
 
@@ -51,7 +52,7 @@ function deleteReceiptImage($conn) {
 
             // 🌟 4. Set Session สำหรับ Redirect และ ไฮไลต์รายการ 🌟
             $_SESSION['tragettab'] = 'expense';
-            $_SESSION['tragetfilters'] = $expense_id; 
+            $_SESSION['tragetfilters'] = $expense_id;
             $_SESSION['show_btn'] = true;
             $_SESSION['fiscal_year'] = $fiscal_year;
 
@@ -62,7 +63,6 @@ function deleteReceiptImage($conn) {
                 header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
             }
             exit;
-
         } else {
             throw new Exception("ไม่พบรูปภาพในระบบ หรือรูปถูกลบไปแล้ว");
         }
@@ -81,99 +81,89 @@ function deleteReceiptImage($conn) {
 // ---------------------------------------------------------
 // ฟังก์ชันอัปโหลดรูปใหม่ (Re-upload Image)
 // ---------------------------------------------------------
-function reuploadReceiptImage($conn) {
+function reuploadReceiptImage($conn)
+{
     $expense_id = intval($_POST['expense_id']);
-    
-    // รับค่า Page Navigation จากหน้าบ้าน
     $submit_page = isset($_POST['submit_page']) ? $_POST['submit_page'] : 'dashboard';
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : '';
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
     try {
         if (!isset($_FILES['new_receipt_image']) || $_FILES['new_receipt_image']['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception("กรุณาเลือกไฟล์รูปภาพที่สมบูรณ์");
+            throw new Exception("กรุณาเลือกไฟล์ที่สมบูรณ์");
         }
 
         $file_tmp = $_FILES['new_receipt_image']['tmp_name'];
         $file_name = $_FILES['new_receipt_image']['name'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
+        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
         if (!in_array($file_ext, $allowed_exts)) {
-            throw new Exception("รูปแบบไฟล์รูปภาพไม่ถูกต้อง รองรับเฉพาะ JPG, PNG, GIF");
+            throw new Exception("รองรับเฉพาะ JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX เท่านั้น");
         }
 
         $upload_dir = 'uploads/receipts/';
-        if (!is_dir($upload_dir)) { mkdir($upload_dir, 0755, true); }
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
 
-        $new_file_name = 'receipt_update_' . $expense_id . '_' . time() . '.' . $file_ext;
-        $target_file = $upload_dir . $new_file_name;
-
-        // ดึงข้อมูล User และ Expense จาก DB เพื่อเอาไปทำ Log และ Session
         $sql_info = "SELECT e.user_id, e.description, e.amount, e.fiscal_year, up.prefix, up.first_name, up.last_name 
                      FROM budget_expenses e 
                      LEFT JOIN user_profiles up ON e.user_id = up.user_id 
                      WHERE e.id = '$expense_id'";
         $res_info = mysqli_query($conn, $sql_info);
         $info = mysqli_fetch_assoc($res_info);
-        
-        if (!$info) {
-            throw new Exception("ไม่พบข้อมูลรายการที่ต้องการอัปเดตรูปภาพ");
-        }
 
-        if (move_uploaded_file($file_tmp, $target_file)) {
+        if (!$info) throw new Exception("ไม่พบข้อมูลรายการ");
+
+        // 1. ตั้งชื่อและเซฟไฟล์ดิบ
+        $raw_file_name = 'receipt_raw_' . $expense_id . '_' . time() . '.' . $file_ext;
+        $target_raw_file = $upload_dir . $raw_file_name;
+
+        if (move_uploaded_file($file_tmp, $target_raw_file)) {
             
-            // ลบรูปเก่า
-            $sql_old = "SELECT receipt_image_path FROM budget_expenses WHERE id = '$expense_id'";
+            // 🌟 2. เนื่องจากไม่มีตัวแปลงไฟล์ เราจะใช้ไฟล์ดิบนี้เก็บลงทั้ง 2 คอลัมน์เลย
+            $safe_path = "'" . mysqli_real_escape_string($conn, $target_raw_file) . "'";
+            
+            // 3. ลบไฟล์เก่าทั้งหมด
+            $sql_old = "SELECT receipt_image_path, receipt_original_path FROM budget_expenses WHERE id = '$expense_id'";
             $res_old = mysqli_query($conn, $sql_old);
+            
             if ($row_old = mysqli_fetch_assoc($res_old)) {
-                if (!empty($row_old['receipt_image_path']) && file_exists($row_old['receipt_image_path'])) {
-                    unlink($row_old['receipt_image_path']);
-                }
+                $old_preview = $row_old['receipt_image_path'];
+                $old_original = $row_old['receipt_original_path'];
+
+                if (!empty($old_preview) && file_exists($old_preview)) unlink($old_preview);
+                if (!empty($old_original) && $old_original !== $old_preview && file_exists($old_original)) unlink($old_original);
             }
 
-            // อัปเดต Path ใหม่
-            $safe_path = mysqli_real_escape_string($conn, $target_file);
-            $sql_update = "UPDATE budget_expenses SET receipt_image_path = '$safe_path' WHERE id = '$expense_id'";
-            
-            if (!mysqli_query($conn, $sql_update)) {
-                throw new Exception("บันทึกข้อมูลรูปภาพไม่สำเร็จ: " . mysqli_error($conn));
-            }
+            // 4. อัปเดต Database
+            $sql_update = "UPDATE budget_expenses 
+                   SET receipt_image_path = $safe_path, 
+                       receipt_original_path = $safe_path 
+                   WHERE id = '$expense_id'";
 
-            // 🌟 ส่วนที่คุณต้องการเพิ่ม: บันทึก Log และ Redirect 🌟
+            if (!mysqli_query($conn, $sql_update)) throw new Exception("บันทึกข้อมูลไม่สำเร็จ");
+
+            // 5. บันทึก Log และ Redirect
             $user_id = $info['user_id'];
-            $description = $info['description'];
-            $amount_needed = $info['amount'];
-            $fiscal_year = $info['fiscal_year'];
-            $full_name = trim($info['prefix'] . ' ' . $info['first_name'] . ' ' . $info['last_name']);
-            
             $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
-            $log_desc = "อัปเดตรูปภาพใบเสร็จรายการ: $description จำนวน " . number_format($amount_needed, 2) . " บาท";
+            logActivity($conn, $actor_id, $user_id, 'reupload_receipt', "อัปเดตไฟล์เอกสารใบเสร็จรายการ: {$info['description']}");
 
-            logActivity($conn, $actor_id, $user_id, 'reupload_receipt', $log_desc);
-
-            $total_msg = "แนบรูปภาพใบเสร็จใหม่ของ $full_name \n" . $log_desc;
-
+            $total_msg = "แนบไฟล์เอกสารใบเสร็จใหม่เรียบร้อยแล้ว";
             $_SESSION['tragettab'] = 'expense';
-            $_SESSION['tragetfilters'] = $expense_id; // ให้ไฮไลต์รายการที่เพิ่งอัปเดตรูป
+            $_SESSION['tragetfilters'] = $expense_id;
             $_SESSION['show_btn'] = true;
-            $_SESSION['fiscal_year'] = $fiscal_year;
 
-            // Redirect ตามเงื่อนไขหน้าเว็บ
-            if ($profile_id > 0) {
-                header("Location: index.php?page=profile&status=success&id=" . $profile_id . "&toastMsg=" . urlencode($total_msg));
-            } else {
-                header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
-            }
+            $redirect_url = ($profile_id > 0) ? "index.php?page=profile&status=success&id=$profile_id" : "index.php?page=$submit_page&status=success&tab=$submit_tab";
+            header("Location: $redirect_url&toastMsg=" . urlencode($total_msg));
             exit;
-
+            
         } else {
             throw new Exception("ไม่สามารถอัปโหลดไฟล์ไปยัง Server ได้");
         }
-
     } catch (Exception $e) {
-        $error_msg = $e->getMessage();
-        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=" . urlencode("ข้อผิดพลาด: " . $error_msg));
+        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=" . urlencode("ข้อผิดพลาด: " . $e->getMessage()));
         exit;
     }
 }
@@ -438,7 +428,7 @@ function addExpense($conn)
     $submit_page = $_POST['submit_page'];
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : ''; // แก้ไข Typo จาก sbmit_tab
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
-    
+
     mysqli_begin_transaction($conn);
 
     try {
@@ -464,13 +454,13 @@ function addExpense($conn)
 
         // เช็คว่ามีการแนบไฟล์มา และไม่มี Error ในการอัปโหลด
         if (isset($_FILES['receipt_image']) && $_FILES['receipt_image']['error'] === UPLOAD_ERR_OK) {
-            
+
             // 1. กำหนดโฟลเดอร์ปลายทาง (เปลี่ยนชื่อได้ตามต้องการ)
             $upload_dir = 'uploads/receipts/';
-            
+
             // 2. ถ้ายังไม่มีโฟลเดอร์ ให้สร้างขึ้นมาใหม่พร้อมให้สิทธิ์ (Permissions)
             if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0755, true); 
+                mkdir($upload_dir, 0755, true);
             }
 
             // 3. ดึงข้อมูลไฟล์
@@ -500,7 +490,7 @@ function addExpense($conn)
         // ---------------------------------------------------------
         // C. บันทึกรายจ่ายลงตารางหลัก (budget_expenses)
         // ---------------------------------------------------------
-        
+
         // เพิ่มคอลัมน์ receipt_image_path เข้าไปในคำสั่ง INSERT
         $sql_ins = "INSERT INTO budget_expenses 
                     (user_id, category_id, description, amount, approved_date, budget_source_type, fiscal_year, receipt_image_path) 
@@ -570,7 +560,6 @@ function addExpense($conn)
             header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
         exit;
-
     } catch (Exception $e) {
         mysqli_rollback($conn);
         $error_msg = $e->getMessage();

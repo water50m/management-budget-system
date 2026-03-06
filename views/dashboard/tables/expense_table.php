@@ -87,7 +87,7 @@
                                 <div class="flex items-center justify-center gap-2">
 
                                     <button type="button"
-                                        onclick="openImageModal('<?= $row['id'] ?>', '<?= $row['receipt_image_path'] ?? '' ?>')"
+                                        onclick="openImageModal('<?= $row['id'] ?>', '<?= $row['receipt_image_path'] ?? '' ?>', '<?= $row['receipt_original_path'] ?? '' ?>')"
                                         class="bg-green-50 text-green-600 border border-green-200 px-3 py-1 rounded hover:bg-green-100 text-xs font-bold transition flex items-center gap-1"
                                         title="ดูใบเสร็จ">
                                         <i class="fas fa-receipt"></i> เอกสาร
