@@ -92,11 +92,11 @@ $cats_list = $data['categories_list'];
                             </svg>
                             <div class="flex text-sm text-gray-600 justify-center">
                                 <label for="receipt_image" class="relative cursor-pointer bg-transparent rounded-md font-medium text-green-600 hover:text-green-800 focus-within:outline-none">
-                                    <span>คลิกเพื่ออัปโหลดรูปภาพ</span>
+                                    <span>คลิกเพื่ออัปโหลดเอกสาร</span>
                                     <input id="receipt_image" name="receipt_image" type="file" class="sr-only" accept="image/*" onchange="previewImage(this)">
                                 </label>
                             </div>
-                            <p class="text-xs text-gray-500">รองรับ PNG, JPG, JPEG (ขนาดไม่เกิน 5MB)</p>
+                            <p class="text-xs text-gray-500">รองรับ PNG, JPG, JPEG, PDF, DOC, DOCX, XLS, XLSX (ขนาดไม่เกิน 5MB)</p>
                         </div>
 
                         <div id="imagePreviewContainer" class="hidden absolute inset-0 p-2 bg-white rounded-lg flex flex-col items-center justify-center border-2 border-green-400">
