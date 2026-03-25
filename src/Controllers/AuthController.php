@@ -11,6 +11,12 @@ class AuthController
     {
         global $conn;
 
+        // Require privacy acceptance first
+        if (empty($_SESSION['privacy_accepted'])) {
+            header('Location: index.php?page=privacy');
+            exit();
+        }
+
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!empty($_POST['username']) && !empty($_POST['password'])) {
 
@@ -56,16 +62,28 @@ class AuthController
     {
         global $conn;
 
+        // Require privacy acceptance first
+        if (empty($_SESSION['privacy_accepted'])) {
+            header('Location: index.php?page=privacy');
+            exit();
+        }
+
         if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-
-                $user = 'Jeerawanth';
-                
-                // เรียกใช้ฟังก์ชันแสดงผล (ส่งค่าที่จำเป็นไป)
-                $this->handle_login_success($conn, 'Jeerawanth');
-
-
+            $user = 'Jeerawanth';
+            // เรียกใช้ฟังก์ชันแสดงผล (ส่งค่าที่จำเป็นไป)
+            $this->handle_login_success($conn, 'Jeerawanth');
         }
         require_once __DIR__ . '/../../views/auth/login4.php';
+    }
+
+    public function privacy_notice()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $_SESSION['privacy_accepted'] = true;
+            header('Location: index.php?page=login');
+            exit();
+        }
+        require_once __DIR__ . '/../../views/auth/privacy_notice.php';
     }
 
 

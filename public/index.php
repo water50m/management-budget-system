@@ -17,6 +17,11 @@ switch ($page) {
         $controller->LDAP_login_4();
         break;
 
+    case 'privacy':
+        $controller = new AuthController();
+        $controller->privacy_notice();
+        break;
+
     case 'fast-login':
         $controller = new AuthController();
         $controller->LDAP_login_4_test();
