@@ -77,7 +77,8 @@ class AuthController
     }
 
     public function privacy_notice()
-    {
+    {   
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['privacy_accepted'] = true;
             $_SESSION['privacy_timestamp'] = time();
