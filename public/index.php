@@ -13,7 +13,7 @@ $page = $_GET['page'] ?? 'dashboard';
 switch ($page) {
     // --- ส่วนจัดการ Login/Logout ---
     case 'login':
-        if (empty($_SESSION['privacy_accepted'])) {
+        if (empty($_SESSION['privacy_accepted_2'])) {
             header('Location: index.php?page=privacy');
             exit();
         }
