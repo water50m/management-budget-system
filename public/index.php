@@ -8,11 +8,21 @@ require_once __DIR__ . '/../src/Controllers/DashboardController.php';
 require_once __DIR__ . '/../src/Controllers/ProfileController.php';
 // ... require controller อื่นๆ ...
 
-$page = $_GET['page'] ?? 'dashboard'; 
+$page = $_GET['page'] ?? 'dashboard';
 
 switch ($page) {
     // --- ส่วนจัดการ Login/Logout ---
     case 'login':
+        if (empty($_SESSION['privacy_accepted'])) {
+            header('Location: index.php?page=privacy');
+            exit();
+        }
+        if (isset($_SESSION['privacy_timestamp']) && time() - $_SESSION['privacy_timestamp'] > 1800) {
+            session_unset();
+            session_destroy();
+            header('Location: index.php?page=privacy');
+            exit;
+        }
         $controller = new AuthController();
         $controller->LDAP_login_4();
         break;
@@ -38,11 +48,11 @@ switch ($page) {
         $controller->index();
         break;
 
-    case 'profile':  
+    case 'profile':
         $controller = new ProfileController();
         $controller->index();
         break;
-    
+
     case 'add-profile':
         $controller = new ProfileController();
         $controller->addProfile($conn);
@@ -65,4 +75,3 @@ switch ($page) {
 }
 // ล้าง Buffer และส่ง output ทั้งหมดออกไป
 ob_end_flush();
-?>
