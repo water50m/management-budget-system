@@ -80,7 +80,7 @@ ob_start();
 
     <div class="text-center">
         <h2 style="margin: 0;">สรุปงบประมาณ FPA ของคณะวิทยาศาสตร์การแพทย์</h2>
-        <h2 style="margin: 0;">ประจำปี <?php echo $current_year; ?></h2>
+        <h2 style="margin: 0;">ประจำปีงบประมาณ <?php echo $current_year; ?></h2>
         <div style="margin-top: 5px; font-weight: bold;"><?= $dept_label ?></div>
     </div>
 

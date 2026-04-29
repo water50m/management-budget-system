@@ -37,6 +37,18 @@ function getDashboardStats($conn, $year, $dept_sql)
 
     // เงินคงเหลือยกยอด (รับปีก่อน - จ่ายปีก่อน)
     $carry_over = $prev_received - $prev_spent;
+    $carry_over_warning = false;
+    if ($carry_over < 0) {
+        $carry_over = 0; // ถ้าเงินยกยอดติดลบ ให้ตั้งเป็น 0 (ไม่ยกยอดติดลบไป)
+    }
+
+    // เตือนถ้ายอดจ่ายปีนี้มากกว่ายอดรับปีนี้
+    $spent_vs_received_warning = false;
+    $spent_vs_received_amount = 0;
+    if ($spent > $received) {
+        $spent_vs_received_warning = true;
+        $spent_vs_received_amount = $spent - $received;
+    }
 
 
     // --- ส่วนที่ 3: สรุปผล ---
@@ -57,7 +69,10 @@ function getDashboardStats($conn, $year, $dept_sql)
         'spent' => $spent,
         'balance' => $balance,
         'utilization' => $utilization,
-        'prev_year' => $prev_year      // ส่งเลขปีที่แล้วออกไปโชว์ด้วย
+        'prev_year' => $prev_year,     // ส่งเลขปีที่แล้วออกไปโชว์ด้วย
+        'carry_over_warning' => $carry_over_warning, // เตือนถ้ายอดตัดเกินยอดรับ
+        'spent_vs_received_warning' => $spent_vs_received_warning, // เตือนถ้ายอดจ่ายปีนี้มากกว่ายอดรับปีนี้
+        'spent_vs_received_amount' => $spent_vs_received_amount
     ];
 }
 

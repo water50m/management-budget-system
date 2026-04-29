@@ -9,7 +9,7 @@
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
                 <i class="fa-solid fa-table-list text-blue-600"></i>
 
-                <span>สรุปงบประมาณ FPA ปี</span>
+                <span>สรุปงบประมาณ FPA ปีงบประมาณ</span>
 
                 <select name="fiscal_year"
                     class="sync-fiscal-year  bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg p-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
@@ -77,7 +77,7 @@
             <thead class="bg-gray-50 text-gray-700">
                 <tr>
                     <th colspan="9" class="px-4 py-4 text-center text-lg font-bold text-blue-900 bg-blue-50/50">
-                        สรุปงบประมาณ FPA ของคณะฯ ปี
+                        สรุปงบประมาณ FPA ของคณะฯ ปีงบประมาณ
                         <span id="headerYearText"><?php echo $current_year; ?></span>
                     </th>
                 </tr>

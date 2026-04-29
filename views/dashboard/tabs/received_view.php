@@ -48,7 +48,7 @@ function renderReceivedTableComponent($received, $filters, $departments, $years 
             <div class="flex flex-wrap md:flex-nowrap gap-3 items-end">
 
                 <div class="w-full md:w-[10%] flex-shrink-0 flex flex-col justify-end">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">ปี</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">ปีงบประมาณ</label>
                     <div class="flex items-center bg-white border border-gray-300 rounded-md overflow-hidden shadow-sm <?php echo $focusRing; ?>">
                         <select name="year"
                             hx-get="index.php?page=dashboard&tab=received"

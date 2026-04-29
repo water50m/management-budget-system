@@ -3,6 +3,7 @@
 
 // 1. เรียกใช้งาน Helper (ปรับ Path ให้ถูกต้องตามโครงสร้างจริงของคุณ)
 require_once __DIR__ . '/../../../src/Models/dashboard/tab_summary_logic.php';
+require_once __DIR__ . '/../../../includes/db.php';
 
 $overview = $data['overview_data'] ?? []; // รับก้อนใหญ่มาก่อน
 
@@ -61,7 +62,7 @@ $year_list_ = getBudgetYears();
                     <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         สรุปภาพรวมงบประมาณ
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                            ปีงบประมาณ <span id="headerYearText"><?php echo $current_year; ?></span>
                         </span>
                     </h2>
 
@@ -69,6 +70,14 @@ $year_list_ = getBudgetYears();
                         ข้อมูลสถานะการเงินและการเบิกจ่ายประจำปี
                     </p>
 
+                    <?php if (!empty($stats['spent_vs_received_warning'])): ?>
+                        <p class="text-xs text-red-500 mt-1 font-medium">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            ยอดใช้จ่ายปีนี้มากกว่างบประมาณที่ได้รับ (เกินงบ)
+                            <span class="ml-2">เกินงบ <?php echo number_format($stats['spent_vs_received_amount'], 2); ?> บาท</span>
+                        </p>
+                    <?php endif; ?>
+                    
                     <?php
                     // คำนวณปีงบประมาณปัจจุบัน
                     $current_month = date('m');
@@ -81,12 +90,16 @@ $year_list_ = getBudgetYears();
                             ข้อมูลนี้เป็นยอดตั้งแต่เริ่มต้นปีงบประมาณ (ปีนี้) ถึงปัจจุบันเท่านั้น (อาจยังไม่ใช่ผลสรุปประจำปี)
                         </p>
 
+                    
+
                     <?php elseif ($current_year > $real_fiscal_year): ?>
                         <p class="text-xs text-red-500 mt-1 font-medium">
                             <i class="fa-solid fa-info-circle mr-1"></i>
                             ข้อมูลนี้เป็นแผนงบประมาณล่วงหน้าสำหรับปี <?php echo $current_year; ?> (ข้อมูลอาจมีการเปลี่ยนแปลง)
                         </p>
                     <?php endif; ?>
+
+
                 </div>
             </div>
 
@@ -173,8 +186,17 @@ $year_list_ = getBudgetYears();
 
                 <div class="flex justify-between text-green-600">
                     <span>• ยกยอดจากปี <?php echo $stats['prev_year']; ?>:</span>
-                    <span class="font-bold">+<?php echo number_format($stats['carry_over'], 2); ?></span>
+                    <span class="font-bold">
+                        <?php echo ($stats['carry_over'] >= 0 ? '+' : ''); ?>
+                        <?php echo number_format($stats['carry_over'], 2); ?>
+                    </span>
                 </div>
+                <?php if (!empty($stats['carry_over_warning'])): ?>
+                    <div class="mt-2 text-xs text-red-500 bg-red-50 rounded px-2 py-1 border border-red-200">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                        ยอดจ่ายปีที่แล้วมากกว่ายอดรับ ไม่มีเงินคงเหลือยกยอด (ยอดตัดเกินยอดรับ)
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -212,7 +234,7 @@ $year_list_ = getBudgetYears();
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
                 <i class="fas fa-building text-blue-500"></i> การเบิกจ่ายแยกตามภาควิชา
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                    ปีงบประมาณ <span id="headerYearText"><?php echo $current_year; ?></span>
                 </span>
             </h4>
             <div class="relative h-64">
@@ -224,7 +246,7 @@ $year_list_ = getBudgetYears();
             <h4 class="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
                 <i class="fas fa-tags text-pink-500"></i> สัดส่วนตามหมวดหมู่
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    ปี <span id="headerYearText"><?php echo $current_year; ?></span>
+                    ปีงบประมาณ <span id="headerYearText"><?php echo $current_year; ?></span>
                 </span>
             </h4>
             <div class="relative h-64 flex justify-center">
