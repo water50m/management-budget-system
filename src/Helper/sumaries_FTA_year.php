@@ -9,7 +9,7 @@
             <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
                 <i class="fa-solid fa-table-list text-blue-600"></i>
 
-                <span>สรุปงบประมาณ FPA ปีงบประมาณ ปี</span>
+                <span>สรุปงบประมาณ FPA ปีงบประมาณ</span>
 
                 <select name="fiscal_year"
                     class="sync-fiscal-year  bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg p-1.5 cursor-pointer hover:bg-blue-100 transition-colors"

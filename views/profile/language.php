@@ -20,7 +20,7 @@ $t = [
     // Form Filters
     'search_label' => $is_thai ? 'ค้นหา / รายละเอียด' : 'Search / Details',
     'search_placeholder' => $is_thai ? 'รายละเอียด / รายการ' : 'Description / Item',
-    'fiscal_year' => $is_thai ? 'ปีงบประมาณ' : 'Fiscal Year',
+    'fiscal_year' => $is_thai ? 'ปี' : 'Fiscal Year',
     'all_years' => $is_thai ? 'ทุกปีงบฯ' : 'All Years',
     'year_prefix' => $is_thai ? 'งบปี' : 'FY',
     'category' => $is_thai ? 'หมวดหมู่' : 'Category',

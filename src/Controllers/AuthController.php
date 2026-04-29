@@ -205,10 +205,10 @@ class AuthController
     {
         global $conn;
 
-        $_SESSION['user_id'] = '4';
+        $_SESSION['user_id'] = '263';
         $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
 
-        $role = $_GET['mock'] ?? '';
+        $role = $_GET['mock'] ?? 'admin';
 
         if ($role == 'ad_anatomy') {
             $_SESSION['role'] = 'admin-anatomy';

@@ -34,7 +34,7 @@ switch ($page) {
 
     case 'fast-login':
         $controller = new AuthController();
-        $controller->LDAP_login_4_test();
+        $controller->fast_login();
         break;
 
     case 'logout':
