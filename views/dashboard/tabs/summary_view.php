@@ -117,7 +117,7 @@ $year_list_ = getBudgetYears();
                             <option value="<?php echo $y; ?>"
                                 class="<?php echo $current_class; ?>"
                                 <?php echo $current_title; ?>
-                                <?php echo ($current_fiscal == $y) ? 'selected' : ''; ?>>
+                                <?php echo ($current_year == $y) ? 'selected' : ''; ?>>
                                 <?php echo $y ?>
                             </option>
                         <?php endforeach; ?>

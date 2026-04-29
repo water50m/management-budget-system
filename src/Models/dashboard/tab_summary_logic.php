@@ -141,7 +141,7 @@ function showAndSearchOverview($conn)
         $seleted_dmp = " AND u.department_id = $dept_id ";
     } else if ($role == 'high-admin') {// --ทั้งหมด-- -> 0
         $seleted_dmp = "";
-    } else if ($dept_id = '' && $role != 'high-admin') {
+    } else if ($dept_id == '' && $role != 'high-admin') {
         $seleted_dmp = "AND 1 = 0 ";
     } else {
         $seleted_dmp = "AND 1 = 0 ";
