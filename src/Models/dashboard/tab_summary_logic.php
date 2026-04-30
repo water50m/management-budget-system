@@ -187,11 +187,13 @@ function getFpaSummary($conn, $year, $dept_id = 0)
     
     $sql_filter = "WHERE 1=1";
     $sql_filter = applyPermissionFilter($sql_filter);
+    // filter deleted records
+    $sql_filter .= " AND (b.deleted_at IS NULL)";
     if ($dept_id > 0) {
         $sql_filter .= " AND p.department_id = $dept_id";
     } else if ($dept_id = '') {
         $sql_filter .= " AND 1=0 ";
-    }
+    } 
 
 
 
