@@ -1,12 +1,11 @@
 <?php
-// เริ่มต้นการใช้งาน Session (ต้องมีคำสั่งนี้ก่อนเรียกใช้ $_SESSION เสมอ)
+// 1. เริ่มต้นการใช้งาน Session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 // ตรวจสอบว่ามี Session 'role' หรือไม่ และค่าของ role เป็น 'high-admin' หรือเปล่า
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'high-admin') {
-    // ถ้าไม่มีสิทธิ์ ให้ Redirect กลับไปที่หน้า login.php
     header("Location: index.php?page=login");
     exit(); 
 }
@@ -19,12 +18,10 @@ $dbNameDisplay = isset($dbname) ? $dbname : (isset($dbName) ? $dbName : 'Your Da
 // ---------------------------------------------------------
 $tableName = 'budget_expenses';
 
-// คอลัมน์ที่ 1 (พรีวิว / รูปภาพ)
 $col1 = 'receipt_image_path';
 $col1Type = 'VARCHAR(255) NULL DEFAULT NULL';
 $col1Comment = 'เก็บ path รูปเอกสาร';
 
-// คอลัมน์ที่ 2 (ไฟล์ต้นฉบับ)
 $col2 = 'receipt_original_path';
 $col2Type = 'VARCHAR(255) NULL DEFAULT NULL';
 $col2Comment = 'เก็บ path ไฟล์ดิบ (Word/Excel)';
@@ -54,13 +51,13 @@ function addImageColumn($conn, $tableName, $columnName, $dataType, $columnCommen
 }
 
 // ---------------------------------------------------------
-// 4. จัดการ Logic เมื่อมีการกดปุ่ม (แยก 2 ปุ่ม)
+// 4. จัดการ Logic เมื่อมีการกดปุ่ม POST
 // ---------------------------------------------------------
 $alertMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // กรณีกดปุ่มเพิ่มคอลัมน์ที่ 1
+    // --- 4.1 เพิ่มคอลัมน์ที่ 1 ---
     if (isset($_POST['action_add_col1'])) {
         if (!checkColumnExists($conn, $tableName, $col1)) {
             $res = addImageColumn($conn, $tableName, $col1, $col1Type, $col1Comment);
@@ -72,18 +69,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // กรณีกดปุ่มเพิ่มคอลัมน์ที่ 2
+    // --- 4.2 เพิ่มคอลัมน์ที่ 2 ---
     if (isset($_POST['action_add_col2'])) {
         if (!checkColumnExists($conn, $tableName, $col2)) {
-            // เช็คว่ามี col1 ไหม ถ้ามีให้วางต่อจาก col1 แต่ถ้าไม่มีก็ไม่ต้องใส่ AFTER
             $after = checkColumnExists($conn, $tableName, $col1) ? $col1 : '';
-            
             $res = addImageColumn($conn, $tableName, $col2, $col2Type, $col2Comment, $after);
             if ($res === true) {
                 $alertMessage = "<div class='alert alert-success'>✅ <strong>สำเร็จ:</strong> เพิ่มคอลัมน์ <code>{$col2}</code> เรียบร้อยแล้ว</div>";
             } else {
                 $alertMessage = "<div class='alert alert-danger'>❌ <strong>ข้อผิดพลาด:</strong> ไม่สามารถเพิ่ม {$col2} ได้: {$res}</div>";
             }
+        }
+    }
+
+    // --- 4.3 ลบข้อมูลที่ถูก soft delete (เฉพาะ high-admin) ---
+    if (isset($_POST['action_purge_soft_deleted'])) {
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
+            $purgeTables = ['budget_expenses', 'budget_received'];
+            $purgeResults = [];
+            foreach ($purgeTables as $purgeTable) {
+                $safeTable = mysqli_real_escape_string($conn, $purgeTable);
+                $sql = "DELETE FROM `$safeTable` WHERE deleted_at IS NOT NULL";
+                $res = mysqli_query($conn, $sql);
+                if ($res !== false) {
+                    $count = mysqli_affected_rows($conn);
+                    $purgeResults[] = "<li>ลบข้อมูล <b>$purgeTable</b> ถาวร: <b>$count</b> แถว</li>";
+                } else {
+                    $purgeResults[] = "<li style='color:red;'>เกิดข้อผิดพลาดกับ <b>$purgeTable</b>: ".mysqli_error($conn)."</li>";
+                }
+            }
+            $alertMessage = "<div class='alert alert-success'><b>✅ ผลการลบข้อมูลถาวร:</b><ul>".implode('', $purgeResults)."</ul></div>";
+        } else {
+            $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
+        }
+    }
+
+    // --- 4.4 ลบ activity_logs ที่เก่ากว่า 3 เดือน (เฉพาะ high-admin) ---
+    if (isset($_POST['action_purge_old_logs'])) {
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
+            $sql = "DELETE FROM activity_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 3 MONTH)";
+            $res = mysqli_query($conn, $sql);
+            if ($res) {
+                $count = mysqli_affected_rows($conn);
+                $alertMessage = "<div class='alert alert-success'>✅ ลบ Activity Logs ที่เก่ากว่า 3 เดือนสำเร็จ จำนวน <b>$count</b> แถว</div>";
+            } else {
+                $alertMessage = "<div class='alert alert-danger'>❌ ลบ log ไม่สำเร็จ: " . mysqli_error($conn) . "</div>";
+            }
+        } else {
+            $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
         }
     }
 }
@@ -113,18 +146,17 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         .container { 
             background: #ffffff; 
             width: 100%; 
-            max-width: 800px; 
+            max-width: 850px; 
             padding: 30px; 
             border-radius: 6px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
             border: 1px solid #e3e6f0;
         }
-        h2 { 
+        h2, h3 { 
             color: #2c3e50; 
             border-bottom: 2px solid #f0f2f5; 
             padding-bottom: 15px; 
             margin-top: 0; 
-            font-size: 20px;
         }
         .description {
             color: #555;
@@ -145,7 +177,6 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         }
         .info-table th { 
             background-color: #f8f9fa; 
-            width: 20%; 
             color: #495057; 
             font-weight: 600;
         }
@@ -177,7 +208,10 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         }
         .btn-primary { background-color: #0d6efd; color: white; }
         .btn-primary:hover { background-color: #0b5ed7; }
-        
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-danger:hover { background-color: #bb2d3b; }
+        .btn:disabled { background-color: #cccccc; color: #666666; cursor: not-allowed; }
+
         .alert { 
             padding: 15px; 
             margin-bottom: 20px; 
@@ -200,7 +234,7 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         <table class="info-table">
             <tbody>
                 <tr>
-                    <th>ตารางเป้าหมาย</th>
+                    <th style="width: 20%;">ตารางเป้าหมาย</th>
                     <td colspan="2"><code><?= htmlspecialchars($tableName) ?></code> (Database: <code><?= htmlspecialchars($dbNameDisplay) ?></code>)</td>
                 </tr>
                 
@@ -249,6 +283,73 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                 🎉 โครงสร้างฐานข้อมูลอัปเดตครบถ้วนพร้อมใช้งานแล้ว!
             </div>
         <?php endif; ?>
+
+        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin'): ?>
+        <?php
+            // 1. นับข้อมูลที่ถูกลบ (soft delete)
+            $cnt_expenses = 0; $cnt_received = 0;
+            $res1 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_expenses WHERE deleted_at IS NOT NULL");
+            if ($res1) { $cnt_expenses = mysqli_fetch_assoc($res1)['cnt']; }
+            $res2 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_received WHERE deleted_at IS NOT NULL");
+            if ($res2) { $cnt_received = mysqli_fetch_assoc($res2)['cnt']; }
+
+            // 2. นับข้อมูล Logs ที่เก่ากว่า 3 เดือน
+            $cnt_logs = 0;
+            $res_logs = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM activity_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 3 MONTH)");
+            if ($res_logs) { $cnt_logs = mysqli_fetch_assoc($res_logs)['cnt']; }
+        ?>
+        
+        <div style="margin-top: 50px;">
+            <h3 style="font-size:18px;">🧹 จัดการข้อมูลขยะ (System Cleanup)</h3>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Action (รายการ)</th>
+                        <th>Description (รายละเอียด)</th>
+                        <th style="width: 20%; text-align: center;">Do Action (คำสั่ง)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
+                        <td>
+                            พบข้อมูลที่ถูกลบชั่วคราวอยู่ในระบบ:<br>
+                            - <code>budget_expenses</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_expenses ?></span> แถว<br>
+                            - <code>budget_received</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_received ?></span> แถว
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันการลบข้อมูล Soft Delete ทั้งหมด?\n\n**ข้อมูลนี้จะหายถาวร!**');" style="margin:0;">
+                                <input type="hidden" name="action_purge_soft_deleted" value="1">
+                                <button type="submit" class="btn btn-danger" <?= ($cnt_expenses + $cnt_received == 0) ? 'disabled' : '' ?>>
+                                    🗑️ ลบถาวร
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><b>ลบประวัตการใช้งานระบบ</b></td>
+                        <td>
+                            พบประวัติการใช้งานที่สร้างมา<b>มากกว่า 3 เดือน</b>:<br>
+                            - <code>activity_logs</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_logs ?></span> แถว
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันการลบ Activity Logs ที่เก่ากว่า 3 เดือนทิ้งทั้งหมดหรือไม่?');" style="margin:0;">
+                                <input type="hidden" name="action_purge_old_logs" value="1">
+                                <button type="submit" class="btn btn-danger" <?= ($cnt_logs == 0) ? 'disabled' : '' ?>>
+                                    🗑️ ลบ Logs
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+            <div style="color:#842029; font-size:13px; margin-top:8px;">* เฉพาะสิทธิ์ high-admin เท่านั้น | ข้อมูลจะถูกลบถาวร ไม่สามารถกู้คืนได้</div>
+        </div>
+        <?php endif; ?>
+
     </div>
 
 </body>
