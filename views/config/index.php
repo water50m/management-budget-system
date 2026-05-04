@@ -346,7 +346,7 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
 
                 </tbody>
             </table>
-            <div style="color:#842029; font-size:13px; margin-top:8px;">* เฉพาะสิทธิ์ high-admin เท่านั้น | ข้อมูลจะถูกลบถาวร ไม่สามารถกู้คืนได้</div>
+            <div style="color:#842029; font-size:13px; margin-top:8px;">* เฉพาะสิทธิ์ admin เท่านั้น | ข้อมูลจะถูกลบถาวร ไม่สามารถกู้คืนได้</div>
         </div>
         <?php endif; ?>
 
