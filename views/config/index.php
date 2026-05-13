@@ -311,6 +311,7 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                 </thead>
                 <tbody>
                     
+
                     <tr>
                         <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
                         <td>
@@ -328,6 +329,50 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                         </td>
                     </tr>
 
+                    <?php
+                    // --- OneClick Fix Expire Date ---
+                    require_once __DIR__ . '/../../src/Models/dashboard/tab_received_logic.php';
+                    $fix_count = 0;
+                    $fix_rows = [];
+                    $res = mysqli_query($conn, "SELECT id, approved_date, expire_date FROM budget_received WHERE deleted_at IS NULL");
+                    if ($res) {
+                        while ($row = mysqli_fetch_assoc($res)) {
+                            $correct_expire = calcFiscalYearEnd($row['approved_date']);
+                            if ($row['expire_date'] !== $correct_expire) {
+                                $fix_count++;
+                                $fix_rows[] = $row['id'];
+                            }
+                        }
+                    }
+                    $fix_enabled = $fix_count > 0;
+                    ?>
+                    <tr>
+                        <td><b>แปลงวันหมดอายุ ทั้งหมดเป็นวันสุดท้ายปีงบประมาณถัดไป(2ปี)</b></td>
+                        <td> 
+                            พบข้อมูลที่ใช้วันที่หมดอายุไม่ถูกต้อง (ไม่ตรงกับวันสุดท้ายของปีงบประมาณถัดไปที่ควรจะเป็น)<br>
+                               <code> จำนวน</code> <span style="color:#d63384; font-weight:bold;"><?= $fix_count ?></span> แถว  
+                            <?php if ($fix_count > 0): ?>
+                                <br><span style="font-size:12px; color:#888;">ID: <?= implode(', ', array_slice($fix_rows, 0, 5)) ?><?= $fix_count > 5 ? ' ...' : '' ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข expire_date ทั้งหมดที่ไม่ถูกต้อง?');" style="margin:0;">
+                                <input type="hidden" name="action_fix_expire_date" value="1">
+                                <button type="submit" class="btn btn-primary" <?= $fix_enabled ? '' : 'disabled' ?>>
+                                    แปลงทั้งหมด
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+<?php
+// --- ดำเนินการ OneClick Fix Expire Date ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_date'])) {
+    require_once __DIR__ . '/../../src/Models/dashboard/tab_received_logic.php';
+    $result = oneClickFixExpireDate($conn);
+    echo "<div class='alert alert-success' style='margin-top:20px;'>" . htmlspecialchars($result['msg']) . "</div>";
+}
+?>
+
                     <tr>
                         <td><b>ลบประวัตการใช้งานระบบ</b></td>
                         <td>
@@ -342,6 +387,10 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                                 </button>
                             </form>
                         </td>
+                    </tr>
+                        <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
+                    <tr>
+
                     </tr>
 
                 </tbody>

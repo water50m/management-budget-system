@@ -227,10 +227,19 @@ function showAndSearchReceived($conn)
     return $data;
 }
 
+
+function calcFiscalYearEnd($approved_date) {
+    $ts = strtotime($approved_date);
+    $y = date('Y', $ts);
+    $m = date('n', $ts);
+    // ปีงบประมาณถัดไป
+    $fiscal_year = ($m >= 10) ? $y + 2 : $y + 1;
+    return $fiscal_year . '-09-30';
+}
+
 function addReceiveBudget($conn)
 {
     // 1. รับค่าจากฟอร์มและป้องกัน SQL Injection
-    // สังเกต: รับค่า user_id ครั้งเดียวและใช้ตัวแปรชื่อ $user_id ตลอดการทำงาน
     $user_id = mysqli_real_escape_string($conn, $_POST['user_id']);
     $amount = floatval($_POST['amount']);
     $approved_date = mysqli_real_escape_string($conn, $_POST['approved_date']);
@@ -240,24 +249,13 @@ function addReceiveBudget($conn)
     $submit_tab = $_POST['submit_tab'];
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
-
-
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
-    // 1. แปลงวันที่เป็น Timestamp
     $timestamp = strtotime($approved_date);
-
-    // 2. หามร พ.ศ. ปกติก่อน (User เดิม)
     $year_th = date('Y', $timestamp) + 543;
-
-    // 3. หาเดือน (1-12)
     $month = date('n', $timestamp);
-
-    // 4. คำนวณปีงบประมาณ
     if ($month >= 10) {
-        // ถ้าเป็นเดือน 10, 11, 12 ให้ถือเป็นปีงบประมาณหน้า
         $fiscal_year = $year_th + 1;
     } else {
-        // ถ้าเป็นเดือน 1-9 ให้ใช้ปีปัจจุบัน
         $fiscal_year = $year_th;
     }
 
@@ -265,9 +263,8 @@ function addReceiveBudget($conn)
     mysqli_begin_transaction($conn);
 
     try {
-
         // A. บันทึกข้อมูลงบประมาณ
-        $expire_date = date('Y-m-d', strtotime($approved_date . " +2 years"));
+        $expire_date = calcFiscalYearEnd($approved_date);
 
         // 2. เพิ่ม expire_date เข้าไปใน SQL
         $sql_budget = "INSERT INTO budget_received 
@@ -286,15 +283,12 @@ function addReceiveBudget($conn)
         $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
         $log_desc = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท \n(หมายเหตุ: $word_remark )";
 
-        // เรียกใช้ฟังก์ชัน logActivity ($user_id คือ target_id)
         logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc,);
 
-        // ยืนยันข้อมูลทั้งหมด (Commit)
         mysqli_commit($conn);
         $target_name_phrase = "ให้กับ $full_name \n ";
         $total_msg = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท  $target_name_phrase \n(หมายเหตุ: $word_remark )";
 
-        // กลับไปหน้า Dashboard พร้อมสถานะสำเร็จ
         $_SESSION['tragettab'] = 'received';
         $_SESSION['tragetfilters'] = $new_budget_id;
         $_SESSION['show_btn'] = true;
@@ -306,10 +300,9 @@ function addReceiveBudget($conn)
         } else {
             header("Location: index.php?page=$submit_page&status=success&tab=" . $submit_tab . "&toastMsg=" . urlencode($total_msg));
         }
-        exit; // ต้องมี exit เพื่อหยุดการทำงานทันที
+        exit;
 
     } catch (Exception $e) {
-        // หากเกิดข้อผิดพลาด ให้ยกเลิกการบันทึกทั้งหมด (Rollback)
         mysqli_rollback($conn);
         echo "เกิดข้อผิดพลาด: " . $e->getMessage();
         die;
@@ -476,15 +469,13 @@ function handleEditReceived($conn)
     // 💾 STEP 4: อัปเดตข้อมูลลง Database (รวม fiscal_year)
     // ---------------------------------------------------------
 
-    // 1. ✅ คำนวณวันหมดอายุใหม่ (Approved Date + 2 ปี)
+
+    // 1. ✅ คำนวณวันหมดอายุใหม่ (Approved Date => วันสุดท้ายปีงบประมาณถัดไป)
     if (empty($approved_date)) {
         $approved_date = $old_date;
     }
+    $expire_date = calcFiscalYearEnd($approved_date);
 
-    // 2. คำนวณวันหมดอายุ (+2 ปี) จากวันที่ที่ถูกต้องแล้ว
-    $expire_date = date('Y-m-d', strtotime($approved_date . " +2 years"));
-
-    // 2. ✅ เพิ่ม expire_date = ? ใน SQL
     $sql = "UPDATE budget_received 
             SET amount = ?, approved_date = ?, expire_date = ?, remark = ?, fiscal_year = ? 
             WHERE id = ?";
@@ -534,3 +525,5 @@ function handleEditReceived($conn)
     $stmt->close();
     exit;
 }
+
+

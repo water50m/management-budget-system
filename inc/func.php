@@ -28,6 +28,27 @@ function loadEnv($path) {
 }
 
 
+function oneClickFixExpireDate($conn) {
+    $res = mysqli_query($conn, "SELECT id, approved_date, expire_date FROM budget_received WHERE deleted_at IS NULL");
+    $rows_to_update = [];
+    while ($row = mysqli_fetch_assoc($res)) {
+        $correct_expire = calcFiscalYearEnd($row['approved_date']);
+        if ($row['expire_date'] !== $correct_expire) {
+            $rows_to_update[] = ['id' => $row['id'], 'expire_date' => $correct_expire];
+        }
+    }
+    if (count($rows_to_update) === 0) {
+        return ['status' => 'ok', 'msg' => 'ไม่มีข้อมูลที่ต้องแก้ไข'];
+    }
+    foreach ($rows_to_update as $row) {
+        $id = $row['id'];
+        $expire = $row['expire_date'];
+        mysqli_query($conn, "UPDATE budget_received SET expire_date = '$expire' WHERE id = $id");
+    }
+    return ['status' => 'updated', 'msg' => 'แก้ไขข้อมูล expire_date แล้ว ' . count($rows_to_update) . ' รายการ'];
+}
+
+
 function submitDeleteUser($conn) {
     // 1. รับค่าและกำหนดค่าเริ่มต้น
     $target_user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
