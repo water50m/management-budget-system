@@ -32,7 +32,7 @@ function oneClickFixExpireDate($conn) {
     $res = mysqli_query($conn, "SELECT id, approved_date, expire_date FROM budget_received WHERE deleted_at IS NULL");
     $rows_to_update = [];
     while ($row = mysqli_fetch_assoc($res)) {
-        $correct_expire = calcFiscalYearEnd($row['approved_date']);
+        $correct_expire = calFiscalExpireDate($row['approved_date']);
         if ($row['expire_date'] !== $correct_expire) {
             $rows_to_update[] = ['id' => $row['id'], 'expire_date' => $correct_expire];
         }

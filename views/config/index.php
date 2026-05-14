@@ -337,7 +337,7 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                     $res = mysqli_query($conn, "SELECT id, approved_date, expire_date FROM budget_received WHERE deleted_at IS NULL");
                     if ($res) {
                         while ($row = mysqli_fetch_assoc($res)) {
-                            $correct_expire = calcFiscalYearEnd($row['approved_date']);
+                            $correct_expire = calFiscalExpireDate($row['approved_date']);
                             if ($row['expire_date'] !== $correct_expire) {
                                 $fix_count++;
                                 $fix_rows[] = $row['id'];

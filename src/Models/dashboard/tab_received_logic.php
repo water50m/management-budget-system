@@ -237,6 +237,15 @@ function calcFiscalYearEnd($approved_date) {
     return $fiscal_year . '-09-30';
 }
 
+function calFiscalExpireDate($approved_date) {
+    $ts = strtotime($approved_date);
+    $y = date('Y', $ts);
+    $m = date('n', $ts);
+    // ปีงบประมาณถัดไป
+    $fiscal_year = ($m >= 10) ? $y + 3 : $y + 2;
+    return $fiscal_year . '-09-30';
+}
+
 function addReceiveBudget($conn)
 {
     // 1. รับค่าจากฟอร์มและป้องกัน SQL Injection
