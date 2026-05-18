@@ -201,48 +201,48 @@ class AuthController
 <?php
     }
 
-    // public function fast_login()
-    // {
-    //     global $conn;
+    public function fast_login()
+    {
+        global $conn;
 
-    //     $_SESSION['user_id'] = '263';
-    //     $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
+        $_SESSION['user_id'] = '263';
+        $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
 
-    //     $role = $_GET['mock'] ?? 'admin';
+        $role = $_GET['mock'] ?? 'admin';
 
-    //     if ($role == 'ad_anatomy') {
-    //         $_SESSION['role'] = 'admin-anatomy';
-    //         $_SESSION['seer'] = 1;
-    //     } else if ($role == 'ad_biochemistr') {
-    //         $_SESSION['role'] = 'admin-biochemistry';
-    //         $_SESSION['seer'] = 2;
-    //     } else if ($role == 'ad_mic_par') {
-    //         $_SESSION['role'] = 'admin-mic-par';
-    //         $_SESSION['seer'] = 3;
-    //     } else if ($role == 'ad_physiology') {
-    //         $_SESSION['role'] = 'admin-physiology ';
-    //         $_SESSION['seer'] = 4;
-    //     } else if ($role == 'ad_office') {
-    //         $_SESSION['role'] = 'admin-office';
-    //         $_SESSION['seer'] = 6;
-    //     } else if ($role == 'user') {
-    //         $_SESSION['user_id'] = '4';
-    //         $_SESSION['role'] = 'user';
-    //         $_SESSION['seer'] = 7;
-    //     } else if ($role == 'admin') {
+        if ($role == 'ad_anatomy') {
+            $_SESSION['role'] = 'admin-anatomy';
+            $_SESSION['seer'] = 1;
+        } else if ($role == 'ad_biochemistr') {
+            $_SESSION['role'] = 'admin-biochemistry';
+            $_SESSION['seer'] = 2;
+        } else if ($role == 'ad_mic_par') {
+            $_SESSION['role'] = 'admin-mic-par';
+            $_SESSION['seer'] = 3;
+        } else if ($role == 'ad_physiology') {
+            $_SESSION['role'] = 'admin-physiology ';
+            $_SESSION['seer'] = 4;
+        } else if ($role == 'ad_office') {
+            $_SESSION['role'] = 'admin-office';
+            $_SESSION['seer'] = 6;
+        } else if ($role == 'user') {
+            $_SESSION['user_id'] = '4';
+            $_SESSION['role'] = 'user';
+            $_SESSION['seer'] = 7;
+        } else if ($role == 'admin') {
 
-    //         $_SESSION['role'] = 'high-admin';
-    //         $_SESSION['seer'] = 0;
-    //     }
-    //     // header("Location: index.php?page=dashboard&tab=users");
-    //     echo $_SESSION['user_id'];
-    //     echo $_SESSION['fullname'];
-    //     echo $_SESSION['role'];
-    //     echo $_SESSION['seer'];
-    //     $this->rememberAuth($conn, $_SESSION['user_id']);
-    //     header("Location: index.php?page=dashboard&tab=summary");
-    //     exit;
-    // }
+            $_SESSION['role'] = 'high-admin';
+            $_SESSION['seer'] = 0;
+        }
+        // header("Location: index.php?page=dashboard&tab=users");
+        echo $_SESSION['user_id'];
+        echo $_SESSION['fullname'];
+        echo $_SESSION['role'];
+        echo $_SESSION['seer'];
+        $this->rememberAuth($conn, $_SESSION['user_id']);
+        header("Location: index.php?page=dashboard&tab=summary");
+        exit;
+    }
     
     public function new_login()
     {

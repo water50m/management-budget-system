@@ -54,13 +54,17 @@ $border = " border border-{$theme}-200"
 
                                 <?php
                                 // 1. แปลงวันที่จาก Database เป็น Timestamp
-                                $record_time = strtotime($row['approved_date']);
-
-                                // 2. หา Timestamp ของเวลา "2 ปีที่แล้ว" นับจากปัจจุบัน
-                                $two_years_ago = strtotime('-2 years');
-
-                                // 3. เปรียบเทียบ: ถ้าเวลาที่บันทึก น้อยกว่า (เก่ากว่า) 2 ปีที่แล้ว
-                                if ($record_time < $two_years_ago) {
+                                $expire_date = $row['expire_date'];
+                                $current_date = date('Y-m-d');
+                                $expire_thai_date = dateToThai($expire_date);
+                                // 2. เปรียบเทียบ: ถ้าปัจจุบันเลย expire_date ไปแล้ว
+                                if ($current_date < $expire_date) {
+                                        echo '<div class="flex items-center text-gray-500 text-xs mt-1 font-semibold cursor-help" title="รายการที่ยังไม่หมดอายุ">
+                                        <svg class="mr-1 h-3 w-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                หมดเขต: ' . $expire_thai_date . '</div>';
+                                } else if ($current_date > $expire_date) {
                                     // ปิด quote ของ class ก่อน แล้วค่อยเปิด title ใหม่
                                     echo '<div class="text-red-500 text-xs mt-1 font-semibold cursor-help" title="รายการนี้จะไม่ถูกนำไปคำนวนในยอดคงเหลือ">
                                         * รายการนี้มีอายุเกิน 2 ปี

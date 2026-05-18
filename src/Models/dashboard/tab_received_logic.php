@@ -163,6 +163,7 @@ function showAndSearchReceived($conn)
                a.remark,                        
                a.approved_date,                 
                a.record_date,
+               a.expire_date,
                
                -- 1. ยอดที่ใช้ไปทั้งหมด (ใช้ COALESCE เพื่อให้เป็น 0 ถ้าไม่มีการใช้)
                COALESCE((SELECT SUM(amount_used) 
@@ -233,7 +234,7 @@ function calcFiscalYearEnd($approved_date) {
     $y = date('Y', $ts);
     $m = date('n', $ts);
     // ปีงบประมาณถัดไป
-    $fiscal_year = ($m >= 10) ? $y + 2 : $y + 1;
+    $fiscal_year = ($m >= 10) ? $y + 3 : $y + 2;
     return $fiscal_year . '-09-30';
 }
 
