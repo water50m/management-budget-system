@@ -61,12 +61,17 @@ function getRemainingBalance($conn, $user_id)
 {
     $today = date('Y-m-d');
 
-    // 1. หา "เงินเข้า"
-    $sql_income = "SELECT COALESCE(SUM(amount), 0) as total_approved 
-                    FROM budget_received 
-                    WHERE user_id = $user_id 
-                    AND approved_date >= DATE_SUB('$today', INTERVAL 2 YEAR)
+    // 1. หา "เงินเข้า" (ใช้ logic เดียวกับ calFiscalExpireDate)
+    $sql_income = "SELECT COALESCE(SUM(amount), 0) as total_approved
+                    FROM budget_received
+                    WHERE user_id = $user_id
                     AND deleted_at IS NULL
+                    AND '$today' <=
+                        CASE
+                            WHEN MONTH(approved_date) >= 10
+                            THEN CONCAT(YEAR(approved_date) + 3, '-09-30')
+                            ELSE CONCAT(YEAR(approved_date) + 2, '-09-30')
+                        END
                     ";
 
     $res_in = mysqli_query($conn, $sql_income);
@@ -74,8 +79,8 @@ function getRemainingBalance($conn, $user_id)
     $total_approved = floatval($row_in['total_approved']);
 
     // 2. หา "เงินออก"
-    $sql_expense = "SELECT COALESCE(SUM(amount), 0) as total_spent 
-                        FROM budget_expenses 
+    $sql_expense = "SELECT COALESCE(SUM(amount), 0) as total_spent
+                        FROM budget_expenses
                         WHERE user_id = $user_id
                         AND deleted_at IS NULL";
 
