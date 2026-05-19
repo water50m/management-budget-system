@@ -129,7 +129,7 @@ $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
                             <p class="font-bold text-gray-800"><?php echo number_format($user_info['total_received_all'], 2); ?></p>
                         </div>
                     </div>
-                    <a hx-get="index.php?page=profile&page=profile&id=<?= $user_info['upid'] ?>&search=&year=<?= $fiscal_year_th ?>&cat=0&type=income&min_amount=&max_amount=&prevYear=<?= $fiscal_year_th - 1 ?>"
+                    <a hx-get="index.php?page=profile&id=<?= $user_info['upid'] ?>&search=&year=0&cat=0&type=income&min_amount=&max_amount="
                         hx-target="#txn-table-container"
                         hx-swap="outerHTML"
                         hx-select="#txn-table-container"

@@ -7,7 +7,7 @@
                     <th class="px-6 py-4 w-32"><?php echo $t['th_date']; ?></th>
                     <th class="px-6 py-4 w-64"><?php echo $t['th_desc']; ?></th>
                     <th class="px-6 py-4 w-48 text-center"><?php echo $t['th_cat']; ?></th>
-                    <th class="px-6 py-4 w-40 text-right"><?php echo $t['th_amount']; ?></th>
+                    <th class="pl-6 pr-0 py-4 w-40 text-right"><?php echo $t['th_amount']; ?></th>
                     <th class="px-6 py-4 w-28 text-center"><?php echo $t['th_type']; ?></th>
                     <?php if ($_SESSION['role'] == 'high-admin' || $_SESSION['seer'] == $user_info['department_id']): ?>
                         <th class="px-6 py-4 w-28 text-center"> จัดการ </th>
@@ -29,24 +29,36 @@
                             $fiscal_year_ad = $current_year;
                         }
 
-                        // แปลงเป็น พ.ศ. (+543)
-                        $fiscal_year_th = $fiscal_year_ad + 543;
+                        // แปลงเป็น พ.ศ. (+543) และใช้ปีงบใน filter เป็นปีอ้างอิงของตาราง
+                        $actual_fiscal_year_th = $fiscal_year_ad + 543;
+                        $fiscal_year_th = $filters['selected_fiscal_year'] ?? $actual_fiscal_year_th;
 
-                        // --- คำนวณสีพื้นหลังของแถว ---
-                        $row_bg = 'bg-red-50'; // ค่าเริ่มต้น: รายจ่าย (สีแดง)
+                        $amount = (float)$txn['amount'];
+                        $net = isset($txn['net_carried_over']) ? (float)$txn['net_carried_over'] : $amount;
+                        $raw_left = isset($txn['current_remaining']) ? $txn['current_remaining'] : null;
+                        $display_left = is_null($raw_left) ? $amount : (float)$raw_left;
+                        $used_selected_year = isset($txn['used_selected_year']) ? (float)$txn['used_selected_year'] : 0;
+                        $show_selected_year_usage = $txn['type'] == 'income'
+                            && $used_selected_year > 0
+                            && (int)$fiscal_year_th !== (int)$actual_fiscal_year_th;
+                        $today = date('Y-m-d');
+                        $expire_date = ($txn['type'] == 'income')
+                            ? (!empty($txn['expire_date']) ? $txn['expire_date'] : calFiscalExpireDate($txn['txn_date']))
+                            : '9999-12-31';
+                        $is_from_past = $txn['type'] == 'income' && isset($txn['fiscal_year_num']) && ((int)$txn['fiscal_year_num'] < (int)$fiscal_year_th);
+                        $is_carried_over_view = !empty($filters['carried_over_remaining']);
+                        $is_carried_over_row = $txn['type'] == 'income' && ($is_carried_over_view || $is_from_past);
+                        $is_expired = $txn['type'] == 'income' && ($expire_date < $today);
+                        $primary_amount = $is_carried_over_row ? $net : $amount;
 
-                        if ($txn['type'] == 'income') {
-                            // คำนวณระยะห่างปี (Current Fiscal Year - Transaction Fiscal Year)
-                            // เช่น ปีปัจจุบัน 2570, รายการปี 2569 -> diff = 1
-                            $fy_diff = (int)$fiscal_year_th - (int)$txn['fiscal_year_num'];
-
-                            if ($fy_diff == 0) {
-                                $row_bg = 'bg-green-50';  // 🟢 ปีปัจจุบัน
-                            } elseif ($fy_diff == 1) {
-                                $row_bg = 'bg-yellow-50'; // 🟡 ปีก่อนหน้า (งบปีที่แล้ว)
-                            } else {
-                                $row_bg = 'bg-gray-100';   // ⚪ เก่ากว่านั้น (งบยกมานานแล้ว)
-                            }
+                        if ($is_expired) {
+                            $row_bg = 'bg-gray-100';
+                        } elseif ($is_carried_over_row) {
+                            $row_bg = 'bg-yellow-50';
+                        } elseif ($txn['type'] == 'income') {
+                            $row_bg = 'bg-green-50';
+                        } else {
+                            $row_bg = 'bg-red-50';
                         }
                         ?>
 
@@ -63,14 +75,9 @@
                                 <?php if ($txn['type'] == 'income'): ?>
                                     <?php
                                     // --- A. เตรียมข้อมูลสำหรับ "คำนวณ" (ต้องใช้ Eng เท่านั้น) ---
-                                    $today = date('Y-m-d');
-
-                                    // ใช้ expire_date ดิบจาก DB (ถ้าไม่มี ให้เอา txn_date ดิบมา +2 ปี)
+                                    // ใช้ expire_date ดิบจาก DB (ถ้าไม่มี ให้คำนวณตามปีงบประมาณ)
                                     // *ห้ามเอา thai_date มาใช้นะครับ เพราะคำนวณไม่ได้*
-                                    $raw_expire_date = isset($txn['expire_date']) ? $txn['expire_date'] : date('Y-m-d', strtotime($txn['txn_date'] . ' +2 years'));
-
-                                    // เช็คว่าหมดอายุหรือยัง (เทียบด้วย Eng)
-                                    $is_expired = ($raw_expire_date < $today);
+                                    $raw_expire_date = $expire_date;
 
 
                                     // --- B. เตรียมข้อมูลสำหรับ "แสดงผล" (ใช้ Thai) ---
@@ -114,30 +121,14 @@
                                     <span class="text-gray-300 text-sm">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 text-right font-mono font-medium align-top rounded-xl ">
+                            <td class="pl-6 pr-0 py-4 text-right font-mono font-medium align-top rounded-xl ">
                                 <?php if ($txn['type'] == 'income'): ?>
                                     <?php
-                                    // --- 1. เตรียมข้อมูลตัวเลข ---
-                                    $amount = (float)$txn['amount'];
-                                    $net = isset($txn['net_carried_over']) ? (float)$txn['net_carried_over'] : $amount;
-                                    $raw_left = isset($txn['current_remaining']) ? $txn['current_remaining'] : null;
-                                    $display_left = is_null($raw_left) ? $amount : (float)$raw_left;
-
-                                    // --- 2. เช็คเรื่องเวลา (Time Logic) ---
-                                    $today = date('Y-m-d');
-                                    $expire_date = isset($txn['expire_date']) ? $txn['expire_date'] : '9999-12-31';
-
-                                    // เช็คว่าเป็นรายการจากปีก่อนๆ หรือไม่? (เทียบปี Approved กับปีปัจจุบัน)
-                                    // (ใช้ txn_date ที่เป็น Eng จาก DB นะครับ อย่าใช้ thai_date)
-                                    $txn_year = date('Y', strtotime($txn['txn_date']));
-                                    $current_year = date('Y');
-                                    $is_from_past = ($txn_year < $current_year);
-
-                                    // --- 3. สรุปเงื่อนไขการแสดงผล ---
+                                    // --- สรุปเงื่อนไขการแสดงผล ---
                                     $is_lapsed = ($expire_date < $today && $display_left > 0);
                                     $is_depleted = ($net == 0 || $display_left <= 0);
 
-                                    // --- 4. Logic Tooltip (หัวใจสำคัญ) ---
+                                    // --- Logic Tooltip (หัวใจสำคัญ) ---
                                     // โชว์ Tooltip เมื่อ:
                                     //  A. ยอดไม่เท่ากัน (net != amount) -> แปลว่ามีการหักใช้ไปแล้ว
                                     //  B. หรือ เป็นรายการจากปีก่อน ($is_from_past) -> แปลว่ายกยอดมาเต็มๆ
@@ -150,29 +141,35 @@
                                     <?php if ($is_lapsed): ?>
                                         <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
                                             <span class="text-gray-400 text-lg line-through decoration-gray-400">
-                                                <?php echo number_format($amount, 2); ?>
+                                                <?php echo number_format($primary_amount, 2); ?>
                                             </span>
                                             <span class="text-purple-600 font-bold text-xs mt-1">
                                                 คืนคลัง: <?php echo number_format($display_left, 2); ?>
                                             </span>
-                                            <span class="text-[10px] text-gray-400">
-                                                (จากยอด <?php echo number_format($amount, 0); ?>)
-                                            </span>
+                                            <?php if (!$is_carried_over_row || $net != $amount): ?>
+                                                <span class="text-[10px] text-gray-400">
+                                                    (จากยอด <?php echo number_format($amount, 0); ?>)
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if ($show_selected_year_usage): ?>
+                                                <span class="text-[10px] text-red-500 font-bold mt-1">
+                                                    ใช้ไปปีงบ <?php echo $fiscal_year_th; ?>: <?php echo number_format($used_selected_year, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
 
                                     <?php elseif ($is_depleted): ?>
                                         <div class="flex flex-col items-end opacity-60 <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
 
-                                            <?php if ($net != $amount): ?>
+                                            <?php if ($net != $amount || $is_carried_over_row): ?>
                                                 <span class="text-green-700 text-lg font-bold">
                                                     <?php echo number_format($net, 2); ?>
                                                 </span>
-                                                <span class="text-gray-500 text-xs line-through decoration-gray-500">
-                                                    <?php echo number_format($amount, 2); ?>
-                                                </span>
-                                                <span class="text-[10px] text-gray-600 mt-0.5">
-                                                    *ยกยอดมา <?php echo number_format($net, 0); ?>
-                                                </span>
+                                                <?php if ($net != $amount): ?>
+                                                    <span class="text-gray-500 text-xs line-through decoration-gray-500">
+                                                        <?php echo number_format($amount, 2); ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="text-gray-500 text-lg decoration-0">
                                                     <?php echo number_format($amount, 2); ?>
@@ -182,22 +179,31 @@
                                             <span class="text-[10px] text-red-500 font-bold mt-1">
                                                 *ยอดรายการนี้ถูกใช้ทั้งหมดแล้ว
                                             </span>
+                                            <?php if ($show_selected_year_usage): ?>
+                                                <span class="text-[10px] text-red-500 font-bold mt-1">
+                                                    ใช้ไปปีงบ <?php echo $fiscal_year_th; ?>: <?php echo number_format($used_selected_year, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
 
-                                    <?php elseif ($net != $amount): ?>
+                                    <?php elseif ($net != $amount || $is_carried_over_row): ?>
                                         <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
                                             <span class="text-green-600 text-lg font-bold">
                                                 <?php echo number_format($net, 2); ?>
                                             </span>
-                                            <span class="text-gray-400 text-xs line-through decoration-gray-400">
-                                                <?php echo number_format($amount, 2); ?>
-                                            </span>
-                                            <span class="text-[10px] text-gray-500 mt-1">
-                                                *ยกยอดมา <?php echo number_format($net, 0); ?> บาท จาก <?php echo number_format($amount, 0); ?> บาท
-                                            </span>
+                                            <?php if ($net != $amount): ?>
+                                                <span class="text-gray-400 text-xs line-through decoration-gray-400">
+                                                    <?php echo number_format($amount, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
                                             <span class="text-[10px] text-blue-600 font-semibold">
-                                                (คงเหลือปัจจุบัน: <?php echo number_format($display_left, 2); ?>)
+                                                (คงเหลือในปีงบ: <?php echo number_format($display_left, 2); ?>)
                                             </span>
+                                            <?php if ($show_selected_year_usage): ?>
+                                                <span class="text-[10px] text-red-500 font-bold">
+                                                    ใช้ไปปีงบ <?php echo $fiscal_year_th; ?>: <?php echo number_format($used_selected_year, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
 
                                     <?php else: ?>
@@ -208,7 +214,12 @@
 
                                             <?php if ($display_left < $amount): ?>
                                                 <span class="text-[10px] text-blue-600">
-                                                    (เหลือ: <?php echo number_format($display_left, 2); ?>)
+                                                    (คงเหลือในปีงบ: <?php echo number_format($display_left, 2); ?>)
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if ($show_selected_year_usage): ?>
+                                                <span class="text-[10px] text-red-500 font-bold">
+                                                    ใช้ไปปีงบ <?php echo $fiscal_year_th; ?>: <?php echo number_format($used_selected_year, 2); ?>
                                                 </span>
                                             <?php endif; ?>
                                         </div>
@@ -223,10 +234,27 @@
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <?php if ($txn['type'] == 'income'): ?>
-                                    <div class="w-8 h-8 mx-auto rounded-full bg-green-100 text-green-500 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-up"></i></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <?php if (!empty($is_carried_over_row)): ?>
+                                            <div class="text-[10px] text-yellow-700 font-bold leading-tight whitespace-nowrap">
+                                                ยกยอดมา <?php echo number_format($net, 0); ?> บาท
+                                            </div>
+                                            <?php if ($net != $amount): ?>
+                                                <div class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">
+                                                    จาก <?php echo number_format($amount, 0); ?> บาท
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold whitespace-nowrap">
+                                                ยอดรับ
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
 
                                 <?php else: ?>
-                                    <div class="w-8 h-8 mx-auto rounded-full bg-red-100 text-red-600 flex items-center justify-center shadow-sm"><i class="fas fa-arrow-down"></i></div>
+                                    <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold whitespace-nowrap">
+                                        ยอดตัด
+                                    </span>
 
                                 <?php endif; ?>
                             </td>

@@ -287,17 +287,28 @@ function addReceiveBudget($conn)
             throw new Exception("บันทึกงบไม่สำเร็จ: " . mysqli_error($conn));
         }
         $new_budget_id = mysqli_insert_id($conn);
+        $allocated_pending = 0;
+        if (!function_exists('allocatePendingExpenseUsageToApproval')) {
+            throw new Exception("ไม่พบระบบผูกยอดตัดค้างกับงบรับใหม่");
+        }
+        $allocated_pending = allocatePendingExpenseUsageToApproval($conn, $user_id, $new_budget_id, $amount, $approved_date);
 
         // B. บันทึก Log (เรียกใช้ฟังก์ชันเดิมของคุณ)
         $word_remark = $remark ? $remark : 'ไม่มี';
         $actor_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
         $log_desc = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท \n(หมายเหตุ: $word_remark )";
+        if ($allocated_pending > 0) {
+            $log_desc .= "\nผูกยอดตัดที่ยังไม่มีแหล่งเงินแล้ว " . number_format($allocated_pending, 2) . " บาท";
+        }
 
         logActivity($conn, $actor_id, $user_id, 'add_budget', $log_desc,);
 
         mysqli_commit($conn);
         $target_name_phrase = "ให้กับ $full_name \n ";
         $total_msg = "เพิ่มงบประมาณปี $year_th จำนวน " . number_format($amount, 2) . " บาท  $target_name_phrase \n(หมายเหตุ: $word_remark )";
+        if ($allocated_pending > 0) {
+            $total_msg .= "\nระบบนำไปผูกกับยอดตัดที่ยังไม่มีแหล่งเงินแล้ว " . number_format($allocated_pending, 2) . " บาท";
+        }
 
         $_SESSION['tragettab'] = 'received';
         $_SESSION['tragetfilters'] = $new_budget_id;

@@ -447,6 +447,19 @@ function addExpense($conn)
         }
         $budget_source = 'FIFO';
 
+        $available_budget = getAvailableBudgetForUser($conn, $user_id);
+        $pending_unallocated = getUnallocatedExpenseTotalForUser($conn, $user_id);
+        $available_for_new_expense = max($available_budget - $pending_unallocated, 0);
+        if ($available_for_new_expense + 0.0001 < $amount_needed) {
+            throw new Exception(
+                "ยอดรับคงเหลือไม่พอสำหรับตัดยอด: คงเหลือ " .
+                number_format($available_for_new_expense, 2) .
+                " บาท แต่ต้องการตัด " .
+                number_format($amount_needed, 2) .
+                " บาท"
+            );
+        }
+
         // ---------------------------------------------------------
         // 🌟 B. จัดการอัปโหลดไฟล์รูปภาพ (ถ้ามี) 🌟
         // ---------------------------------------------------------
@@ -506,12 +519,17 @@ function addExpense($conn)
         // ---------------------------------------------------------
         // D. ค้นหาใบอนุมัติ (FIFO Logic แบบรวมถุง)
         // ---------------------------------------------------------
-        $sql_app = "SELECT a.id, a.amount, a.approved_date, 
+        $sql_app = "SELECT a.id, a.amount, a.approved_date,
                     COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id AND deleted_at IS NULL), 0) as used_so_far
                     FROM budget_received a
                     WHERE a.user_id = '$user_id'
-                    AND a.approved_date >= DATE_SUB(CURDATE(), INTERVAL 2 YEAR)
                     AND deleted_at IS NULL
+                    AND CURDATE() <=
+                        CASE
+                            WHEN MONTH(a.approved_date) >= 10
+                            THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
+                            ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
+                        END
                     HAVING (a.amount - used_so_far) > 0
                     ORDER BY a.approved_date ASC";
 
@@ -527,14 +545,22 @@ function addExpense($conn)
             $available_on_this_slip = $row['amount'] - $row['used_so_far'];
             $cut_amount = ($money_to_cut >= $available_on_this_slip) ? $available_on_this_slip : $money_to_cut;
 
-            $sql_log = "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used)
-                        VALUES ('$new_expense_id', '{$row['id']}', '$cut_amount')";
+            $sql_log = "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used, created_at)
+                        VALUES ('$new_expense_id', '{$row['id']}', '$cut_amount', '$approved_date')";
 
             if (!mysqli_query($conn, $sql_log)) {
                 throw new Exception("Error Logging Usage: " . mysqli_error($conn));
             }
 
             $money_to_cut -= $cut_amount;
+        }
+
+        if ($money_to_cut > 0.0001) {
+            throw new Exception(
+                "ยอดรับคงเหลือไม่พอสำหรับตัดยอด ขาดอีก " .
+                number_format($money_to_cut, 2) .
+                " บาท"
+            );
         }
 
         // ---------------------------------------------------------
@@ -563,9 +589,127 @@ function addExpense($conn)
     } catch (Exception $e) {
         mysqli_rollback($conn);
         $error_msg = $e->getMessage();
-        header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=" . urlencode("ไม่สามารถทำรายการได้: " . $error_msg));
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=error&id=" . $profile_id . "&toastMsg=" . urlencode("ไม่สามารถทำรายการได้: " . $error_msg));
+        } else {
+            header("Location: index.php?page=$submit_page&tab=$submit_tab&status=error&toastMsg=" . urlencode("ไม่สามารถทำรายการได้: " . $error_msg));
+        }
         exit;
     }
+}
+
+function getAvailableBudgetForUser($conn, $user_id)
+{
+    $user_id = mysqli_real_escape_string($conn, $user_id);
+    $sql = "SELECT COALESCE(SUM(available_amount), 0) as total_available
+            FROM (
+                SELECT GREATEST(
+                    a.amount - COALESCE((
+                        SELECT SUM(amount_used)
+                        FROM budget_usage_logs
+                        WHERE approval_id = a.id
+                        AND deleted_at IS NULL
+                    ), 0),
+                    0
+                ) as available_amount
+                FROM budget_received a
+                WHERE a.user_id = '$user_id'
+                AND a.deleted_at IS NULL
+                AND CURDATE() <=
+                    CASE
+                        WHEN MONTH(a.approved_date) >= 10
+                        THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
+                        ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
+                    END
+            ) available_budget";
+
+    $res = mysqli_query($conn, $sql);
+    if (!$res) {
+        throw new Exception("ตรวจสอบยอดรับคงเหลือไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    $row = mysqli_fetch_assoc($res);
+    return (float)($row['total_available'] ?? 0);
+}
+
+function getUnallocatedExpenseTotalForUser($conn, $user_id)
+{
+    $user_id = mysqli_real_escape_string($conn, $user_id);
+    $sql = "SELECT COALESCE(SUM(unallocated_amount), 0) as total_unallocated
+            FROM (
+                SELECT GREATEST(
+                    e.amount - COALESCE(SUM(bul.amount_used), 0),
+                    0
+                ) as unallocated_amount
+                FROM budget_expenses e
+                LEFT JOIN budget_usage_logs bul
+                    ON bul.expense_id = e.id
+                    AND bul.deleted_at IS NULL
+                WHERE e.user_id = '$user_id'
+                AND e.deleted_at IS NULL
+                GROUP BY e.id, e.amount
+                HAVING unallocated_amount > 0
+            ) pending_expenses";
+
+    $res = mysqli_query($conn, $sql);
+    if (!$res) {
+        throw new Exception("ตรวจสอบยอดตัดที่ยังไม่มีแหล่งเงินไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    $row = mysqli_fetch_assoc($res);
+    return (float)($row['total_unallocated'] ?? 0);
+}
+
+function allocatePendingExpenseUsageToApproval($conn, $user_id, $approval_id, $available_amount, $usage_date)
+{
+    $remaining_to_allocate = (float)$available_amount;
+    if ($remaining_to_allocate <= 0) {
+        return 0;
+    }
+
+    $user_id = mysqli_real_escape_string($conn, $user_id);
+    $approval_id = intval($approval_id);
+    $usage_date = mysqli_real_escape_string($conn, $usage_date);
+
+    $sql_pending = "SELECT e.id, e.amount,
+                           COALESCE(SUM(bul.amount_used), 0) as logged_amount
+                    FROM budget_expenses e
+                    LEFT JOIN budget_usage_logs bul
+                        ON bul.expense_id = e.id
+                        AND bul.deleted_at IS NULL
+                    WHERE e.user_id = '$user_id'
+                    AND e.deleted_at IS NULL
+                    GROUP BY e.id, e.amount, e.approved_date
+                    HAVING (e.amount - logged_amount) > 0
+                    ORDER BY e.approved_date ASC, e.id ASC";
+
+    $res_pending = mysqli_query($conn, $sql_pending);
+    if (!$res_pending) {
+        throw new Exception("ตรวจสอบรายการตัดยอดที่ยังไม่มีแหล่งเงินไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    $allocated_total = 0;
+    while ($expense = mysqli_fetch_assoc($res_pending)) {
+        if ($remaining_to_allocate <= 0) break;
+
+        $unallocated_amount = (float)$expense['amount'] - (float)$expense['logged_amount'];
+        if ($unallocated_amount <= 0) continue;
+
+        $cut_amount = min($remaining_to_allocate, $unallocated_amount);
+        $expense_id = intval($expense['id']);
+
+        $sql_log = "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used, created_at)
+                    VALUES ('$expense_id', '$approval_id', '$cut_amount', '$usage_date')";
+
+        if (!mysqli_query($conn, $sql_log)) {
+            throw new Exception("ผูกยอดค้างกับงบรับใหม่ไม่สำเร็จ: " . mysqli_error($conn));
+        }
+
+        $remaining_to_allocate -= $cut_amount;
+        $allocated_total += $cut_amount;
+    }
+
+    return $allocated_total;
 }
 
 function handleEditExpense($conn)

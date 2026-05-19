@@ -90,6 +90,11 @@ class ProfileController
 
         // ✅ เพิ่ม Filter Type
         $f_type   = isset($_GET['type']) ? $_GET['type'] : 'all'; // all, income, expense
+        $selected_fiscal_year = $f_year > 0 ? $f_year : $current_fiscal_year;
+        $selected_fy_ce = $selected_fiscal_year - 543;
+        $selected_fy_start = ($selected_fy_ce - 1) . '-10-01';
+        $selected_fy_end = $selected_fy_ce . '-09-30';
+        $selected_next_fy_start = $selected_fy_ce . '-10-01';
 
         // 4. สร้าง SQL
         $where_inc = " WHERE user_id = $user_id AND deleted_at IS NULL";
@@ -109,7 +114,23 @@ class ProfileController
             }
             // กรณีไม่มีปีก่อนหน้า (ดึงแค่ปีปัจจุบันปีเดียว)
             else {
-                $where_inc .= " AND br.fiscal_year = '$f_year' ";
+                $where_inc .= " AND (
+                    br.fiscal_year = '$f_year'
+                    OR (
+                        br.fiscal_year < '$f_year'
+                        AND br.expire_date >= '$selected_fy_start'
+                        AND GREATEST(
+                            br.amount - COALESCE((
+                                SELECT SUM(amount_used)
+                                FROM budget_usage_logs
+                                WHERE approval_id = br.id
+                                AND deleted_at IS NULL
+                                AND created_at < '$selected_fy_start'
+                            ), 0),
+                            0
+                        ) > 0
+                    )
+                ) ";
                 $where_exp .= " AND e.fiscal_year = '$f_year' ";
             }
         }
@@ -132,8 +153,18 @@ class ProfileController
         if ($f_carried_over_remaining) {
             $where_inc = " WHERE br.user_id = $user_id 
                             AND br.deleted_at IS NULL
-                            AND br.approved_date < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
-                            AND br.expire_date >= DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                            AND br.approved_date < '$selected_fy_start'
+                            AND br.expire_date >= '$selected_fy_start'
+                            AND GREATEST(
+                                br.amount - COALESCE((
+                                    SELECT SUM(amount_used)
+                                    FROM budget_usage_logs
+                                    WHERE approval_id = br.id
+                                    AND deleted_at IS NULL
+                                    AND created_at < '$selected_fy_start'
+                                ), 0),
+                                0
+                            ) > 0
                             ORDER BY br.approved_date DESC";
             $where_exp = "WHERE 1=0";
         }
@@ -164,27 +195,35 @@ class ProfileController
                                     FROM budget_usage_logs 
                                     WHERE approval_id = br.id 
                                     AND deleted_at IS NULL
-                                    AND created_at < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                                    AND created_at < '$selected_fy_start'
                                 ), 0) AS used_last_year,
 
-                                -- 3. คำนวณ ยกยอดมาสุทธิ (Net Carried Over) ⭐ ตัวนี้แหละที่ User อยากรู้
-                                -- สูตร: (เงินรับ - ใช้ไปปีก่อน) = เงินที่ข้ามเวลามาถึงปีนี้
+                                -- 3. คำนวณ ยกยอดมาสุทธิจากมุมมองปีงบที่เลือก
                                 GREATEST(
                                     br.amount - COALESCE((
                                         SELECT SUM(amount_used) 
                                         FROM budget_usage_logs 
                                         WHERE approval_id = br.id 
                                         AND deleted_at IS NULL
-                                        AND created_at < DATE(CONCAT(YEAR(CURDATE()) - (MONTH(CURDATE()) < 10), '-10-01'))
+                                        AND created_at < '$selected_fy_start'
                                     ), 0),
                                     0
                                 ) AS net_carried_over,
 
-                                -- 4. ยอดคงเหลือปัจจุบัน (Remaining)
-                                -- อันนี้หักลบทุกอย่างแล้ว (ทั้งอดีตและปัจจุบัน)
+                                -- 4. ยอดที่ใช้ไปในปีงบที่เลือก
+                                COALESCE((
+                                    SELECT SUM(amount_used)
+                                    FROM budget_usage_logs
+                                    WHERE approval_id = br.id
+                                    AND deleted_at IS NULL
+                                    AND created_at >= '$selected_fy_start'
+                                    AND created_at < '$selected_next_fy_start'
+                                ), 0) AS used_selected_year,
+
+                                -- 5. ยอดคงเหลือ ณ สิ้นปีงบที่เลือก
                                 GREATEST(
                                     br.amount - COALESCE(
-                                        (SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = br.id AND deleted_at IS NULL),
+                                        (SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = br.id AND deleted_at IS NULL AND created_at < '$selected_next_fy_start'),
                                         0  
                                     ),
                                     0
@@ -198,9 +237,17 @@ class ProfileController
         if ($f_type == 'all' || $f_type == 'expense') {
             $sql_parts[] = "(SELECT 
                                 e.id, e.approved_date as txn_date, e.description, e.amount as amount,
-                                'expense' as type, c.name_th as category_name, c.id AS category_id,
-                                NULL AS used_last_year, NULL AS net_carried_over, NULL AS expire_date,
-                                fiscal_year as fiscal_year_num, NULL AS current_remaining, e.receipt_image_path, e.receipt_original_path
+                                NULL AS expire_date,
+                                'expense' as type,
+                                c.name_th as category_name,
+                                c.id AS category_id,
+                                e.receipt_image_path,
+                                e.receipt_original_path,
+                                NULL AS used_last_year,
+                                NULL AS net_carried_over,
+                                NULL AS used_selected_year,
+                                NULL AS current_remaining,
+                                e.fiscal_year as fiscal_year_num
                             FROM budget_expenses e
                             LEFT JOIN expense_categories c ON e.category_id = c.id
                             $where_exp)";
@@ -216,7 +263,10 @@ class ProfileController
 
             while ($row = mysqli_fetch_assoc($result)) {
                 if ($row['type'] == 'income') {
-                    $sum_income += $row['amount'];
+                    $is_carried_over_row = isset($row['fiscal_year_num']) && ((int)$row['fiscal_year_num'] < (int)$selected_fiscal_year);
+                    $sum_income += ($f_carried_over_remaining || $is_carried_over_row)
+                        ? (float)($row['net_carried_over'] ?? 0)
+                        : (float)$row['amount'];
                 } else {
                     $sum_expense += abs($row['amount']);
                 }
@@ -238,7 +288,12 @@ class ProfileController
             'cat'    => $f_cat,
             'min'    => $f_min == 0 ? '' : $f_min,
             'max'    => $f_max == 0 ? '' : $f_max,
-            'type'   => $f_type
+            'type'   => $f_type,
+            'carried_over_remaining' => $f_carried_over_remaining,
+            'selected_fiscal_year' => $selected_fiscal_year,
+            'selected_fy_start' => $selected_fy_start,
+            'selected_fy_end' => $selected_fy_end,
+            'selected_next_fy_start' => $selected_next_fy_start
         ];
 
         // 2. 🟢 มัดรวมตัวแปรทั้งหมดลงใน $data (จุดที่หายไป)
@@ -465,6 +520,7 @@ function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year)
                 JOIN budget_received br2 ON bul.approval_id = br2.id
                 WHERE br2.user_id = ?   -- (i)
                 AND br2.fiscal_year < ? -- (i) เฉพาะรายการปีก่อน
+                AND br2.deleted_at IS NULL
                 AND bul.deleted_at IS NULL
                 AND bul.created_at BETWEEN ? AND ? -- (s, s) ช่วงปีงบปัจจุบัน
             ), 0) AS total_used_this_year,
@@ -489,6 +545,7 @@ function getBudgetCarryOverSummary($conn, $user_id, $fiscal_year)
         FROM budget_received br
         WHERE br.user_id = ?    -- (i)
         AND br.fiscal_year < ?  -- (i) เฉพาะรายการจากปีก่อนๆ
+        AND br.deleted_at IS NULL
     ";
 
     // 3. Prepare & Execute
