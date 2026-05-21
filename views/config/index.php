@@ -50,6 +50,161 @@ function addImageColumn($conn, $tableName, $columnName, $dataType, $columnCommen
     return mysqli_query($conn, $sql) ? true : mysqli_error($conn);
 }
 
+function getBudgetUsageRepairStats($conn) {
+    $stats = [
+        'misallocated_logs' => 0,
+        'misallocated_amount' => 0,
+        'affected_users' => 0,
+    ];
+
+    $sqlMisallocated = "SELECT COUNT(DISTINCT bul.id) as cnt,
+                               COALESCE(SUM(bul.amount_used), 0) as total_amount,
+                               COUNT(DISTINCT e.user_id) as affected_users
+                        FROM budget_usage_logs bul
+                        JOIN budget_expenses e
+                            ON e.id = bul.expense_id
+                            AND e.deleted_at IS NULL
+                        JOIN budget_received used_br
+                            ON used_br.id = bul.approval_id
+                            AND used_br.deleted_at IS NULL
+                        WHERE bul.deleted_at IS NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM budget_received old_br
+                            WHERE old_br.user_id = e.user_id
+                            AND old_br.deleted_at IS NULL
+                            AND (
+                                old_br.approved_date < used_br.approved_date
+                                OR (old_br.approved_date = used_br.approved_date AND old_br.id < used_br.id)
+                            )
+                            AND GREATEST(
+                                old_br.amount - COALESCE((
+                                    SELECT SUM(old_bul.amount_used)
+                                    FROM budget_usage_logs old_bul
+                                    WHERE old_bul.approval_id = old_br.id
+                                    AND old_bul.deleted_at IS NULL
+                                ), 0),
+                                0
+                            ) > 0
+                            AND (old_br.expire_date IS NULL OR old_br.expire_date >= DATE(bul.created_at))
+                        )";
+    $resMisallocated = mysqli_query($conn, $sqlMisallocated);
+    if ($resMisallocated) {
+        $row = mysqli_fetch_assoc($resMisallocated);
+        $stats['misallocated_logs'] = (int)$row['cnt'];
+        $stats['misallocated_amount'] = (float)$row['total_amount'];
+        $stats['affected_users'] = (int)$row['affected_users'];
+    }
+
+    return $stats;
+}
+
+function rebuildBudgetUsageLogsFifo($conn) {
+    $result = [
+        'old_logs_soft_deleted' => 0,
+        'new_logs_created' => 0,
+        'allocated_amount' => 0,
+        'unallocated_expenses' => 0,
+        'unallocated_amount' => 0,
+    ];
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        $sqlDeleteLogs = "UPDATE budget_usage_logs bul
+                          JOIN budget_expenses e ON bul.expense_id = e.id
+                          SET bul.deleted_at = NOW()
+                          WHERE bul.deleted_at IS NULL
+                          AND e.deleted_at IS NULL";
+        if (!mysqli_query($conn, $sqlDeleteLogs)) {
+            throw new Exception("ล้าง usage logs เดิมไม่สำเร็จ: " . mysqli_error($conn));
+        }
+        $result['old_logs_soft_deleted'] = mysqli_affected_rows($conn);
+
+        $sqlUsers = "SELECT user_id FROM budget_received WHERE deleted_at IS NULL
+                     UNION
+                     SELECT user_id FROM budget_expenses WHERE deleted_at IS NULL";
+        $resUsers = mysqli_query($conn, $sqlUsers);
+        if (!$resUsers) {
+            throw new Exception("โหลดรายชื่อผู้ใช้ไม่สำเร็จ: " . mysqli_error($conn));
+        }
+
+        while ($user = mysqli_fetch_assoc($resUsers)) {
+            $userId = (int)$user['user_id'];
+            $receipts = [];
+
+            $resReceipts = mysqli_query($conn, "SELECT id, amount, approved_date, expire_date
+                                                FROM budget_received
+                                                WHERE user_id = $userId
+                                                AND deleted_at IS NULL
+                                                ORDER BY approved_date ASC, id ASC");
+            if (!$resReceipts) {
+                throw new Exception("โหลดงบรับไม่สำเร็จ: " . mysqli_error($conn));
+            }
+
+            while ($receipt = mysqli_fetch_assoc($resReceipts)) {
+                $receipt['remaining'] = (float)$receipt['amount'];
+                $receipts[] = $receipt;
+            }
+
+            $resExpenses = mysqli_query($conn, "SELECT id, amount, approved_date
+                                                FROM budget_expenses
+                                                WHERE user_id = $userId
+                                                AND deleted_at IS NULL
+                                                ORDER BY approved_date ASC, id ASC");
+            if (!$resExpenses) {
+                throw new Exception("โหลดรายการตัดยอดไม่สำเร็จ: " . mysqli_error($conn));
+            }
+
+            while ($expense = mysqli_fetch_assoc($resExpenses)) {
+                $moneyToCut = (float)$expense['amount'];
+                $expenseDateTs = strtotime($expense['approved_date']);
+
+                foreach ($receipts as &$receipt) {
+                    if ($moneyToCut <= 0.0001) break;
+                    if ($receipt['remaining'] <= 0.0001) continue;
+
+                    $receiptDateTs = strtotime($receipt['approved_date']);
+                    $usageDateTs = max($expenseDateTs, $receiptDateTs);
+                    $usageDate = date('Y-m-d', $usageDateTs);
+
+                    if (!empty($receipt['expire_date']) && $usageDate > $receipt['expire_date']) {
+                        continue;
+                    }
+
+                    $cutAmount = min($moneyToCut, $receipt['remaining']);
+                    $expenseId = (int)$expense['id'];
+                    $approvalId = (int)$receipt['id'];
+                    $safeUsageDate = mysqli_real_escape_string($conn, $usageDate);
+
+                    $sqlInsertLog = "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used, created_at)
+                                     VALUES ($expenseId, $approvalId, '$cutAmount', '$safeUsageDate')";
+                    if (!mysqli_query($conn, $sqlInsertLog)) {
+                        throw new Exception("สร้าง usage log ใหม่ไม่สำเร็จ: " . mysqli_error($conn));
+                    }
+
+                    $receipt['remaining'] -= $cutAmount;
+                    $moneyToCut -= $cutAmount;
+                    $result['new_logs_created']++;
+                    $result['allocated_amount'] += $cutAmount;
+                }
+                unset($receipt);
+
+                if ($moneyToCut > 0.0001) {
+                    $result['unallocated_expenses']++;
+                    $result['unallocated_amount'] += $moneyToCut;
+                }
+            }
+        }
+
+        mysqli_commit($conn);
+        return $result;
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        throw $e;
+    }
+}
+
 // ---------------------------------------------------------
 // 4. จัดการ Logic เมื่อมีการกดปุ่ม POST
 // ---------------------------------------------------------
@@ -85,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- 4.3 ลบข้อมูลที่ถูก soft delete (เฉพาะ high-admin) ---
     if (isset($_POST['action_purge_soft_deleted'])) {
         if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
-            $purgeTables = ['budget_expenses', 'budget_received'];
+            $purgeTables = ['budget_expenses', 'budget_received', 'budget_usage_logs'];
             $purgeResults = [];
             foreach ($purgeTables as $purgeTable) {
                 $safeTable = mysqli_real_escape_string($conn, $purgeTable);
@@ -114,6 +269,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $alertMessage = "<div class='alert alert-success'>✅ ลบ Activity Logs ที่เก่ากว่า 3 เดือนสำเร็จ จำนวน <b>$count</b> แถว</div>";
             } else {
                 $alertMessage = "<div class='alert alert-danger'>❌ ลบ log ไม่สำเร็จ: " . mysqli_error($conn) . "</div>";
+            }
+        } else {
+            $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
+        }
+    }
+
+    // --- 4.5 จัดเรียง budget_usage_logs ใหม่ตาม FIFO ---
+    if (isset($_POST['action_rebuild_usage_fifo'])) {
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
+            try {
+                $repair = rebuildBudgetUsageLogsFifo($conn);
+                $alertMessage = "<div class='alert alert-success'><b>✅ จัดเรียงการตัดเงินใหม่สำเร็จ</b><ul>"
+                    . "<li>soft delete usage logs เดิม: <b>" . number_format($repair['old_logs_soft_deleted']) . "</b> แถว</li>"
+                    . "<li>สร้าง usage logs ใหม่: <b>" . number_format($repair['new_logs_created']) . "</b> แถว</li>"
+                    . "<li>ยอดที่ผูกกับงบรับแล้ว: <b>" . number_format($repair['allocated_amount'], 2) . "</b> บาท</li>"
+                    . "</ul></div>";
+            } catch (Exception $e) {
+                $alertMessage = "<div class='alert alert-danger'>❌ จัดเรียงการตัดเงินไม่สำเร็จ: " . htmlspecialchars($e->getMessage()) . "</div>";
             }
         } else {
             $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
@@ -287,16 +460,21 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin'): ?>
         <?php
             // 1. นับข้อมูลที่ถูกลบ (soft delete)
-            $cnt_expenses = 0; $cnt_received = 0;
+            $cnt_expenses = 0; $cnt_received = 0; $cnt_usage_logs = 0;
             $res1 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_expenses WHERE deleted_at IS NOT NULL");
             if ($res1) { $cnt_expenses = mysqli_fetch_assoc($res1)['cnt']; }
             $res2 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_received WHERE deleted_at IS NOT NULL");
             if ($res2) { $cnt_received = mysqli_fetch_assoc($res2)['cnt']; }
+            $res_usage_logs = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_usage_logs WHERE deleted_at IS NOT NULL");
+            if ($res_usage_logs) { $cnt_usage_logs = mysqli_fetch_assoc($res_usage_logs)['cnt']; }
 
             // 2. นับข้อมูล Logs ที่เก่ากว่า 3 เดือน
             $cnt_logs = 0;
             $res_logs = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM activity_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 3 MONTH)");
             if ($res_logs) { $cnt_logs = mysqli_fetch_assoc($res_logs)['cnt']; }
+
+            // 3. สถิติการผูกยอดตัดกับงบรับ
+            $usageRepairStats = getBudgetUsageRepairStats($conn);
         ?>
         
         <div style="margin-top: 50px;">
@@ -317,12 +495,13 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                         <td>
                             พบข้อมูลที่ถูกลบชั่วคราวอยู่ในระบบ:<br>
                             - <code>budget_expenses</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_expenses ?></span> แถว<br>
-                            - <code>budget_received</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_received ?></span> แถว
+                            - <code>budget_received</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_received ?></span> แถว<br>
+                            - <code>budget_usage_logs</code>: <span style="color:#d63384; font-weight:bold;"><?= $cnt_usage_logs ?></span> แถว
                         </td>
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันการลบข้อมูล Soft Delete ทั้งหมด?\n\n**ข้อมูลนี้จะหายถาวร!**');" style="margin:0;">
                                 <input type="hidden" name="action_purge_soft_deleted" value="1">
-                                <button type="submit" class="btn btn-danger" <?= ($cnt_expenses + $cnt_received == 0) ? 'disabled' : '' ?>>
+                                <button type="submit" class="btn btn-danger" <?= ($cnt_expenses + $cnt_received + $cnt_usage_logs == 0) ? 'disabled' : '' ?>>
                                     🗑️ ลบถาวร
                                 </button>
                             </form>
@@ -372,6 +551,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
     echo "<div class='alert alert-success' style='margin-top:20px;'>" . htmlspecialchars($result['msg']) . "</div>";
 }
 ?>
+
+                    <tr>
+                        <td><b>จัดเรียงการตัดเงินใหม่ตาม FIFO</b></td>
+                        <td>
+                            ใช้สำหรับแก้ข้อมูลเก่าที่เคยตัดเงินจากงบรับใบใหม่กว่า ก่อนแก้ logic FIFO<br>
+                            ระบบจะ soft delete <code>budget_usage_logs</code> เดิมของรายการที่ยังไม่ถูกลบ แล้วสร้างใหม่โดยเรียง:
+                            รายจ่ายเก่าก่อน และงบรับเก่าก่อน<br>
+                            - พบการตัดยอดที่ใช้เงินรับใบใหม่กว่า ทั้งที่ยังมีเงินรับใบเก่ากว่าของคนเดียวกันเหลืออยู่:
+                            <span style="color:#d63384; font-weight:bold;"><?= number_format($usageRepairStats['misallocated_logs']) ?></span> แถว /
+                            <span style="color:#d63384; font-weight:bold;"><?= number_format($usageRepairStats['misallocated_amount'], 2) ?></span> บาท
+                            จาก <span style="color:#d63384; font-weight:bold;"><?= number_format($usageRepairStats['affected_users']) ?></span> คน
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันจัดเรียง budget_usage_logs ใหม่ตาม FIFO หรือไม่?\n\nระบบจะ soft delete usage logs เดิม แล้วสร้าง footprint ใหม่จาก budget_expenses และ budget_received ที่ยังไม่ถูกลบ');" style="margin:0;">
+                                <input type="hidden" name="action_rebuild_usage_fifo" value="1">
+                                <button type="submit" class="btn btn-primary">
+                                    จัดเรียงใหม่
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
 
                     <tr>
                         <td><b>ลบประวัตการใช้งานระบบ</b></td>
