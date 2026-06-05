@@ -382,6 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $isCol1Exist = checkColumnExists($conn, $tableName, $col1);
 $isCol2Exist = checkColumnExists($conn, $tableName, $col2);
 $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
+$currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
 ?>
 
 <!DOCTYPE html>
@@ -477,6 +478,65 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         }
         .alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
         .alert-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .top-setting {
+            border: 1px solid #dbe7ff;
+            background: #f8fbff;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 18px 0 24px;
+        }
+        .top-setting-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .top-setting-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        .top-setting-description {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .top-setting-description code {
+            color: #d63384;
+            background: #f1f3f5;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+        .top-setting-current {
+            font-size: 12px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .top-setting-form {
+            display: flex;
+            gap: 8px;
+        }
+        .top-setting-form input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        @media (max-width: 640px) {
+            .top-setting-header,
+            .top-setting-form {
+                display: block;
+            }
+            .top-setting-form input,
+            .top-setting-form button {
+                width: 100%;
+                margin-top: 8px;
+            }
+        }
         .mt-2 { margin-top: 10px; }
     </style>
 </head>
@@ -487,6 +547,38 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
         <p class="description">หน้าต่างนี้สำหรับตรวจสอบและอัปเดตโครงสร้างฐานข้อมูล เพื่อรองรับระบบการอัปโหลดเอกสารใบเสร็จ (แยกเพิ่มทีละคอลัมน์ได้)</p>
         
         <?= $alertMessage ?>
+
+        <div class="top-setting">
+            <div class="top-setting-header">
+                <div>
+                    <div class="top-setting-title">Link แบบประเมินประสิทธิภาพ</div>
+                    <div class="top-setting-description">
+                        ตั้งค่า link ปลายทางของข้อความ <code>ประเมินประสิทธิภาพการใช้งานระบบ</code> ที่ footer ด้านล่างสุดของระบบ
+                    </div>
+                </div>
+                <span class="status-badge <?= $currentEvaluationLink !== '' ? 'status-exists' : 'status-missing' ?>">
+                    <?= $currentEvaluationLink !== '' ? 'พร้อมใช้งาน' : 'ยังไม่มี link' ?>
+                </span>
+            </div>
+            <div class="top-setting-current">
+                <?php if ($currentEvaluationLink !== ''): ?>
+                    <span style="color:#666;">ปัจจุบัน: </span>
+                    <a href="<?= htmlspecialchars($currentEvaluationLink) ?>" target="_blank" rel="noopener noreferrer" style="color:#0d6efd; text-decoration: underline;">
+                        <?= htmlspecialchars($currentEvaluationLink) ?>
+                    </a>
+                <?php else: ?>
+                    <span style="color:#888;">ยังไม่ได้ตั้งค่า link</span>
+                <?php endif; ?>
+            </div>
+            <form method="POST" class="top-setting-form">
+                <input type="hidden" name="action_save_evaluation_link" value="1">
+                <input type="url"
+                    name="evaluation_link"
+                    value="<?= htmlspecialchars($currentEvaluationLink) ?>"
+                    placeholder="https://...">
+                <button type="submit" class="btn btn-primary">เพิ่ม link</button>
+            </form>
+        </div>
 
         <table class="info-table">
             <tbody>
@@ -543,8 +635,6 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
 
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin'): ?>
         <?php
-            $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
-
             // 1. นับข้อมูลที่ถูกลบ (soft delete)
             $cnt_expenses = 0; $cnt_received = 0; $cnt_usage_logs = 0;
             $res1 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_expenses WHERE deleted_at IS NOT NULL");
@@ -574,35 +664,6 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><b>Link แบบประเมินประสิทธิภาพ</b></td>
-                        <td>
-                            ตั้งค่า link ปลายทางของข้อความ <code>ประเมินประสิทธิภาพการใช้งานระบบ</code> ที่ footer ด้านล่างสุดของระบบ<br>
-                            <?php if ($currentEvaluationLink !== ''): ?>
-                                <span style="font-size:12px; color:#666;">ปัจจุบัน: </span>
-                                <a href="<?= htmlspecialchars($currentEvaluationLink) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px; color:#0d6efd; text-decoration: underline; word-break: break-all;">
-                                    <?= htmlspecialchars($currentEvaluationLink) ?>
-                                </a>
-                            <?php else: ?>
-                                <span style="font-size:12px; color:#888;">ยังไม่ได้ตั้งค่า link</span>
-                            <?php endif; ?>
-                            <form method="POST" style="display:flex; gap:8px; margin-top:10px;">
-                                <input type="hidden" name="action_save_evaluation_link" value="1">
-                                <input type="url"
-                                    name="evaluation_link"
-                                    value="<?= htmlspecialchars($currentEvaluationLink) ?>"
-                                    placeholder="https://..."
-                                    style="flex:1; min-width:0; padding:8px 10px; border:1px solid #ced4da; border-radius:4px; font-size:13px;">
-                                <button type="submit" class="btn btn-primary">เพิ่ม link</button>
-                            </form>
-                        </td>
-                        <td style="text-align:center;">
-                            <span class="status-badge <?= $currentEvaluationLink !== '' ? 'status-exists' : 'status-missing' ?>">
-                                <?= $currentEvaluationLink !== '' ? 'พร้อมใช้งาน' : 'ยังไม่มี link' ?>
-                            </span>
-                        </td>
-                    </tr>
-
                     <tr>
                         <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
                         <td>
