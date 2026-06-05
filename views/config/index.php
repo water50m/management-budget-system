@@ -37,6 +37,13 @@ function checkColumnExists($conn, $tableName, $columnName) {
     return ($result && mysqli_num_rows($result) > 0);
 }
 
+function checkTableExists($conn, $tableName) {
+    $safeTable = mysqli_real_escape_string($conn, $tableName);
+    $sql = "SHOW TABLES LIKE '$safeTable'";
+    $result = mysqli_query($conn, $sql);
+    return ($result && mysqli_num_rows($result) > 0);
+}
+
 function addImageColumn($conn, $tableName, $columnName, $dataType, $columnComment, $afterColumn = '') {
     $safeTable = mysqli_real_escape_string($conn, $tableName);
     $safeColumn = mysqli_real_escape_string($conn, $columnName);
@@ -48,6 +55,61 @@ function addImageColumn($conn, $tableName, $columnName, $dataType, $columnCommen
     }
     
     return mysqli_query($conn, $sql) ? true : mysqli_error($conn);
+}
+
+function ensureSystemLinksTable($conn) {
+    $sql = "CREATE TABLE IF NOT EXISTS system_links (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                link_key VARCHAR(100) NOT NULL UNIQUE,
+                link_url TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    if (!mysqli_query($conn, $sql)) {
+        throw new Exception("สร้างตาราง system_links ไม่สำเร็จ: " . mysqli_error($conn));
+    }
+}
+
+function getSystemLink($conn, $linkKey) {
+    if (!checkTableExists($conn, 'system_links')) {
+        return '';
+    }
+
+    $stmt = $conn->prepare("SELECT link_url FROM system_links WHERE link_key = ? LIMIT 1");
+    if (!$stmt) {
+        return '';
+    }
+
+    $stmt->bind_param("s", $linkKey);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
+    $stmt->close();
+
+    return $row['link_url'] ?? '';
+}
+
+function saveSystemLink($conn, $linkKey, $linkUrl) {
+    ensureSystemLinksTable($conn);
+
+    $stmt = $conn->prepare(
+        "INSERT INTO system_links (link_key, link_url)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE link_url = VALUES(link_url), updated_at = CURRENT_TIMESTAMP"
+    );
+    if (!$stmt) {
+        throw new Exception("เตรียมบันทึก link ไม่สำเร็จ: " . $conn->error);
+    }
+
+    $stmt->bind_param("ss", $linkKey, $linkUrl);
+    if (!$stmt->execute()) {
+        $error = $stmt->error;
+        $stmt->close();
+        throw new Exception("บันทึก link ไม่สำเร็จ: " . $error);
+    }
+
+    $stmt->close();
 }
 
 function getBudgetUsageRepairStats($conn) {
@@ -234,6 +296,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $alertMessage = "<div class='alert alert-danger'>❌ <strong>ข้อผิดพลาด:</strong> ไม่สามารถเพิ่ม {$col2} ได้: {$res}</div>";
             }
+        }
+    }
+
+    // --- 4.2.1 เพิ่ม/แก้ไข link แบบประเมิน ---
+    if (isset($_POST['action_save_evaluation_link'])) {
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
+            $evaluationLink = trim($_POST['evaluation_link'] ?? '');
+
+            if ($evaluationLink === '') {
+                $alertMessage = "<div class='alert alert-danger'>❌ กรุณากรอก link แบบประเมิน</div>";
+            } elseif (!filter_var($evaluationLink, FILTER_VALIDATE_URL) || !preg_match('/^https?:\/\//i', $evaluationLink)) {
+                $alertMessage = "<div class='alert alert-danger'>❌ link ต้องเป็น URL ที่ขึ้นต้นด้วย http:// หรือ https://</div>";
+            } else {
+                try {
+                    saveSystemLink($conn, 'system_evaluation', $evaluationLink);
+                    $alertMessage = "<div class='alert alert-success'>✅ บันทึก link แบบประเมินเรียบร้อยแล้ว</div>";
+                } catch (Exception $e) {
+                    $alertMessage = "<div class='alert alert-danger'>❌ " . htmlspecialchars($e->getMessage()) . "</div>";
+                }
+            }
+        } else {
+            $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
         }
     }
 
@@ -459,6 +543,8 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
 
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin'): ?>
         <?php
+            $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
+
             // 1. นับข้อมูลที่ถูกลบ (soft delete)
             $cnt_expenses = 0; $cnt_received = 0; $cnt_usage_logs = 0;
             $res1 = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM budget_expenses WHERE deleted_at IS NOT NULL");
@@ -488,7 +574,34 @@ $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
                     </tr>
                 </thead>
                 <tbody>
-                    
+                    <tr>
+                        <td><b>Link แบบประเมินประสิทธิภาพ</b></td>
+                        <td>
+                            ตั้งค่า link ปลายทางของข้อความ <code>ประเมินประสิทธิภาพการใช้งานระบบ</code> ที่ footer ด้านล่างสุดของระบบ<br>
+                            <?php if ($currentEvaluationLink !== ''): ?>
+                                <span style="font-size:12px; color:#666;">ปัจจุบัน: </span>
+                                <a href="<?= htmlspecialchars($currentEvaluationLink) ?>" target="_blank" rel="noopener noreferrer" style="font-size:12px; color:#0d6efd; text-decoration: underline; word-break: break-all;">
+                                    <?= htmlspecialchars($currentEvaluationLink) ?>
+                                </a>
+                            <?php else: ?>
+                                <span style="font-size:12px; color:#888;">ยังไม่ได้ตั้งค่า link</span>
+                            <?php endif; ?>
+                            <form method="POST" style="display:flex; gap:8px; margin-top:10px;">
+                                <input type="hidden" name="action_save_evaluation_link" value="1">
+                                <input type="url"
+                                    name="evaluation_link"
+                                    value="<?= htmlspecialchars($currentEvaluationLink) ?>"
+                                    placeholder="https://..."
+                                    style="flex:1; min-width:0; padding:8px 10px; border:1px solid #ced4da; border-radius:4px; font-size:13px;">
+                                <button type="submit" class="btn btn-primary">เพิ่ม link</button>
+                            </form>
+                        </td>
+                        <td style="text-align:center;">
+                            <span class="status-badge <?= $currentEvaluationLink !== '' ? 'status-exists' : 'status-missing' ?>">
+                                <?= $currentEvaluationLink !== '' ? 'พร้อมใช้งาน' : 'ยังไม่มี link' ?>
+                            </span>
+                        </td>
+                    </tr>
 
                     <tr>
                         <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
