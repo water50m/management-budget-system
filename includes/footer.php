@@ -89,11 +89,11 @@ function resetAllTabs() {
 </div>
 <footer class="flex-shrink-0 bg-white border-t border-gray-200 px-6 py-2 text-center text-sm font-medium">
     <?php if ($evaluationLink !== ''): ?>
-        <a href="<?= htmlspecialchars($evaluationLink) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline decoration-blue-600 underline-offset-2 hover:text-blue-700 hover:decoration-blue-700">
+        <a href="<?= htmlspecialchars($evaluationLink) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-600 no-underline cursor-pointer hover:text-blue-700">
             ประเมินประสิทธิภาพการใช้งานระบบ
         </a>
     <?php else: ?>
-        <span class="text-blue-600 underline decoration-blue-600 underline-offset-2">ประเมินประสิทธิภาพการใช้งานระบบ</span>
+        <span class="text-blue-600 no-underline">ประเมินประสิทธิภาพการใช้งานระบบ</span>
     <?php endif; ?>
 </footer>
 </body>
