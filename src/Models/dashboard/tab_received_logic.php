@@ -259,6 +259,14 @@ function addReceiveBudget($conn)
     $submit_tab = $_POST['submit_tab'];
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
+    if (!canManageBudgetForUser($conn, $user_id)) {
+        $redirect_url = $profile_id > 0
+            ? "index.php?page=profile&id=$profile_id"
+            : "index.php?page=$submit_page&tab=$submit_tab";
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+        exit;
+    }
+
     // 2. คำนวณปีงบประมาณ (Fiscal Year)
     $timestamp = strtotime($approved_date);
     $year_th = date('Y', $timestamp) + 543;
@@ -325,9 +333,13 @@ function addReceiveBudget($conn)
 
     } catch (Exception $e) {
         mysqli_rollback($conn);
-        echo "เกิดข้อผิดพลาด: " . $e->getMessage();
-        die;
-        header("Location: index.php?page=$submit_page&status=success&tab=" . $page . "&toastMsg=เกิดข้อผิดพลาดในการทำรายการ");
+        $toastMsg = "เกิดข้อผิดพลาดในการทำรายการ: " . $e->getMessage();
+        if ($profile_id > 0) {
+            header("Location: index.php?page=profile&status=error&id=" . $profile_id . "&toastMsg=" . urlencode($toastMsg));
+        } else {
+            header("Location: index.php?page=$submit_page&status=error&tab=" . $submit_tab . "&toastMsg=" . urlencode($toastMsg));
+        }
+        exit;
     }
 }
 
@@ -349,12 +361,21 @@ function submitDeleteAprove($conn)
         // ---------------------------------------------------------
         // *ตรวจสอบชื่อตารางให้ตรงกับ DB จริงของคุณ (budget_received หรือ budget_years)*
         $sql_check = "SELECT b.remark, b.amount, b.user_id,
-                    up.prefix, up.first_name, up.last_name 
-                FROM budget_received b 
-                JOIN user_profiles up 
+                    up.prefix, up.first_name, up.last_name
+                FROM budget_received b
+                JOIN user_profiles up ON up.user_id = b.user_id
                 WHERE b.id = $id";
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
+
+        if (!$old_data || !canManageBudgetForUser($conn, $old_data['user_id'])) {
+            if ($profile_id > 0) {
+                header("Location: index.php?page=profile&status=error&id=" . $profile_id . "&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+            } else {
+                header("Location: index.php?page=dashboard&status=error&tab=" . $submit_tab . "&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+            }
+            exit();
+        }
 
         // สร้างข้อความ Log
         $log_desc = "ลบการอนุมัติงบ ID: $id"; // ค่า Default
@@ -416,24 +437,31 @@ function handleEditReceived($conn)
     $profile_id = $_POST['profile_id'] ?? 0;
 
     // ข้อมูลสำหรับ Update
-    $id = $_POST['received_id'];
+    $id = intval($_POST['received_id'] ?? 0);
     $amount = $_POST['amount_real'];
     $remark = $_POST['remark'];
 
     // ข้อมูลสำหรับ Log
-    $target_user_id = $_POST['user_id'] ?? 0;
     $actor_id = $_SESSION['user_id'] ?? 0;
 
     // ---------------------------------------------------------
-    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบ Change Log)
+    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบ Change Log และตรวจสิทธิ์)
     // ---------------------------------------------------------
-    $sql_old = "SELECT amount, approved_date, remark FROM budget_received WHERE id = ?";
+    $sql_old = "SELECT amount, approved_date, remark, user_id FROM budget_received WHERE id = ?";
     $stmt_old = $conn->prepare($sql_old);
     $stmt_old->bind_param("i", $id);
     $stmt_old->execute();
     $res_old = $stmt_old->get_result();
     $old_data = $res_old->fetch_assoc();
     $stmt_old->close();
+
+    // ตรวจสิทธิ์จากเจ้าของจริงในฐานข้อมูล (ห้ามเชื่อ user_id ที่ส่งมาจาก client)
+    if (!$old_data || !canManageBudgetForUser($conn, $old_data['user_id'])) {
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+        exit;
+    }
+    $target_user_id = $old_data['user_id'];
 
     $old_amount = $old_data['amount'] ?? 0;
     $old_date = $old_data['approved_date'] ?? '';

@@ -21,11 +21,13 @@ $dept_labels = [];
 $dept_received = [];
 $dept_spent = [];
 
-mysqli_data_seek($res_dept, 0);
-while ($r = mysqli_fetch_assoc($res_dept)) {
-    $dept_labels[] = $r['thai_name'];
-    $dept_received[] = $r['total_received']; // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
-    $dept_spent[] = $r['total_spent'];       // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
+if ($res_dept) {
+    mysqli_data_seek($res_dept, 0);
+    while ($r = mysqli_fetch_assoc($res_dept)) {
+        $dept_labels[] = $r['thai_name'];
+        $dept_received[] = $r['total_received']; // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
+        $dept_spent[] = $r['total_spent'];       // ฟิลด์ที่เราเพิ่งเพิ่มใน SQL
+    }
 }
 
 $show_dept = '';

@@ -51,6 +51,38 @@ function applyPermissionFilter($sql)
     return $sql;
 }
 
+// คืน department_id ของ user (จาก user_profiles) หรือ null ถ้าไม่พบ
+function getDepartmentIdForUser($conn, $user_id)
+{
+    $user_id = intval($user_id);
+    $sql = "SELECT department_id FROM user_profiles WHERE user_id = $user_id LIMIT 1";
+    $res = mysqli_query($conn, $sql);
+    if (!$res || mysqli_num_rows($res) === 0) {
+        return null;
+    }
+    return (int) mysqli_fetch_assoc($res)['department_id'];
+}
+
+// ตรวจสิทธิ์ฝั่ง server ก่อนแก้ไข/ลบข้อมูลงบของ user คนหนึ่ง
+// ใช้ semantics เดียวกับ applyPermissionFilter: seer=0 -> high-admin (ผ่านทุกกรณี),
+// seer=7 -> user (แก้ได้เฉพาะของตัวเอง), อื่นๆ -> admin ภาควิชา (แก้ได้เฉพาะคนในภาควิชาตัวเอง)
+function canManageBudgetForUser($conn, $target_user_id)
+{
+    if (!isset($_SESSION['seer'])) {
+        return false;
+    }
+    $seer = $_SESSION['seer'];
+
+    if ($seer == 0) {
+        return true;
+    }
+    if ($seer == 7) {
+        return intval($target_user_id) === intval($_SESSION['user_id'] ?? -1);
+    }
+    $dept_id = getDepartmentIdForUser($conn, $target_user_id);
+    return $dept_id !== null && intval($dept_id) === intval($seer);
+}
+
 function current_fiscal_year()
 {
     $current_fiscal_year = (date('n') >= 10) ? date('Y') + 544 : date('Y') + 543;

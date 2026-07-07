@@ -231,6 +231,14 @@ function submitDeleteExpense($conn)
         $res_check = mysqli_query($conn, $sql_check);
         $old_data = mysqli_fetch_assoc($res_check);
 
+        if (!$old_data || !canManageBudgetForUser($conn, $old_data['user_id'])) {
+            $redirect_url = $profile_id > 0
+                ? "index.php?page=profile&id=$profile_id"
+                : "index.php?page=dashboard&tab=$submit_tab";
+            header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+            exit;
+        }
+
         $log_desc = "ลบรายการรายจ่าย ID: $expense_id";
         if ($old_data) {
             $log_desc = "ลบรายการ: " . $old_data['description'] . " (จำนวน " . number_format($old_data['amount']) . " บาท)";

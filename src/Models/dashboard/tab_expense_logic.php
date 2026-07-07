@@ -22,6 +22,10 @@ function deleteReceiptImage($conn)
             throw new Exception("ไม่พบข้อมูลรายการที่ต้องการลบรูปภาพ");
         }
 
+        if (!canManageBudgetForUser($conn, $info['user_id'])) {
+            throw new Exception("ไม่มีสิทธิ์ทำรายการนี้");
+        }
+
         // ตรวจสอบว่ามี Path รูปภาพบันทึกอยู่จริง
         if (!empty($info['receipt_image_path'])) {
             $old_file = $info['receipt_image_path'];
@@ -115,6 +119,10 @@ function reuploadReceiptImage($conn)
         $info = mysqli_fetch_assoc($res_info);
 
         if (!$info) throw new Exception("ไม่พบข้อมูลรายการ");
+
+        if (!canManageBudgetForUser($conn, $info['user_id'])) {
+            throw new Exception("ไม่มีสิทธิ์ทำรายการนี้");
+        }
 
         // 1. ตั้งชื่อและเซฟไฟล์ดิบ
         $raw_file_name = 'receipt_raw_' . $expense_id . '_' . time() . '.' . $file_ext;
@@ -429,6 +437,14 @@ function addExpense($conn)
     $submit_tab = isset($_POST['submit_tab']) ? $_POST['submit_tab'] : ''; // แก้ไข Typo จาก sbmit_tab
     $profile_id = isset($_POST['profile_id']) ? intval($_POST['profile_id']) : 0;
 
+    if (!canManageBudgetForUser($conn, $user_id)) {
+        $redirect_url = $profile_id > 0
+            ? "index.php?page=profile&id=$profile_id"
+            : "index.php?page=$submit_page&tab=$submit_tab";
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+        exit;
+    }
+
     mysqli_begin_transaction($conn);
 
     try {
@@ -720,25 +736,38 @@ function handleEditExpense($conn)
     $profile_id = $_POST['profile_id'] ?? 0;
 
     // ข้อมูลสำหรับ Update
-    $id = $_POST['expense_id'];
-    $amount = $_POST['amount']; // ค่าใหม่
-    $category_id = $_POST['category_id'];
-    $description = $_POST['description'];
+    $id = intval($_POST['expense_id'] ?? 0);
+    $amount = floatval($_POST['amount'] ?? 0); // ค่าใหม่
+    $category_id = intval($_POST['category_id'] ?? 0);
+    $description = $_POST['description'] ?? '';
 
     // ข้อมูลสำหรับ Log
-    $target_user_id = $_POST['target_user_id'] ?? 0;
     $actor_id = $_SESSION['user_id'] ?? 0;
 
+    if ($id <= 0) {
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่พบรหัสรายการที่ต้องการแก้ไข"));
+        exit;
+    }
+
     // ---------------------------------------------------------
-    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบว่าอะไรเปลี่ยน)
+    // 🔍 STEP 1: ดึงข้อมูลเก่าออกมาดูก่อน (เพื่อเทียบว่าอะไรเปลี่ยน และตรวจสิทธิ์)
     // ---------------------------------------------------------
-    $sql_old = "SELECT amount, approved_date FROM budget_expenses WHERE id = ?";
+    $sql_old = "SELECT amount, approved_date, user_id FROM budget_expenses WHERE id = ?";
     $stmt_old = $conn->prepare($sql_old);
     $stmt_old->bind_param("i", $id);
     $stmt_old->execute();
     $res_old = $stmt_old->get_result();
     $old_data = $res_old->fetch_assoc();
     $stmt_old->close();
+
+    // ตรวจสิทธิ์จากเจ้าของจริงในฐานข้อมูล (ห้ามเชื่อ target_user_id ที่ส่งมาจาก client)
+    if (!$old_data || !canManageBudgetForUser($conn, $old_data['user_id'])) {
+        $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่มีสิทธิ์ทำรายการนี้"));
+        exit;
+    }
+    $target_user_id = $old_data['user_id'];
 
     // ถ้าไม่เจอข้อมูล (กรณีผิดพลาด) ให้กำหนดค่าเริ่มต้นเป็นว่าง
     $old_amount = $old_data['amount'] ?? 0;
