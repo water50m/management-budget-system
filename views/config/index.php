@@ -268,6 +268,79 @@ function rebuildBudgetUsageLogsFifo($conn) {
 }
 
 // ---------------------------------------------------------
+// ตรวจสอบ / แก้ไข VIEW v_user_budget_summary ที่ฝังวันที่เริ่มปีงบ (เช่น '2025-10-01')
+// ไว้ตรงๆ แทนที่จะคำนวณสดจากวันปัจจุบัน ทำให้ยอดผิดทันทีที่ข้ามปีงบ (1 ต.ค.) ถ้าไม่มีใครมาแก้ไขด้วยมือ
+// ---------------------------------------------------------
+function checkViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summary') {
+    $safeView = mysqli_real_escape_string($conn, $viewName);
+    $sql = "SELECT VIEW_DEFINITION FROM information_schema.VIEWS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$safeView'";
+    $res = mysqli_query($conn, $sql);
+    $row = $res ? mysqli_fetch_assoc($res) : null;
+
+    if (!$row) {
+        return ['exists' => false, 'hardcoded' => false, 'matches' => []];
+    }
+
+    // หา literal วันที่แบบเต็ม เช่น '2025-10-01' ที่ถูกฝังไว้ตรงๆ ใน view definition
+    preg_match_all("/'(20\\d{2}-10-01)'/", $row['VIEW_DEFINITION'], $m);
+
+    return [
+        'exists' => true,
+        'hardcoded' => !empty($m[1]),
+        'matches' => array_unique($m[1]),
+    ];
+}
+
+function fixViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summary') {
+    // นิพจน์คำนวณ "วันเริ่มต้นปีงบปัจจุบัน" แบบสด แทนที่ literal ตายตัว
+    // เดือน >= 10 -> ปีงบเริ่ม 1 ต.ค. ปีนี้ / เดือน < 10 -> ปีงบเริ่ม 1 ต.ค. ปีที่แล้ว
+    $fyStart = "(CASE WHEN MONTH(CURDATE()) >= 10 THEN CONCAT(YEAR(CURDATE()), '-10-01') ELSE CONCAT(YEAR(CURDATE()) - 1, '-10-01') END)";
+
+    $safeView = mysqli_real_escape_string($conn, $viewName);
+
+    $sql = "CREATE OR REPLACE VIEW `$safeView` AS
+        SELECT
+            u.id AS user_id,
+            COALESCE(SUM(CASE WHEN br.approved_date >= $fyStart THEN br.amount ELSE 0 END), 0) AS current_year_received,
+            COALESCE(SUM(CASE WHEN br.approved_date < $fyStart AND br.expire_date >= CURDATE()
+                THEN GREATEST(br.amount - COALESCE(usage_summary.spent_prev, 0), 0) ELSE 0 END), 0) AS carried_over_remaining,
+            (
+                SELECT COALESCE(SUM(l.amount_used), 0)
+                FROM budget_usage_logs l
+                JOIN budget_expenses e ON l.expense_id = e.id
+                WHERE e.user_id = u.id
+                  AND l.created_at >= $fyStart
+                  AND l.deleted_at IS NULL
+                  AND e.deleted_at IS NULL
+            ) AS total_spent_this_year,
+            COALESCE(SUM(CASE WHEN br.expire_date < CURDATE()
+                THEN GREATEST(br.amount - COALESCE(usage_summary.spent_total, 0), 0) ELSE 0 END), 0) AS returned_to_treasury,
+            COALESCE(SUM(CASE WHEN br.expire_date >= CURDATE()
+                THEN GREATEST(br.amount - COALESCE(usage_summary.spent_total, 0), 0) ELSE 0 END), 0) AS remaining_balance
+        FROM users u
+        LEFT JOIN budget_received br ON u.id = br.user_id AND br.deleted_at IS NULL
+        LEFT JOIN (
+            SELECT
+                approval_id,
+                SUM(amount_used) AS spent_total,
+                SUM(CASE WHEN created_at < $fyStart THEN amount_used ELSE 0 END) AS spent_prev,
+                SUM(CASE WHEN created_at >= $fyStart THEN amount_used ELSE 0 END) AS spent_curr
+            FROM budget_usage_logs
+            WHERE deleted_at IS NULL
+            GROUP BY approval_id
+        ) usage_summary ON br.id = usage_summary.approval_id
+        WHERE u.deleted_at IS NULL
+        GROUP BY u.id";
+
+    if (!mysqli_query($conn, $sql)) {
+        throw new Exception("แก้ไข VIEW `$viewName` ไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    return ['view' => $viewName];
+}
+
+// ---------------------------------------------------------
 // 4. จัดการ Logic เมื่อมีการกดปุ่ม POST
 // ---------------------------------------------------------
 $alertMessage = '';
@@ -371,6 +444,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . "</ul></div>";
             } catch (Exception $e) {
                 $alertMessage = "<div class='alert alert-danger'>❌ จัดเรียงการตัดเงินไม่สำเร็จ: " . htmlspecialchars($e->getMessage()) . "</div>";
+            }
+        } else {
+            $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
+        }
+    }
+
+    // --- 4.6 แก้ไข VIEW v_user_budget_summary ที่ฝังวันเริ่มปีงบตายตัว ---
+    if (isset($_POST['action_fix_view_fiscal_date'])) {
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'high-admin') {
+            try {
+                fixViewHardcodedFiscalYearDate($conn);
+                $alertMessage = "<div class='alert alert-success'>✅ อัปเดต VIEW <code>v_user_budget_summary</code> ให้คำนวณวันเริ่มปีงบสดจากวันปัจจุบันเรียบร้อยแล้ว (จะไม่ต้องมาแก้ด้วยมือทุกปีอีก)</div>";
+            } catch (Exception $e) {
+                $alertMessage = "<div class='alert alert-danger'>❌ " . htmlspecialchars($e->getMessage()) . "</div>";
             }
         } else {
             $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
@@ -746,6 +833,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
                             </form>
                         </td>
                     </tr>
+
+                    <?php $viewFyCheck = checkViewHardcodedFiscalYearDate($conn); ?>
+                    <?php if ($viewFyCheck['exists']): ?>
+                    <tr>
+                        <td><b>แก้ VIEW ยอดคงเหลือ ให้คำนวณวันเริ่มปีงบสด (ไม่ต้องแก้ด้วยมือทุกปี)</b></td>
+                        <td>
+                            <code>v_user_budget_summary</code> (ใช้คำนวณยอดคงเหลือ/ยกยอด/ใช้ไปปีนี้ในหน้าโปรไฟล์) ฝังวันที่เริ่มต้นปีงบไว้ตรงๆ ในตัว VIEW เอง
+                            แทนที่จะคำนวณจากวันปัจจุบัน ทำให้ยอดผิดทันทีที่ข้ามปีงบ (1 ต.ค.) ถ้าไม่มีใครมาแก้ด้วยมือทุกปี<br>
+                            <?php if ($viewFyCheck['hardcoded']): ?>
+                                <span style="color:#d63384; font-weight:bold;">พบวันที่ฝังตายตัว: <?= htmlspecialchars(implode(', ', $viewFyCheck['matches'])) ?></span>
+                            <?php else: ?>
+                                <span style="color:#198754; font-weight:bold;">✅ ไม่พบวันที่ฝังตายตัว (คำนวณสดอยู่แล้ว)</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข VIEW v_user_budget_summary ให้คำนวณวันเริ่มปีงบสดจากวันปัจจุบันหรือไม่?');" style="margin:0;">
+                                <input type="hidden" name="action_fix_view_fiscal_date" value="1">
+                                <button type="submit" class="btn btn-primary" <?= $viewFyCheck['hardcoded'] ? '' : 'disabled' ?>>
+                                    แก้ไข VIEW
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
 
                     <tr>
                         <td><b>ลบประวัตการใช้งานระบบ</b></td>

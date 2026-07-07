@@ -91,37 +91,60 @@ function current_fiscal_year()
 
 function getRemainingBalance($conn, $user_id)
 {
-    $today = date('Y-m-d');
+    $user_id = intval($user_id);
 
-    // 1. หา "เงินเข้า" (ใช้ logic เดียวกับ calFiscalExpireDate)
-    $sql_income = "SELECT COALESCE(SUM(amount), 0) as total_approved
-                    FROM budget_received
-                    WHERE user_id = $user_id
-                    AND deleted_at IS NULL
-                    AND '$today' <=
-                        CASE
-                            WHEN MONTH(approved_date) >= 10
-                            THEN CONCAT(YEAR(approved_date) + 3, '-09-30')
-                            ELSE CONCAT(YEAR(approved_date) + 2, '-09-30')
-                        END
-                    ";
+    // 1. ยอดรับคงเหลือ นับแบบรายก้อน (หักเฉพาะยอดที่ใช้จริงจากก้อนนั้นๆ ก่อนเช็คหมดอายุ)
+    // ใช้ logic เดียวกับ getAvailableBudgetForUser() ใน tab_expense_logic.php
+    // ห้ามใช้วิธี "รวมรับทั้งหมด - รวมจ่ายทั้งหมด" เพราะจะทำให้ยอดผิดถ้ามีก้อนที่หมดอายุ
+    // แต่เคยถูกใช้จ่ายไปแล้ว (เงินที่ใช้จากก้อนหมดอายุจะถูกหักซ้ำจากก้อนที่ยังไม่หมดอายุ)
+    $sql_available = "SELECT COALESCE(SUM(available_amount), 0) as total_available
+                    FROM (
+                        SELECT GREATEST(
+                            a.amount - COALESCE((
+                                SELECT SUM(amount_used)
+                                FROM budget_usage_logs
+                                WHERE approval_id = a.id
+                                AND deleted_at IS NULL
+                            ), 0),
+                            0
+                        ) as available_amount
+                        FROM budget_received a
+                        WHERE a.user_id = $user_id
+                        AND a.deleted_at IS NULL
+                        AND CURDATE() <=
+                            CASE
+                                WHEN MONTH(a.approved_date) >= 10
+                                THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
+                                ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
+                            END
+                    ) available_budget";
 
-    $res_in = mysqli_query($conn, $sql_income);
-    $row_in = mysqli_fetch_assoc($res_in);
-    $total_approved = floatval($row_in['total_approved']);
+    $res_available = mysqli_query($conn, $sql_available);
+    $available_budget = floatval(mysqli_fetch_assoc($res_available)['total_available']);
 
-    // 2. หา "เงินออก"
-    $sql_expense = "SELECT COALESCE(SUM(amount), 0) as total_spent
-                        FROM budget_expenses
-                        WHERE user_id = $user_id
-                        AND deleted_at IS NULL";
+    // 2. หักยอดตัดที่ยังไม่มีแหล่งเงินรองรับ (pending, ยังไม่ถูกผูกกับก้อนไหน)
+    $sql_pending = "SELECT COALESCE(SUM(unallocated_amount), 0) as total_unallocated
+                    FROM (
+                        SELECT GREATEST(
+                            e.amount - COALESCE(SUM(bul.amount_used), 0),
+                            0
+                        ) as unallocated_amount
+                        FROM budget_expenses e
+                        LEFT JOIN budget_usage_logs bul
+                            ON bul.expense_id = e.id
+                            AND bul.deleted_at IS NULL
+                        WHERE e.user_id = $user_id
+                        AND e.deleted_at IS NULL
+                        GROUP BY e.id, e.amount
+                        HAVING unallocated_amount > 0
+                    ) pending_expenses";
 
-    $res_ex = mysqli_query($conn, $sql_expense);
-    $row_ex = mysqli_fetch_assoc($res_ex);
-    $total_spent = floatval($row_ex['total_spent']);
+    $res_pending = mysqli_query($conn, $sql_pending);
+    $pending_unallocated = floatval(mysqli_fetch_assoc($res_pending)['total_unallocated']);
 
-
-    return $total_approved - $total_spent;
+    // ไม่ clamp ที่ 0 เพราะค่าติดลบมีความหมาย = ใช้จ่ายเกินยอดรับที่ยังไม่หมดอายุ (เกินงบ)
+    // และหน้า users_view.php ใช้เครื่องหมายนี้แสดงสีแดงเตือนอยู่
+    return $available_budget - $pending_unallocated;
 }
 
 
