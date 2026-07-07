@@ -1,3 +1,13 @@
+<?php
+// เส้นขีดฆ่าแบบ custom (เพราะ line-through มาตรฐานเอียง/ไม่อยู่กึ่งกลางเมื่อใช้กับ font-mono ตัวเลข)
+function amt_strike($formatted, $classes, $lineColorClass)
+{
+    return '<span class="relative inline-block ' . $classes . '">'
+        . $formatted
+        . '<span class="absolute left-0 right-0 top-[56%] -translate-y-1/2 border-t-2 ' . $lineColorClass . '"></span>'
+        . '</span>';
+}
+?>
 <div id="txn-table-container" class="flex flex-col h-auto max-h-[calc(78vh-100px)] bg-white rounded-xl shadow-lg border min-h-0 overflow-hidden mb-5">
     <div class="overflow-x-auto overflow-y-auto flex flex-col min-h-0">
         <table class="w-full text-sm text-left">
@@ -140,9 +150,7 @@
 
                                     <?php if ($is_lapsed): ?>
                                         <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
-                                            <span class="text-gray-400 text-lg line-through decoration-gray-400">
-                                                <?php echo number_format($primary_amount, 2); ?>
-                                            </span>
+                                            <?php echo amt_strike(number_format($primary_amount, 2), 'text-gray-400 text-lg font-bold', 'border-red-500'); ?>
                                             <span class="text-purple-600 font-bold text-xs mt-1">
                                                 คืนคลัง: <?php echo number_format($display_left, 2); ?>
                                             </span>
@@ -159,21 +167,15 @@
                                         </div>
 
                                     <?php elseif ($is_depleted): ?>
-                                        <div class="flex flex-col items-end opacity-60 <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+                                        <div class="flex flex-col items-end opacity-40 <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
 
                                             <?php if ($net != $amount || $is_carried_over_row): ?>
-                                                <span class="text-green-700 text-lg font-bold">
-                                                    <?php echo number_format($net, 2); ?>
-                                                </span>
+                                                <?php echo amt_strike(number_format($net, 2), 'text-green-700 text-lg font-bold', 'border-red-500'); ?>
                                                 <?php if ($net != $amount): ?>
-                                                    <span class="text-gray-500 text-xs line-through decoration-gray-500">
-                                                        <?php echo number_format($amount, 2); ?>
-                                                    </span>
+                                                    <?php echo amt_strike(number_format($amount, 2), 'text-gray-500 text-xs', 'border-red-500'); ?>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-gray-500 text-lg decoration-0">
-                                                    <?php echo number_format($amount, 2); ?>
-                                                </span>
+                                                <?php echo amt_strike(number_format($amount, 2), 'text-gray-500 text-lg font-bold', 'border-red-500'); ?>
                                             <?php endif; ?>
 
                                             <span class="text-[10px] text-red-500 font-bold mt-1">
@@ -192,9 +194,7 @@
                                                 <?php echo number_format($net, 2); ?>
                                             </span>
                                             <?php if ($net != $amount): ?>
-                                                <span class="text-gray-400 text-xs line-through decoration-gray-400">
-                                                    <?php echo number_format($amount, 2); ?>
-                                                </span>
+                                                <?php echo amt_strike(number_format($amount, 2), 'text-gray-400 text-xs', 'border-red-500'); ?>
                                             <?php endif; ?>
                                             <span class="text-[10px] text-blue-600 font-semibold">
                                                 (คงเหลือในปีงบ: <?php echo number_format($display_left, 2); ?>)
@@ -207,13 +207,18 @@
                                         </div>
 
                                     <?php else: ?>
-                                        <div class="flex flex-col items-end <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
-                                            <span class="text-green-600 text-lg">
-                                                <?php echo number_format($amount, 2); ?>
-                                            </span>
+                                        <?php $is_used_amount = $display_left < $amount; ?>
+                                        <div class="flex flex-col items-end <?php echo $is_used_amount ? 'opacity-40' : ''; ?> <?php echo $cursor_cls; ?>" <?php echo $tooltip_attr; ?>>
+                                            <?php if ($is_used_amount): ?>
+                                                <?php echo amt_strike(number_format($amount, 2), 'text-green-600 text-lg font-bold', 'border-red-500'); ?>
+                                            <?php else: ?>
+                                                <span class="text-green-600 text-lg font-bold">
+                                                    <?php echo number_format($amount, 2); ?>
+                                                </span>
+                                            <?php endif; ?>
 
-                                            <?php if ($display_left < $amount): ?>
-                                                <span class="text-[10px] text-blue-600">
+                                            <?php if ($is_used_amount): ?>
+                                                <span class="text-[10px] text-blue-600 font-semibold">
                                                     (คงเหลือในปีงบ: <?php echo number_format($display_left, 2); ?>)
                                                 </span>
                                             <?php endif; ?>
