@@ -469,6 +469,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $isCol1Exist = checkColumnExists($conn, $tableName, $col1);
 $isCol2Exist = checkColumnExists($conn, $tableName, $col2);
 $isFullyUpdated = ($isCol1Exist && $isCol2Exist);
+$viewFyCheck = checkViewHardcodedFiscalYearDate($conn);
 $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
 ?>
 
@@ -711,6 +712,30 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         <?php endif; ?>
                     </td>
                 </tr>
+
+                <?php if ($viewFyCheck['exists']): ?>
+                <tr>
+                    <th>โครงสร้างที่ 3</th>
+                    <td>
+                        <b>VIEW:</b> <code>v_user_budget_summary</code> (ใช้คำนวณยอดคงเหลือ/ยกยอด/ใช้ไปปีนี้ในหน้าโปรไฟล์)<br>
+                        <span style="color:#666;">ฝังวันที่เริ่มต้นปีงบไว้ตรงๆ ในตัว VIEW แทนที่จะคำนวณจากวันปัจจุบัน ทำให้ยอดผิดทันทีที่ข้ามปีงบ (1 ต.ค.) ถ้าไม่มีใครมาแก้ด้วยมือทุกปี</span>
+                        <?php if ($viewFyCheck['hardcoded']): ?>
+                            <br><span style="color:#d63384; font-weight:bold;">พบวันที่ฝังตายตัว: <?= htmlspecialchars(implode(', ', $viewFyCheck['matches'])) ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="text-center" style="width: 25%;">
+                        <?php if ($viewFyCheck['hardcoded']): ?>
+                            <span class="status-badge status-missing">❌ ฝังวันที่ตายตัว</span>
+                            <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข VIEW v_user_budget_summary ให้คำนวณวันเริ่มปีงบสดจากวันปัจจุบันหรือไม่?');" class="mt-2" style="margin-bottom:0;">
+                                <input type="hidden" name="action_fix_view_fiscal_date" value="1">
+                                <button type="submit" class="btn btn-primary">🛠️ แก้ไข VIEW</button>
+                            </form>
+                        <?php else: ?>
+                            <span class="status-badge status-exists">✅ คำนวณสดอยู่แล้ว</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endif; ?>
             </tbody>
         </table>
 
@@ -833,30 +858,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
                             </form>
                         </td>
                     </tr>
-
-                    <?php $viewFyCheck = checkViewHardcodedFiscalYearDate($conn); ?>
-                    <?php if ($viewFyCheck['exists']): ?>
-                    <tr>
-                        <td><b>แก้ VIEW ยอดคงเหลือ ให้คำนวณวันเริ่มปีงบสด (ไม่ต้องแก้ด้วยมือทุกปี)</b></td>
-                        <td>
-                            <code>v_user_budget_summary</code> (ใช้คำนวณยอดคงเหลือ/ยกยอด/ใช้ไปปีนี้ในหน้าโปรไฟล์) ฝังวันที่เริ่มต้นปีงบไว้ตรงๆ ในตัว VIEW เอง
-                            แทนที่จะคำนวณจากวันปัจจุบัน ทำให้ยอดผิดทันทีที่ข้ามปีงบ (1 ต.ค.) ถ้าไม่มีใครมาแก้ด้วยมือทุกปี<br>
-                            <?php if ($viewFyCheck['hardcoded']): ?>
-                                <span style="color:#d63384; font-weight:bold;">พบวันที่ฝังตายตัว: <?= htmlspecialchars(implode(', ', $viewFyCheck['matches'])) ?></span>
-                            <?php else: ?>
-                                <span style="color:#198754; font-weight:bold;">✅ ไม่พบวันที่ฝังตายตัว (คำนวณสดอยู่แล้ว)</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="text-align: center;">
-                            <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข VIEW v_user_budget_summary ให้คำนวณวันเริ่มปีงบสดจากวันปัจจุบันหรือไม่?');" style="margin:0;">
-                                <input type="hidden" name="action_fix_view_fiscal_date" value="1">
-                                <button type="submit" class="btn btn-primary" <?= $viewFyCheck['hardcoded'] ? '' : 'disabled' ?>>
-                                    แก้ไข VIEW
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endif; ?>
 
                     <tr>
                         <td><b>ลบประวัตการใช้งานระบบ</b></td>
