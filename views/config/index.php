@@ -852,7 +852,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันจัดเรียง budget_usage_logs ใหม่ตาม FIFO หรือไม่?\n\nระบบจะ soft delete usage logs เดิม แล้วสร้าง footprint ใหม่จาก budget_expenses และ budget_received ที่ยังไม่ถูกลบ');" style="margin:0;">
                                 <input type="hidden" name="action_rebuild_usage_fifo" value="1">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary" <?= $usageRepairStats['misallocated_logs'] == 0 ? 'disabled' : '' ?>>
                                     จัดเรียงใหม่
                                 </button>
                             </form>
