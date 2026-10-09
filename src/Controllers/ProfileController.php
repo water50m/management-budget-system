@@ -256,6 +256,8 @@ class ProfileController
         $transactions = [];
         $sum_income = 0;
         $sum_expense = 0;
+        $sum_returned_to_treasury = 0;
+        $today = date('Y-m-d');
 
         if (!empty($sql_parts)) {
             $sql = implode(" UNION ALL ", $sql_parts) . " ORDER BY txn_date DESC, id DESC";
@@ -267,6 +269,15 @@ class ProfileController
                     $sum_income += ($f_carried_over_remaining || $is_carried_over_row)
                         ? (float)($row['net_carried_over'] ?? 0)
                         : (float)$row['amount'];
+
+                    // รายการรับที่หมดอายุและยังเหลือ คือยอดที่ต้องคืนคลัง
+                    // ใช้ current_remaining ณ สิ้นปีงบที่เลือก เพื่อให้ตรงกับยอดที่แสดงในตาราง
+                    $remaining_at_selected_year_end = (float)($row['current_remaining'] ?? 0);
+                    if (!empty($row['expire_date'])
+                        && $row['expire_date'] < $today
+                        && $remaining_at_selected_year_end > 0) {
+                        $sum_returned_to_treasury += $remaining_at_selected_year_end;
+                    }
                 } else {
                     $sum_expense += abs($row['amount']);
                 }
@@ -306,6 +317,7 @@ class ProfileController
             'filters'      => $filters,      // ส่ง filters ไปด้วย
             'sum_income'   => $sum_income,
             'sum_expense'  => $sum_expense,
+            'sum_returned_to_treasury' => $sum_returned_to_treasury,
             'current_fiscal_year' => $current_fiscal_year,
             'department_list' => $department_list,
         ];

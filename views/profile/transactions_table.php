@@ -379,7 +379,12 @@ function amt_strike($formatted, $classes, $lineColorClass)
 
                             </div>
 
-                            <?php $net_total = $sum_income - $sum_expense; ?>
+                            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-gray-200 shadow-sm">
+                                <span class="text-base uppercase text-purple-600"><?php echo $t['label_returned_to_treasury']; ?></span>
+                                <span class="text-base text-purple-600">-<?php echo number_format($sum_returned_to_treasury, 2); ?></span>
+                            </div>
+
+                            <?php $net_total = $sum_income - $sum_expense - $sum_returned_to_treasury; ?>
                             <div class="flex items-center gap-2">
                                 <span class="text-base text-gray-400  uppercase tracking-wider"><?php echo $t['label_total']; ?></span>
                                 <span class="text-base   <?php echo ($net_total >= 0) ? 'text-blue-700' : 'text-red-600'; ?>">

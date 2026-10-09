@@ -45,5 +45,6 @@ $t = [
     'summary_label' => $is_thai ? 'สรุปยอดรวม (เฉพาะรายการที่แสดง):' : 'Summary (Visible items):',
     'label_income' => $is_thai ? 'ยอดรับ' : 'INCOME',
     'label_expense' => $is_thai ? 'ยอดตัด' : 'EXPENSE',
+    'label_returned_to_treasury' => $is_thai ? 'คืนคลัง' : 'RETURNED',
     'label_total' => $is_thai ? 'ยอดรวม' : 'TOTAL',
 ];
