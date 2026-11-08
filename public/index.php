@@ -1,5 +1,10 @@
 <?php
 ob_start();
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+    'samesite' => 'Lax',
+]);
 session_start();
 
 // เรียกใช้ Controller ที่จำเป็น
@@ -7,6 +12,10 @@ require_once __DIR__ . '/../src/Controllers/AuthController.php';
 require_once __DIR__ . '/../src/Controllers/DashboardController.php';
 require_once __DIR__ . '/../src/Controllers/ProfileController.php';
 // ... require controller อื่นๆ ...
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') !== 'fast-login') {
+    requireValidCsrfToken();
+}
 
 $page = $_GET['page'] ?? 'dashboard';
 

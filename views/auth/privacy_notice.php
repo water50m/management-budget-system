@@ -86,6 +86,7 @@
 
             <div class="border-t border-gray-200 pt-8 mt-10">
                 <form action="index.php?page=privacy" method="POST" class="space-y-6 max-w-md mx-auto">
+                    <?= csrfField() ?>
 
                     <div class="flex items-start space-x-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
                         <input type="checkbox" id="accept_pdpa" name="accept_pdpa" required

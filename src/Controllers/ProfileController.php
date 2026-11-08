@@ -74,7 +74,9 @@ class ProfileController
         $f_min    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
         $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
         $f_prev_year = isset($_GET['prevYear']) && $_GET['prevYear'] != 0 ? intval($_GET['prevYear']) : 0;
-        $f_total_balance_show = isset($_GET['total_balance'])  && $_GET['prevYear'] > 0 ? intval($conn, $_GET['total_balance']) : 0;
+        $f_total_balance_show = isset($_GET['total_balance']) && $f_prev_year > 0
+            ? intval($_GET['total_balance'])
+            : 0;
         $f_carried_over_remaining = isset($_GET['carried_over_remaining'])  && $_GET['carried_over_remaining'] != '' ? true : false;
 
         // ---------------------------------------------------------

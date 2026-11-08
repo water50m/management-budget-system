@@ -72,6 +72,7 @@
 
         <div class="p-4 border-t bg-gray-50 flex flex-wrap justify-between items-center gap-3">
             <form method="POST" action="index.php?page=dashboard" onsubmit="return confirm('ยืนยันการลบไฟล์เอกสารนี้ถาวร?');" class="m-0">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="delete_receipt_image">
                 <input type="hidden" name="expense_id" id="deleteExpenseId" value="">
                 <input type="hidden" name="submit_page" value="<?= isset($_GET['page']) ? $_GET['page'] : 'dashboard' ?>">
@@ -84,6 +85,7 @@
             </form>
 
             <form method="POST" action="index.php?page=dashboard" enctype="multipart/form-data" class="flex items-center gap-2 m-0 ml-auto">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="reupload_receipt_image">
                 <input type="hidden" name="expense_id" id="reuploadExpenseId" value="">
 

@@ -15,6 +15,7 @@ $cats_list = $data['categories_list'];
         </div>
 
         <form method="POST" action="index.php?page=dashboard" enctype="multipart/form-data">
+            <?= csrfField() ?>
 
             <div class="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded-lg mb-4 text-center">
                 <div class="flex justify-around items-center divide-x divide-green-300">

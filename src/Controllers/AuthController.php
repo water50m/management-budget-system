@@ -20,21 +20,30 @@ class AuthController
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!empty($_POST['username']) && !empty($_POST['password'])) {
 
-                $user = mysqli_real_escape_string($conn, stripslashes($_POST["username"]));
-                $psw = mysqli_real_escape_string($conn, stripslashes($_POST["password"]));
+                // Do not escape or strip the password: LDAP must receive the
+                // exact value entered by the user. Escaping here breaks valid
+                // passwords containing characters such as quotes or backslashes.
+                $user = trim((string) $_POST['username']);
+                $psw = (string) $_POST['password'];
 
-                $server = 'ldaps://ldaps.nu.local:636';
-                $local = "@nu.local";
+                $server = getenv('LDAP_SERVER') ?: 'ldaps://ldaps.nu.local:636';
+                $local = getenv('LDAP_DOMAIN') ?: '@nu.local';
 
+                // LDAPS must receive this setting before ldap_connect().  The
+                // directory currently uses an internal certificate chain, so
+                // certificate validation is intentionally disabled.
+                ldap_set_option(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
                 $ad = ldap_connect($server);
-                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
-                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
-                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
 
                 if (!$ad) {
                     header("Location: index.php?page=login&status=error&msg=cant_server");
                     exit();
                 }
+
+                ldap_set_option($ad, LDAP_OPT_PROTOCOL_VERSION, 3);
+                ldap_set_option($ad, LDAP_OPT_REFERRALS, 0);
+                ldap_set_option($ad, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+                ldap_set_option($ad, LDAP_OPT_NETWORK_TIMEOUT, 10);
 
                 // พยายาม Bind
                 $b = @ldap_bind($ad, $user . $local, $psw);
@@ -91,14 +100,24 @@ class AuthController
 
     private function handle_login_success($conn, $user)
     {
+        session_regenerate_id(true);
         // 1. ดึงข้อมูลจากฐานข้อมูล
-        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name 
+        $sql = "SELECT p.user_id, u.username, u.role_id, r.role_name, p.prefix, p.first_name, p.last_name
             FROM users u
             LEFT JOIN user_profiles p ON u.upid = p.user_id
             LEFT JOIN roles r ON u.role_id = r.id
-            WHERE u.username = '$user'";
+            WHERE u.username = ?";
 
-        $result = mysqli_query($conn, $sql);
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            error_log('Unable to prepare authenticated-user query.');
+            header("Location: index.php?page=login&status=error&msg=unknow_error");
+            exit();
+        }
+
+        mysqli_stmt_bind_param($stmt, 's', $user);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);

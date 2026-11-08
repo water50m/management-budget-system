@@ -26,6 +26,7 @@ $role_query = mysqli_query($conn, $role_sql);
             </div>
 
             <form action="index.php?page=add-profile" method="POST" class="px-6 py-6 space-y-6">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="add_user">
                 <input type="hidden" name="current_page" value="<?php echo $_GET['page'] ?? 'dashboard'; ?>">
                 <input type="hidden" name="current_tab" value="<?php echo $_GET['tab'] ?? ''; ?>">

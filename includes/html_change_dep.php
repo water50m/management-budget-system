@@ -1,6 +1,7 @@
 <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'high-admin'): ?>
 
     <form action="index.php?page=profile&id=<?php echo $user_info['upid']; ?>" method="POST" class="inline-flex items-center justify-center gap-2 mt-2">
+        <?= csrfField() ?>
 
         <input type="hidden" name="action" value="change_department">
         <input type="hidden" name="user_id" value="<?php echo $user_info['upid']; ?>">

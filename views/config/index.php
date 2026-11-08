@@ -659,6 +659,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                 <?php endif; ?>
             </div>
             <form method="POST" class="top-setting-form">
+                <?= csrfField() ?>
                 <input type="hidden" name="action_save_evaluation_link" value="1">
                 <input type="url"
                     name="evaluation_link"
@@ -687,6 +688,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         <?php else: ?>
                             <span class="status-badge status-missing">❌ ยังไม่มีคอลัมน์</span>
                             <form method="POST" onsubmit="return confirm('ยืนยันการเพิ่มคอลัมน์ <?= $col1 ?> ?');" class="mt-2" style="margin-bottom:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_add_col1" value="1">
                                 <button type="submit" class="btn btn-primary">➕ เพิ่มคอลัมน์นี้</button>
                             </form>
@@ -706,6 +708,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         <?php else: ?>
                             <span class="status-badge status-missing">❌ ยังไม่มีคอลัมน์</span>
                             <form method="POST" onsubmit="return confirm('ยืนยันการเพิ่มคอลัมน์ <?= $col2 ?> ?');" class="mt-2" style="margin-bottom:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_add_col2" value="1">
                                 <button type="submit" class="btn btn-primary">➕ เพิ่มคอลัมน์นี้</button>
                             </form>
@@ -727,6 +730,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         <?php if ($viewFyCheck['hardcoded']): ?>
                             <span class="status-badge status-missing">❌ ฝังวันที่ตายตัว</span>
                             <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข VIEW v_user_budget_summary ให้คำนวณวันเริ่มปีงบสดจากวันปัจจุบันหรือไม่?');" class="mt-2" style="margin-bottom:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_fix_view_fiscal_date" value="1">
                                 <button type="submit" class="btn btn-primary">🛠️ แก้ไข VIEW</button>
                             </form>
@@ -786,6 +790,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         </td>
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันการลบข้อมูล Soft Delete ทั้งหมด?\n\n**ข้อมูลนี้จะหายถาวร!**');" style="margin:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_purge_soft_deleted" value="1">
                                 <button type="submit" class="btn btn-danger" <?= ($cnt_expenses + $cnt_received + $cnt_usage_logs == 0) ? 'disabled' : '' ?>>
                                     🗑️ ลบถาวร
@@ -822,6 +827,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                         </td>
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันแก้ไข expire_date ทั้งหมดที่ไม่ถูกต้อง?');" style="margin:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_fix_expire_date" value="1">
                                 <button type="submit" class="btn btn-primary" <?= $fix_enabled ? '' : 'disabled' ?>>
                                     แปลงทั้งหมด
@@ -851,6 +857,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
                         </td>
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันจัดเรียง budget_usage_logs ใหม่ตาม FIFO หรือไม่?\n\nระบบจะ soft delete usage logs เดิม แล้วสร้าง footprint ใหม่จาก budget_expenses และ budget_received ที่ยังไม่ถูกลบ');" style="margin:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_rebuild_usage_fifo" value="1">
                                 <button type="submit" class="btn btn-primary" <?= $usageRepairStats['misallocated_logs'] == 0 ? 'disabled' : '' ?>>
                                     จัดเรียงใหม่
@@ -867,6 +874,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_fix_expire_dat
                         </td>
                         <td style="text-align: center;">
                             <form method="POST" onsubmit="return confirm('ยืนยันการลบ Activity Logs ที่เก่ากว่า 3 เดือนทิ้งทั้งหมดหรือไม่?');" style="margin:0;">
+                                <?= csrfField() ?>
                                 <input type="hidden" name="action_purge_old_logs" value="1">
                                 <button type="submit" class="btn btn-danger" <?= ($cnt_logs == 0) ? 'disabled' : '' ?>>
                                     🗑️ ลบ Logs

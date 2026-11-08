@@ -27,6 +27,37 @@ function loadEnv($path) {
 
 }
 
+function csrfToken() {
+    if (empty($_SESSION['_csrf_token'])) {
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['_csrf_token'];
+}
+
+function csrfField() {
+    return '<input type="hidden" name="_csrf_token" value="'
+        . htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') . '">';
+}
+
+function requireValidCsrfToken() {
+    $token = $_POST['_csrf_token'] ?? '';
+    $expected = $_SESSION['_csrf_token'] ?? '';
+
+    if (!is_string($token) || !is_string($expected) || !hash_equals($expected, $token)) {
+        // A Login form opened before a deployment can carry no token (or an
+        // expired one). Send it back to a freshly-rendered form; do not process
+        // the submitted credentials.
+        if (($_GET['page'] ?? '') === 'login') {
+            header('Location: index.php?page=login&status=error&msg=csrf_expired', true, 303);
+            exit();
+        }
+
+        http_response_code(403);
+        exit('Invalid CSRF token. Please refresh the page and try again.');
+    }
+}
+
 
 function oneClickFixExpireDate($conn) {
     $res = mysqli_query($conn, "SELECT id, approved_date, expire_date FROM budget_received WHERE deleted_at IS NULL");
@@ -144,20 +175,25 @@ function submitDeleteUser($conn) {
 }
 
 function getDepartmentName($conn, $user_id) {
-    // ป้องกัน SQL Injection ด้วยการรับค่าเป็น Integer
-    $id = intval($user_id);
-    
-    $sql = "SELECT d.name_th 
+    $sql = "SELECT d.thai_name
             FROM user_profiles p 
             JOIN departments d ON p.department_id = d.id 
-            WHERE p.id = $id 
+            WHERE p.user_id = ?
             LIMIT 1";
-            
-    $result = mysqli_query($conn, $sql);
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        error_log('Unable to prepare department lookup.');
+        return 'ไม่ระบุสังกัด';
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
     
     if ($result && mysqli_num_rows($result) > 0) {
         $row = mysqli_fetch_assoc($result);
-        return $row['name_th'];
+        return $row['thai_name'];
     }
     
     return "ไม่ระบุสังกัด"; // กรณีไม่พบข้อมูล

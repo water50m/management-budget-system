@@ -9,6 +9,7 @@
         </div>
 
         <form method="POST" action="index.php?page=dashboard" id="formEditBudget">
+            <?= csrfField() ?>
 
             <input type="hidden" name="action" value="edit_budget_received">
             <input type="hidden" name="received_id" id="edit_budget_record_id">

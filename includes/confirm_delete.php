@@ -18,6 +18,7 @@
         </div>
 
         <form id="deleteForm" method="POST" action="index.php?page=dashboard" class="px-6 pb-6">
+            <?= csrfField() ?>
             
             <input type="hidden" name="action" id="modal_action_value" value="">
             <input type="hidden" name="id_to_delete" id="modal_id_to_delete" value="">

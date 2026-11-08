@@ -6,6 +6,7 @@
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-red-100">
 
             <form action="index.php?page=dashboard&tab=users" method="POST">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="delete_user">
                 <input type="hidden" name="user_id" id="modalDeleteUserId">
                 <input type="hidden" name="submit_page" value="<?= $_GET['page']; ?>">

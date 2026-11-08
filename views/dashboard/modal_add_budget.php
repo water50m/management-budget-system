@@ -9,6 +9,7 @@
         </div>
 
         <form method="POST" action="index.php?page=dashboard">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="add_budget">
             <input type="hidden" name="user_id" id="add_budget_user_id">
 

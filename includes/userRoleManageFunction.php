@@ -37,6 +37,7 @@ function renderUserRoleManageComponent($u, $conn)
             if ($u['role_id'] != '1'):
             ?>
                 <form method="POST" action="index.php?page=dashboard" class="flex items-center gap-2">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="update_role">
                     <input type="hidden" name="target_user_id" value="<?php echo $u['id']; ?>">
 

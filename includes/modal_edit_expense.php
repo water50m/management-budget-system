@@ -15,6 +15,7 @@ $cats_list = $data['categories_list'] ;
         </div>
 
         <form method="POST" action="index.php?page=dashboard" id="formEditExpense">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="edit_budget_expense">
             <input type="hidden" name="expense_id" id="edit_expense_id">
             <input type="hidden" name="target_user_id" id="edit_modal_user_id">

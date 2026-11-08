@@ -1,5 +1,19 @@
 <?php
 
+function validateUploadedReceiptFile($temporaryPath, $extension, array $allowedMimeTypes)
+{
+    if (!is_uploaded_file($temporaryPath)) {
+        throw new Exception('ไม่พบไฟล์อัปโหลดที่ถูกต้อง');
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($temporaryPath);
+
+    if (!isset($allowedMimeTypes[$extension]) || !in_array($mimeType, $allowedMimeTypes[$extension], true)) {
+        throw new Exception('ชนิดข้อมูลของไฟล์ไม่ตรงกับนามสกุลที่อนุญาต');
+    }
+}
+
 function deleteReceiptImage($conn)
 {
     $expense_id = intval($_POST['expense_id']);
@@ -101,10 +115,21 @@ function reuploadReceiptImage($conn)
         $file_name = $_FILES['new_receipt_image']['name'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
-        if (!in_array($file_ext, $allowed_exts)) {
+        $allowedMimeTypes = [
+            'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'], 'png' => ['image/png'],
+            'gif' => ['image/gif'], 'pdf' => ['application/pdf'],
+            'doc' => ['application/msword'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+            'xls' => ['application/vnd.ms-excel', 'application/CDFV2'],
+            'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        ];
+        if (!isset($allowedMimeTypes[$file_ext])) {
             throw new Exception("รองรับเฉพาะ JPG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX เท่านั้น");
         }
+        if ($_FILES['new_receipt_image']['size'] > 10 * 1024 * 1024) {
+            throw new Exception('ไฟล์มีขนาดเกิน 10 MB');
+        }
+        validateUploadedReceiptFile($file_tmp, $file_ext, $allowedMimeTypes);
 
         $upload_dir = 'uploads/receipts/';
         if (!is_dir($upload_dir)) {
@@ -497,11 +522,18 @@ function addExpense($conn)
             $file_name = $_FILES['receipt_image']['name'];
             $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-            // 4. ตรวจสอบนามสกุลไฟล์เพื่อความปลอดภัย
-            $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
-            if (!in_array($file_ext, $allowed_exts)) {
+            // 4. ตรวจสอบทั้งนามสกุลและ MIME type จากเนื้อไฟล์
+            $allowedMimeTypes = [
+                'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'],
+                'png' => ['image/png'], 'gif' => ['image/gif'],
+            ];
+            if (!isset($allowedMimeTypes[$file_ext])) {
                 throw new Exception("รูปแบบไฟล์รูปภาพไม่ถูกต้อง รองรับเฉพาะ JPG, PNG, GIF เท่านั้น");
             }
+            if ($_FILES['receipt_image']['size'] > 10 * 1024 * 1024) {
+                throw new Exception('ไฟล์มีขนาดเกิน 10 MB');
+            }
+            validateUploadedReceiptFile($file_tmp, $file_ext, $allowedMimeTypes);
 
             // 5. ตั้งชื่อไฟล์ใหม่ ป้องกันชื่อซ้ำ (รูปแบบ: receipt_UserID_เวลา_รหัสสุ่ม.นามสกุล)
             $new_file_name = 'receipt_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $file_ext;
