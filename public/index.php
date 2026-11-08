@@ -13,7 +13,7 @@ require_once __DIR__ . '/../src/Controllers/DashboardController.php';
 require_once __DIR__ . '/../src/Controllers/ProfileController.php';
 // ... require controller อื่นๆ ...
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') !== 'fast-login') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
 }
 
@@ -39,11 +39,6 @@ switch ($page) {
     case 'privacy':
         $controller = new AuthController();
         $controller->privacy_notice();
-        break;
-
-    case 'fast-login':
-        $controller = new AuthController();
-        $controller->fast_login();
         break;
 
     case 'logout':
@@ -79,6 +74,7 @@ switch ($page) {
     // case 'register': ...
 
     default:
+        http_response_code(404);
         echo "404 Not Found";
         break;
 }

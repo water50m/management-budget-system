@@ -26,8 +26,8 @@ class AuthController
                 $user = trim((string) $_POST['username']);
                 $psw = (string) $_POST['password'];
 
-                $server = getenv('LDAP_SERVER') ?: 'ldaps://ldaps.nu.local:636';
-                $local = getenv('LDAP_DOMAIN') ?: '@nu.local';
+                $server = 'ldaps://ldaps.nu.local:636';
+                $local = '@nu.local';
 
                 // LDAPS must receive this setting before ldap_connect().  The
                 // directory currently uses an internal certificate chain, so
@@ -203,66 +203,12 @@ class AuthController
             </div>
 
             <div style="background-color: #f9fafb; padding: 20px; text-align: center;">
-                <h4 style="color: #4b5563;">🧪 ทดสอบระบบด้วยสิทธิ์ต่างๆ</h4>
-                <form action="index.php?page=fast-login" method="POST">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
-                        <?php foreach ($testRoles as $key => $info): ?>
-                            <button type="submit" name="test-role-test" value="<?php echo $key; ?>"
-                                style="border: 1px solid <?php echo $info['color']; ?>; color: <?php echo $info['color']; ?>; padding: 8px; border-radius: 6px; background: white; cursor: pointer; font-weight: bold;">
-                                <?php echo $key ?>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                </form>
                 <div style="margin-top: 15px;"><a href="javascript:history.back()">กลับไปลองใหม่</a></div>
             </div>
         </div>
 <?php
     }
 
-    public function fast_login()
-    {
-        global $conn;
-
-        $_SESSION['user_id'] = '263';
-        $_SESSION['fullname'] = 'สมชาย' . ' ' . 'รักเรียน';
-
-        $role = $_GET['mock'] ?? 'admin';
-
-        if ($role == 'ad_anatomy') {
-            $_SESSION['role'] = 'admin-anatomy';
-            $_SESSION['seer'] = 1;
-        } else if ($role == 'ad_biochemistr') {
-            $_SESSION['role'] = 'admin-biochemistry';
-            $_SESSION['seer'] = 2;
-        } else if ($role == 'ad_mic_par') {
-            $_SESSION['role'] = 'admin-mic-par';
-            $_SESSION['seer'] = 3;
-        } else if ($role == 'ad_physiology') {
-            $_SESSION['role'] = 'admin-physiology ';
-            $_SESSION['seer'] = 4;
-        } else if ($role == 'ad_office') {
-            $_SESSION['role'] = 'admin-office';
-            $_SESSION['seer'] = 6;
-        } else if ($role == 'user') {
-            $_SESSION['user_id'] = '4';
-            $_SESSION['role'] = 'user';
-            $_SESSION['seer'] = 7;
-        } else if ($role == 'admin') {
-
-            $_SESSION['role'] = 'high-admin';
-            $_SESSION['seer'] = 0;
-        }
-        // header("Location: index.php?page=dashboard&tab=users");
-        echo $_SESSION['user_id'];
-        echo $_SESSION['fullname'];
-        echo $_SESSION['role'];
-        echo $_SESSION['seer'];
-        $this->rememberAuth($conn, $_SESSION['user_id']);
-        header("Location: index.php?page=dashboard&tab=summary");
-        exit;
-    }
-    
     public function new_login()
     {
         require_once __DIR__ . '/../../views/auth/new_login.php';

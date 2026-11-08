@@ -1,7 +1,6 @@
 <?php
-
 // 2. ตรวจสอบ Cookie (ถ้ายังไม่ได้ Login Session)
-if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == 'error') {
+if (isset($_GET['status']) && $_GET['status'] == 'error') {
     $msg = isset($_GET['msg']) ? $_GET['msg'] : '';
     if ($msg == 'invalid_credentials') {
         $trasnlate_msg = 'username หรือ password ไม่ถูกต้อง';
@@ -11,6 +10,8 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
         $trasnlate_msg = 'ยังไม่มีข้อมูลของท่านในระบบ กรุณาติดต่อแอดมิน';
     } else if ($msg == 'empty_fields') {
         $trasnlate_msg = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+    } else if ($msg == 'csrf_expired') {
+        $trasnlate_msg = 'หน้าเข้าสู่ระบบหมดอายุแล้ว กรุณากรอกข้อมูลอีกครั้ง';
     } else {
         $trasnlate_msg = 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาลองใหม่อีกครั้ง';
     }
@@ -68,8 +69,12 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
             </div>
 
             <form action="index.php?page=login" method="POST" class="space-y-5">
+                <?= csrfField() ?>
 
                 <?php if (isset($trasnlate_msg) && !empty($trasnlate_msg)): ?>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+                        <?= htmlspecialchars($trasnlate_msg, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
                 <?php endif; ?>
                 <?php if (isset($remembered_user) && false): ?>
 
@@ -136,21 +141,6 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
                 <?php endif; ?>
             </form>
 
-            <!-- <div class="mt-8 pt-6 border-t border-dashed border-gray-200">
-                <p class="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
-                    --- Developer Access (Temporary) ---
-                </p>
-                <div class="flex gap-3">
-                    <button type="button" onclick="devLogin('user')"
-                          class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-user-tag text-gray-500"></i> Mock User
-                    </button>
-                    <button type="button" onclick="devLogin('admin')"
-                        class="flex-1 py-2.5 bg-gray-800 text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-user-shield text-amber-400"></i> Mock Admin
-                    </button>
-                </div>
-            </div> -->
             <div class="mt-8 pt-6 border-t border-dashed border-gray-200 text-center">
                 <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">
                     ต้องการความช่วยเหลือ?
@@ -188,16 +178,3 @@ if (isset($_GET['status']) && !empty($_SESSION['error']) && $_GET['status'] == '
             </div>
         </div>
     </div>
-
-    <script>
-        function devLogin(role) {
-            alert(`[DEV MODE]\nกำลังเข้าสู่ระบบในฐานะ: ${role.toUpperCase()}\n(Mock Login Success)`);
-
-            // ส่งค่า role ไปตรงๆ เลย เช่น index.php?...&mock=admin
-            window.location.href = `index.php?page=fast-login`;
-        }
-    </script>
-
-</body>
-
-</html>
