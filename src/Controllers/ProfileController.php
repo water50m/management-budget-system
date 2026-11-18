@@ -264,14 +264,43 @@ class ProfileController
             $result = mysqli_query($conn, $sql);
 
             while ($row = mysqli_fetch_assoc($result)) {
-                if ($row['type'] == 'income') {
-                    $is_carried_over_row = isset($row['fiscal_year_num']) && ((int)$row['fiscal_year_num'] < (int)$selected_fiscal_year);
-                    $sum_income += ($f_carried_over_remaining || $is_carried_over_row)
-                        ? (float)($row['net_carried_over'] ?? 0)
-                        : (float)$row['amount'];
+                $row['thai_date'] = dateToThai($row['txn_date']);
+                $row['expire_date_th'] = dateToThai($row['expire_date']);
+                $transactions[] = $row;
+            }
 
-                    // รายการรับที่หมดอายุและยังเหลือ คือยอดที่ต้องคืนคลัง
-                    // ใช้ current_remaining ณ สิ้นปีงบที่เลือก เพื่อให้ตรงกับยอดที่แสดงในตาราง
+            $visible_expense_ids = array_map('intval', array_column(
+                array_filter($transactions, function ($row) { return $row['type'] === 'expense'; }),
+                'id'
+            ));
+            $visible_usage_by_receipt = [];
+            if ($visible_expense_ids) {
+                $ids = implode(',', $visible_expense_ids);
+                $usage_sql = "SELECT approval_id, SUM(amount_used) AS amount_used
+                              FROM budget_usage_logs
+                              WHERE expense_id IN ($ids)
+                                AND deleted_at IS NULL
+                                AND created_at < '$selected_fy_start'
+                              GROUP BY approval_id";
+                $usage_result = mysqli_query($conn, $usage_sql);
+                if (!$usage_result) {
+                    throw new RuntimeException('คำนวณยอดรวมรายการไม่สำเร็จ: ' . mysqli_error($conn));
+                }
+                while ($usage = mysqli_fetch_assoc($usage_result)) {
+                    $visible_usage_by_receipt[(int)$usage['approval_id']] = (float)$usage['amount_used'];
+                }
+            }
+
+            foreach ($transactions as $row) {
+                if ($row['type'] === 'income') {
+                    $is_carried_over_row = isset($row['fiscal_year_num']) && ((int)$row['fiscal_year_num'] < (int)$selected_fiscal_year);
+                    if ($f_carried_over_remaining || $is_carried_over_row) {
+                        $sum_income += (float)($row['net_carried_over'] ?? 0)
+                            + ($visible_usage_by_receipt[(int)$row['id']] ?? 0);
+                    } else {
+                        $sum_income += (float)$row['amount'];
+                    }
+
                     $remaining_at_selected_year_end = (float)($row['current_remaining'] ?? 0);
                     if (!empty($row['expire_date'])
                         && $row['expire_date'] < $today
@@ -281,9 +310,6 @@ class ProfileController
                 } else {
                     $sum_expense += abs($row['amount']);
                 }
-                $row['thai_date'] = dateToThai($row['txn_date']);
-                $row['expire_date_th'] = dateToThai($row['expire_date']);
-                $transactions[] = $row;
             }
         }
 
