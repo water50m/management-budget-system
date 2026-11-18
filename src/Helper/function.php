@@ -111,12 +111,7 @@ function getRemainingBalance($conn, $user_id)
                         FROM budget_received a
                         WHERE a.user_id = $user_id
                         AND a.deleted_at IS NULL
-                        AND CURDATE() <=
-                            CASE
-                                WHEN MONTH(a.approved_date) >= 10
-                                THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
-                                ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
-                            END
+                        AND a.expire_date >= CURDATE()
                     ) available_budget";
 
     $res_available = mysqli_query($conn, $sql_available);

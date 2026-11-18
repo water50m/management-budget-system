@@ -161,6 +161,74 @@ function getBudgetUsageRepairStats($conn) {
     return $stats;
 }
 
+function getOverallocatedExpenseStats($conn) {
+    $sql = "SELECT COUNT(*) AS expense_count, COALESCE(SUM(allocated - amount), 0) AS excess_amount
+            FROM (
+                SELECT e.id, e.amount, SUM(l.amount_used) AS allocated
+                FROM budget_expenses e
+                JOIN budget_usage_logs l ON l.expense_id = e.id AND l.deleted_at IS NULL
+                WHERE e.deleted_at IS NULL
+                GROUP BY e.id, e.amount
+                HAVING allocated > e.amount + 0.001
+            ) excess";
+    $result = mysqli_query($conn, $sql);
+    if (!$result) {
+        throw new Exception("ตรวจสอบยอดตัดซ้ำไม่สำเร็จ: " . mysqli_error($conn));
+    }
+    return mysqli_fetch_assoc($result);
+}
+
+function repairOverallocatedExpenseLogs($conn) {
+    $repaired = 0;
+    $removed = 0;
+    mysqli_begin_transaction($conn);
+    try {
+        $sql = "SELECT e.id, e.amount
+                FROM budget_expenses e
+                JOIN budget_usage_logs l ON l.expense_id = e.id AND l.deleted_at IS NULL
+                WHERE e.deleted_at IS NULL
+                GROUP BY e.id, e.amount
+                HAVING SUM(l.amount_used) > e.amount + 0.001";
+        $expenses = mysqli_query($conn, $sql);
+        if (!$expenses) throw new Exception(mysqli_error($conn));
+
+        while ($expense = mysqli_fetch_assoc($expenses)) {
+            $expenseId = (int)$expense['id'];
+            $remaining = (float)$expense['amount'];
+            $logs = mysqli_query($conn, "SELECT l.id, l.amount_used
+                                         FROM budget_usage_logs l
+                                         JOIN budget_received r ON r.id = l.approval_id
+                                         WHERE l.expense_id = $expenseId AND l.deleted_at IS NULL
+                                         ORDER BY r.approved_date ASC, r.id ASC, l.id ASC");
+            if (!$logs) throw new Exception(mysqli_error($conn));
+
+            while ($log = mysqli_fetch_assoc($logs)) {
+                $logId = (int)$log['id'];
+                $used = (float)$log['amount_used'];
+                if ($remaining <= 0.0001) {
+                    $ok = mysqli_query($conn, "UPDATE budget_usage_logs SET deleted_at = NOW() WHERE id = $logId");
+                    $removed += $used;
+                } elseif ($used > $remaining + 0.0001) {
+                    $keep = round($remaining, 2);
+                    $ok = mysqli_query($conn, "UPDATE budget_usage_logs SET amount_used = $keep WHERE id = $logId");
+                    $removed += $used - $keep;
+                    $remaining = 0;
+                } else {
+                    $ok = true;
+                    $remaining -= $used;
+                }
+                if (!$ok) throw new Exception(mysqli_error($conn));
+            }
+            $repaired++;
+        }
+        mysqli_commit($conn);
+        return ['repaired' => $repaired, 'removed' => $removed];
+    } catch (Throwable $e) {
+        mysqli_rollback($conn);
+        throw $e;
+    }
+}
+
 function rebuildBudgetUsageLogsFifo($conn) {
     $result = [
         'old_logs_soft_deleted' => 0,
@@ -301,7 +369,7 @@ function fixViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summar
 
     $sql = "CREATE OR REPLACE VIEW `$safeView` AS
         SELECT
-            u.id AS user_id,
+            u.upid AS user_id,
             COALESCE(SUM(CASE WHEN br.approved_date >= $fyStart THEN br.amount ELSE 0 END), 0) AS current_year_received,
             COALESCE(SUM(CASE WHEN br.approved_date < $fyStart AND br.expire_date >= CURDATE()
                 THEN GREATEST(br.amount - COALESCE(usage_summary.spent_prev, 0), 0) ELSE 0 END), 0) AS carried_over_remaining,
@@ -309,7 +377,7 @@ function fixViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summar
                 SELECT COALESCE(SUM(l.amount_used), 0)
                 FROM budget_usage_logs l
                 JOIN budget_expenses e ON l.expense_id = e.id
-                WHERE e.user_id = u.id
+                WHERE e.user_id = u.upid
                   AND l.created_at >= $fyStart
                   AND l.deleted_at IS NULL
                   AND e.deleted_at IS NULL
@@ -319,7 +387,7 @@ function fixViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summar
             COALESCE(SUM(CASE WHEN br.expire_date >= CURDATE()
                 THEN GREATEST(br.amount - COALESCE(usage_summary.spent_total, 0), 0) ELSE 0 END), 0) AS remaining_balance
         FROM users u
-        LEFT JOIN budget_received br ON u.id = br.user_id AND br.deleted_at IS NULL
+        LEFT JOIN budget_received br ON u.upid = br.user_id AND br.deleted_at IS NULL
         LEFT JOIN (
             SELECT
                 approval_id,
@@ -331,7 +399,7 @@ function fixViewHardcodedFiscalYearDate($conn, $viewName = 'v_user_budget_summar
             GROUP BY approval_id
         ) usage_summary ON br.id = usage_summary.approval_id
         WHERE u.deleted_at IS NULL
-        GROUP BY u.id";
+        GROUP BY u.upid";
 
     if (!mysqli_query($conn, $sql)) {
         throw new Exception("แก้ไข VIEW `$viewName` ไม่สำเร็จ: " . mysqli_error($conn));
@@ -447,6 +515,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $alertMessage = "<div class='alert alert-danger'>❌ คุณไม่มีสิทธิ์ดำเนินการนี้</div>";
+        }
+    }
+
+    if (isset($_POST['action_repair_overallocated_logs'])) {
+        try {
+            $repair = repairOverallocatedExpenseLogs($conn);
+            $alertMessage = "<div class='alert alert-success'>แก้ยอดตัดซ้ำแล้ว " . number_format($repair['repaired'])
+                . " รายการ ลดส่วนที่ตัดเกิน " . number_format($repair['removed'], 2) . " บาท</div>";
+        } catch (Throwable $e) {
+            $alertMessage = "<div class='alert alert-danger'>แก้ยอดตัดซ้ำไม่สำเร็จ: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     }
 
@@ -720,7 +798,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                 <tr>
                     <th>โครงสร้างที่ 3</th>
                     <td>
-                        <b>VIEW:</b> <code>v_user_budget_summary</code> (ใช้คำนวณยอดคงเหลือ/ยกยอด/ใช้ไปปีนี้ในหน้าโปรไฟล์)<br>
+                        <b>VIEW:</b> <code>v_user_budget_summary</code> (ข้อมูลสรุปงบประมาณสำหรับระบบที่ยังอ้างอิง VIEW นี้)<br>
                         <span style="color:#666;">ฝังวันที่เริ่มต้นปีงบไว้ตรงๆ ในตัว VIEW แทนที่จะคำนวณจากวันปัจจุบัน ทำให้ยอดผิดทันทีที่ข้ามปีงบ (1 ต.ค.) ถ้าไม่มีใครมาแก้ด้วยมือทุกปี</span>
                         <?php if ($viewFyCheck['hardcoded']): ?>
                             <br><span style="color:#d63384; font-weight:bold;">พบวันที่ฝังตายตัว: <?= htmlspecialchars(implode(', ', $viewFyCheck['matches'])) ?></span>
@@ -767,6 +845,7 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
 
             // 3. สถิติการผูกยอดตัดกับงบรับ
             $usageRepairStats = getBudgetUsageRepairStats($conn);
+            $overallocatedStats = getOverallocatedExpenseStats($conn);
         ?>
         
         <div style="margin-top: 50px;">
@@ -780,6 +859,20 @@ $currentEvaluationLink = getSystemLink($conn, 'system_evaluation');
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <td><b>แก้ยอดตัดซ้ำเกินรายจ่าย</b></td>
+                        <td>
+                            พบ <b><?= number_format($overallocatedStats['expense_count']) ?></b> รายการ
+                            ตัดเกินรวม <b><?= number_format($overallocatedStats['excess_amount'], 2) ?></b> บาท
+                        </td>
+                        <td style="text-align: center;">
+                            <form method="POST" onsubmit="return confirm('ยืนยันแก้ usage logs ที่ตัดเกินยอดรายจ่ายหรือไม่?');" style="margin:0;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="action_repair_overallocated_logs" value="1">
+                                <button type="submit" class="btn btn-primary" <?= $overallocatedStats['expense_count'] == 0 ? 'disabled' : '' ?>>แก้ยอดตัดซ้ำ</button>
+                            </form>
+                        </td>
+                    </tr>
                     <tr>
                         <td><b>ลบข้อมูลที่ถูกลบแล้วแบบถาวร </b></td>
                         <td>

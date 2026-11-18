@@ -571,13 +571,8 @@ function addExpense($conn)
                     COALESCE((SELECT SUM(amount_used) FROM budget_usage_logs WHERE approval_id = a.id AND deleted_at IS NULL), 0) as used_so_far
                     FROM budget_received a
                     WHERE a.user_id = '$user_id'
-                    AND deleted_at IS NULL
-                    AND CURDATE() <=
-                        CASE
-                            WHEN MONTH(a.approved_date) >= 10
-                            THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
-                            ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
-                        END
+                    AND a.deleted_at IS NULL
+                    AND a.expire_date >= CURDATE()
                     HAVING (a.amount - used_so_far) > 0
                     ORDER BY a.approved_date ASC";
 
@@ -663,12 +658,7 @@ function getAvailableBudgetForUser($conn, $user_id)
                 FROM budget_received a
                 WHERE a.user_id = '$user_id'
                 AND a.deleted_at IS NULL
-                AND CURDATE() <=
-                    CASE
-                        WHEN MONTH(a.approved_date) >= 10
-                        THEN CONCAT(YEAR(a.approved_date) + 3, '-09-30')
-                        ELSE CONCAT(YEAR(a.approved_date) + 2, '-09-30')
-                    END
+                AND a.expire_date >= CURDATE()
             ) available_budget";
 
     $res = mysqli_query($conn, $sql);
@@ -760,6 +750,49 @@ function allocatePendingExpenseUsageToApproval($conn, $user_id, $approval_id, $a
     return $allocated_total;
 }
 
+function reallocateExpenseUsage($conn, $expense_id, $user_id, $amount, $approved_date)
+{
+    $expense_id = (int)$expense_id;
+    $user_id = (int)$user_id;
+    $amount_to_cut = (float)$amount;
+    $safe_date = mysqli_real_escape_string($conn, $approved_date);
+
+    if (!mysqli_query($conn, "UPDATE budget_usage_logs SET deleted_at = NOW() WHERE expense_id = $expense_id AND deleted_at IS NULL")) {
+        throw new Exception("ยกเลิกการตัดยอดเดิมไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    $sql = "SELECT a.id, a.amount,
+                   COALESCE((SELECT SUM(l.amount_used) FROM budget_usage_logs l
+                             WHERE l.approval_id = a.id AND l.deleted_at IS NULL), 0) AS used_so_far
+            FROM budget_received a
+            WHERE a.user_id = $user_id
+              AND a.deleted_at IS NULL
+              AND a.expire_date >= CURDATE()
+            ORDER BY a.approved_date ASC, a.id ASC";
+    $receipts = mysqli_query($conn, $sql);
+    if (!$receipts) {
+        throw new Exception("ตรวจสอบยอดรับไม่สำเร็จ: " . mysqli_error($conn));
+    }
+
+    while ($receipt = mysqli_fetch_assoc($receipts)) {
+        if ($amount_to_cut <= 0.0001) break;
+        $available = max(0, (float)$receipt['amount'] - (float)$receipt['used_so_far']);
+        if ($available <= 0) continue;
+
+        $cut = min($amount_to_cut, $available);
+        $approval_id = (int)$receipt['id'];
+        if (!mysqli_query($conn, "INSERT INTO budget_usage_logs (expense_id, approval_id, amount_used, created_at)
+                                  VALUES ($expense_id, $approval_id, $cut, '$safe_date')")) {
+            throw new Exception("บันทึกการตัดยอดใหม่ไม่สำเร็จ: " . mysqli_error($conn));
+        }
+        $amount_to_cut -= $cut;
+    }
+
+    if ($amount_to_cut > 0.0001) {
+        throw new Exception("ยอดรับคงเหลือไม่พอสำหรับแก้ไขรายจ่าย ขาดอีก " . number_format($amount_to_cut, 2) . " บาท");
+    }
+}
+
 function handleEditExpense($conn)
 {
     // 1. รับค่าจาก Form
@@ -776,9 +809,9 @@ function handleEditExpense($conn)
     // ข้อมูลสำหรับ Log
     $actor_id = $_SESSION['user_id'] ?? 0;
 
-    if ($id <= 0) {
+    if ($id <= 0 || $amount <= 0) {
         $redirect_url = "index.php?page=$page" . ($tab ? "&tab=$tab" : "") . ($profile_id ? "&id=$profile_id" : "");
-        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("ไม่พบรหัสรายการที่ต้องการแก้ไข"));
+        header("Location: $redirect_url&status=error&toastMsg=" . urlencode("รหัสรายการหรือจำนวนเงินไม่ถูกต้อง"));
         exit;
     }
 
@@ -873,24 +906,10 @@ function handleEditExpense($conn)
         $stmt->close();
 
         // ---------------------------------------------------------
-        // 💾 STEP 4.2: อัปเดตตารางลูก (budget_usage_logs) ถ้ามีการเปลี่ยนยอดเงิน
+        // 💾 STEP 4.2: จัดสรรยอดตัดใหม่เมื่อยอดเงินหรือวันที่เปลี่ยน
         // ---------------------------------------------------------
-        if (floatval($old_amount) != floatval($amount)) {
-            // **จุดที่แก้:** SQL เดิมของคุณเขียนผิดชื่อตาราง (UPDATE budget_expenses SET ... WHERE expense_id)
-            // ต้องเป็น budget_usage_logs ครับ
-            $sql_update_log = "UPDATE budget_usage_logs 
-                               SET amount_used = ?
-                               WHERE expense_id = ?";
-
-            $stmt_uel = $conn->prepare($sql_update_log);
-            if (!$stmt_uel) throw new Exception("Prepare Statement Failed (Usage Logs): " . $conn->error);
-
-            $stmt_uel->bind_param("di", $amount, $id); // d = double/decimal
-
-            if (!$stmt_uel->execute()) {
-                throw new Exception("Execute Failed (Usage Logs): " . $stmt_uel->error);
-            }
-            $stmt_uel->close();
+        if (floatval($old_amount) != floatval($amount) || $old_date != $approved_date) {
+            reallocateExpenseUsage($conn, $id, (int)$target_user_id, $amount, $approved_date);
         }
 
         // ---------------------------------------------------------

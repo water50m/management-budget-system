@@ -11,14 +11,11 @@ class ProfileController
         $user_id = isset($_GET['id']) ? intval($_GET['id']) : '';
         
         // 1. ดึงข้อมูลส่วนตัว (เหมือนเดิม)
-        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng,
-                            b.*
+        $sql_user = "SELECT u.*, p.*, d.thai_name AS department_name,d.id AS department_id, d.name AS department_eng
                      FROM users u
                      LEFT JOIN user_profiles p ON u.upid = p.user_id
                      LEFT JOIN departments d ON p.department_id = d.id
-                     LEFT JOIN v_user_budget_summary b ON p.user_id = b.user_id
                      WHERE u.upid = $user_id";
-        $user_info = mysqli_fetch_assoc(mysqli_query($conn, $sql_user));
         $query_result = mysqli_query($conn, $sql_user);
 
         // 1. เช็คก่อนว่า Query พังหรือไม่? (สำคัญมาก)
@@ -35,6 +32,7 @@ class ProfileController
             
             die("<h1>User Not Found</h1><br>ID ที่ค้นหา: " . $user_id);
         }
+        $user_info['remaining_balance'] = getRemainingBalance($conn, $user_id);
 
         // 2. คำนวณยอดรวมต่างๆ (เหมือนเดิม)
         $sql_total_rec = "SELECT SUM(amount) as total FROM budget_received WHERE user_id = $user_id AND deleted_at IS NULL";

@@ -104,7 +104,7 @@ function showAndSearchUsers($conn)
     $result = mysqli_query($conn, $sql);
 
     while ($row = mysqli_fetch_assoc($result)) {
-        $row['remaining_balance'] = getRemainingBalance($conn, $row['id']);
+        $row['remaining_balance'] = getRemainingBalance($conn, $row['upid']);
         $data['user_list'][] = $row;
     }
 
