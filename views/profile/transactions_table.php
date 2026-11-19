@@ -156,7 +156,7 @@ function amt_strike($formatted, $classes, $lineColorClass)
                                             </span>
                                             <?php if (!$is_carried_over_row || $net != $amount): ?>
                                                 <span class="text-[10px] text-gray-400">
-                                                    (จากยอด <?php echo number_format($amount, 0); ?>)
+                                                    (จากยอด <?php echo number_format($amount, 2); ?>)
                                                 </span>
                                             <?php endif; ?>
                                             <?php if ($show_selected_year_usage): ?>
@@ -242,11 +242,11 @@ function amt_strike($formatted, $classes, $lineColorClass)
                                     <div class="flex flex-col items-center gap-1">
                                         <?php if (!empty($is_carried_over_row)): ?>
                                             <div class="text-[10px] text-yellow-700 font-bold leading-tight whitespace-nowrap">
-                                                ยกยอดมา <?php echo number_format($net, 0); ?> บาท
+                                                ยกยอดมา <?php echo number_format($net, 2); ?> บาท
                                             </div>
                                             <?php if ($net != $amount): ?>
                                                 <div class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">
-                                                    จาก <?php echo number_format($amount, 0); ?> บาท
+                                                    จาก <?php echo number_format($amount, 2); ?> บาท
                                                 </div>
                                             <?php endif; ?>
                                         <?php else: ?>

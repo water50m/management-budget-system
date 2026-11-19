@@ -182,25 +182,21 @@ $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
                             ?>
 
                             <p class="font-bold text-gray-800 text-sm leading-tight">
-                                <?php echo number_format($total_carried, 0); ?>
+                                <?php echo number_format($total_carried, 2); ?>
                             </p>
 
-                            <div class="flex items-center gap-2 mt-0.5 text-[10px] font-medium">
+                            <div class="flex flex-col items-start gap-0.5 mt-1 text-[10px] font-medium">
 
                                 <span class="text-red-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่ใช้ไปแล้วในปีนี้">
-                                    <i class="fas fa-minus-circle text-[8px]"></i>ตัด <?php echo number_format($used, 0); ?>
+                                    <i class="fas fa-minus-circle text-[8px]"></i>ตัด <?php echo number_format($used, 2); ?>
                                 </span>
-
-                                <span class="text-gray-300">|</span>
 
                                 <span class="text-purple-500 flex items-center gap-1 cursor-help" title="ยอดยกมาที่หมดอายุ/คืนคลังแล้วในปีนี้">
-                                    <i class="fas fa-exclamation-circle text-[8px]"></i>คืน <?php echo number_format($lapsed, 0); ?>
+                                    <i class="fas fa-exclamation-circle text-[8px]"></i>คืน <?php echo number_format($lapsed, 2); ?>
                                 </span>
 
-                                <span class="text-gray-300">|</span>
-
                                 <span class="text-blue-600 flex items-center gap-1 font-bold cursor-help" title="ยอดยกมาที่เหลือใช้ได้จริง ณ ปัจจุบัน">
-                                    <i class="fas fa-coins text-[8px]"></i>เหลือ <?php echo number_format($current_available, 0); ?>
+                                    <i class="fas fa-coins text-[8px]"></i>เหลือ <?php echo number_format($current_available, 2); ?>
                                 </span>
 
                             </div>
@@ -288,7 +284,7 @@ $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
                             onchange="htmx.trigger(this.form, 'submit')"
                             class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
 
-                            <option value="0" >
+                            <option value="0" <?php echo (int)$filters['year'] === 0 ? 'selected' : ''; ?>>
                                 <?php echo $t['all_years'] ?? 'ทุกปีงบ'; ?>
                             </option>
 
@@ -305,7 +301,7 @@ $fiscal_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
                                 <option value="<?php echo $y; ?>"
                                     class="<?php echo $current_class; ?>"
                                     <?php echo $current_title; ?>
-                                    <?php echo ($current_fiscal == $y) ? 'selected' : ''; ?>>
+                                    <?php echo ((int)$filters['year'] === (int)$y) ? 'selected' : ''; ?>>
                                     <?php echo $y ?>
                                 </option>
                             <?php endforeach; ?>

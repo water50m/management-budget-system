@@ -67,7 +67,7 @@ class ProfileController
 
         // รับค่า Filter
         $f_search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-        $f_year   = isset($_GET['year']) ? intval($_GET['year']) : ($years_list[0] ?? $current_fiscal_year);
+        $f_year   = isset($_GET['year']) ? intval($_GET['year']) : $current_fiscal_year;
         $f_cat    = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
         $f_min    = isset($_GET['min_amount']) && $_GET['min_amount'] != '' ? floatval($_GET['min_amount']) : '';
         $f_max    = isset($_GET['max_amount']) && $_GET['max_amount'] != '' ? floatval($_GET['max_amount']) : '';
